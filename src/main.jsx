@@ -25,6 +25,11 @@ import {
   FileText,
   WalletCards,
   KeyRound,
+  Bot,
+  Send,
+  ChevronRight,
+  LockKeyhole,
+  CalendarCheck,
 } from "lucide-react";
 import "./styles.css";
 
@@ -34,8 +39,13 @@ const BUSINESS_ADDRESS = "42 Bell Road, Hounslow TW3 3PB, UK";
 const BUSINESS_PHONE = "+44 7845 589543";
 const BUSINESS_EMAIL = "info@velairecars.co.uk";
 
-// Replace this later with your real Stripe Payment Link
-const RESERVE_PAYMENT_LINK = "https://buy.stripe.com/test_replace_this_link";
+/*
+  STRIPE SETUP:
+  1. Go Stripe Dashboard > Payment Links.
+  2. Create a £99 product/payment link.
+  3. Replace this URL with your real Stripe Payment Link.
+*/
+const STRIPE_RESERVE_LINK = "https://buy.stripe.com/test_replace_this_with_your_99_reserve_link";
 
 const vehicles = [
   {
@@ -55,10 +65,10 @@ const vehicles = [
     power: "Performance EV powertrain",
     acceleration: "Approx. 0–60 mph in 3.1 seconds",
     idealFor: "Daily luxury, business trips, airport runs, content shoots and performance EV experiences.",
-    interior: "Minimal white interior, panoramic glass roof, heated seats, premium audio feel and large touchscreen cabin.",
+    interior: "Minimal white interior, panoramic glass roof, heated seats, premium audio feel and a large touchscreen cabin.",
     exterior: "Clean white exterior with a sharp modern road presence.",
     requirements: "Valid driving licence, ID verification, refundable deposit and rental approval required before handover.",
-    image: "https://images.unsplash.com/photo-1560958089-b8a1929cea89?q=80&w=1400&auto=format&fit=crop",
+    image: "https://images.unsplash.com/photo-1560958089-b8a1929cea89?q=80&w=1600&auto=format&fit=crop",
     badge: "White Interior",
   },
   {
@@ -74,14 +84,14 @@ const vehicles = [
     fuel: "Petrol",
     gearbox: "Auto",
     seats: "5 seats",
-    drivetrain: "Rear-wheel drive style performance feel",
+    drivetrain: "Rear-wheel drive performance feel",
     power: "3.0L turbocharged straight-six",
     acceleration: "Approx. 0–60 mph in 4.6 seconds",
     idealFor: "Weekend use, content shoots, performance hatch experience and premium short-term rental.",
     interior: "Driver-focused BMW cabin with M Sport details, practical hatchback layout and premium everyday usability.",
     exterior: "Black exterior with aggressive kit styling for a stronger street presence.",
     requirements: "Valid driving licence, ID verification, refundable deposit and rental approval required before handover.",
-    image: "/cars/bmw-m140i-black.jpg",
+    image: "https://images.unsplash.com/photo-1555215695-3004980ad54e?q=80&w=1600&auto=format&fit=crop",
     badge: "M Sport Kit",
   },
   {
@@ -104,7 +114,7 @@ const vehicles = [
     interior: "High seating position, luxury cabin materials, performance SUV layout and comfortable premium space.",
     exterior: "Blue SVR exterior with strong stance and high-end road presence.",
     requirements: "Valid driving licence, ID verification, refundable deposit and rental approval required before handover.",
-    image: "/cars/range-rover-svr-blue.jpg",
+    image: "https://images.unsplash.com/photo-1544636331-e26879cd4d9b?q=80&w=1600&auto=format&fit=crop",
     badge: "SVR",
   },
   {
@@ -127,7 +137,7 @@ const vehicles = [
     interior: "Commanding AMG cabin with luxury seating, premium tech and a strong executive SUV feel.",
     exterior: "Grey G-Wagon exterior with signature boxy AMG road presence.",
     requirements: "Valid driving licence, ID verification, refundable deposit and rental approval required before handover.",
-    image: "/cars/g63-grey.jpg",
+    image: "https://images.unsplash.com/photo-1617531653332-bd46c24f2068?q=80&w=1600&auto=format&fit=crop",
     badge: "AMG G-Wagon",
   },
 ];
@@ -147,14 +157,20 @@ function whatsappLink(vehicle) {
 function whatsappCallRequest(vehicle) {
   return whatsappMessage(
     vehicle
-      ? `Hi Velaire Cars, please call me about the ${vehicle.year} ${vehicle.make} ${vehicle.model}.`
+      ? `Hi Velaire Cars, please call me about renting the ${vehicle.year} ${vehicle.make} ${vehicle.model}.`
       : "Hi Velaire Cars, please call me about luxury car rental."
   );
 }
 
-function reserveLink(vehicle) {
-  const msg = `Hi Velaire Cars, I want to reserve the ${vehicle.year} ${vehicle.make} ${vehicle.model}. Please confirm availability before I pay the £99 reserve fee.`;
-  return whatsappMessage(msg);
+function reserveRequest(vehicle) {
+  return whatsappMessage(
+    `Hi Velaire Cars, I want to reserve the ${vehicle.year} ${vehicle.make} ${vehicle.model}. Please confirm availability before I pay the £99 reserve fee.`
+  );
+}
+
+function stripeReserveLink(vehicle) {
+  const details = encodeURIComponent(`${vehicle.year} ${vehicle.make} ${vehicle.model}`);
+  return `${STRIPE_RESERVE_LINK}?client_reference_id=${details}`;
 }
 
 function ButtonLink({ children, className = "", ...props }) {
@@ -208,6 +224,53 @@ function VehicleCard({ vehicle, onSelect }) {
   );
 }
 
+function BookingFlow({ vehicle }) {
+  const [step, setStep] = useState(1);
+
+  return (
+    <div className="booking-flow">
+      <div className="flow-steps">
+        {[1, 2, 3].map((item) => (
+          <button key={item} onClick={() => setStep(item)} className={step === item ? "active" : ""}>
+            {item}
+          </button>
+        ))}
+      </div>
+
+      {step === 1 && (
+        <div className="flow-panel">
+          <h4><CalendarCheck size={18} /> Step 1: Request availability</h4>
+          <p>Confirm your dates, licence status and deposit requirements before paying anything.</p>
+          <ButtonLink href={reserveRequest(vehicle)} target="_blank" rel="noreferrer" className="btn-dark full">
+            <MessageCircle size={18} /> Request Reservation
+          </ButtonLink>
+        </div>
+      )}
+
+      {step === 2 && (
+        <div className="flow-panel">
+          <h4><CreditCard size={18} /> Step 2: Pay £99 reserve</h4>
+          <p>After Velaire Cars confirms availability, pay the £99 reservation fee using Stripe.</p>
+          <ButtonLink href={stripeReserveLink(vehicle)} target="_blank" rel="noreferrer" className="btn-gold full">
+            <CreditCard size={18} /> Pay £99 Reserve
+          </ButtonLink>
+          <span className="tiny">Replace the Stripe test link in the code with your real Stripe Payment Link.</span>
+        </div>
+      )}
+
+      {step === 3 && (
+        <div className="flow-panel">
+          <h4><LockKeyhole size={18} /> Step 3: Confirmation</h4>
+          <p>Once paid, send your payment confirmation on WhatsApp. Velaire Cars will confirm collection, deposit and handover details.</p>
+          <ButtonLink href={whatsappMessage(`Hi Velaire Cars, I have paid the £99 reserve for the ${vehicle.year} ${vehicle.make} ${vehicle.model}. Please confirm my booking.`)} target="_blank" rel="noreferrer" className="btn-dark full">
+            <MessageCircle size={18} /> Send Payment Confirmation
+          </ButtonLink>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function DetailModal({ vehicle, onClose }) {
   if (!vehicle) return null;
 
@@ -226,9 +289,7 @@ function DetailModal({ vehicle, onClose }) {
     <AnimatePresence>
       <motion.div className="modal-backdrop" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
         <motion.section className="detail-modal" initial={{ opacity: 0, y: 30, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 20, scale: 0.98 }}>
-          <button className="modal-close" onClick={onClose} aria-label="Close">
-            <X size={22} />
-          </button>
+          <button className="modal-close" onClick={onClose} aria-label="Close"><X size={22} /></button>
 
           <div className="detail-hero">
             <img src={vehicle.image} alt={`${vehicle.make} ${vehicle.model}`} />
@@ -246,7 +307,7 @@ function DetailModal({ vehicle, onClose }) {
               <div className="section-kicker">Vehicle Overview</div>
               <h3>Ultra-detailed rental profile</h3>
               <p className="detail-copy">
-                The {vehicle.year} {vehicle.make} {vehicle.model} is available through Velaire Cars for premium rental enquiries in West London. This vehicle is positioned for customers who want strong road presence, a high-end experience and a simple direct booking process through WhatsApp.
+                The {vehicle.year} {vehicle.make} {vehicle.model} is available through Velaire Cars for premium rental enquiries in West London. This vehicle is positioned for customers who want road presence, a high-end experience and a simple direct booking process through WhatsApp.
               </p>
 
               <div className="detail-grid">
@@ -259,26 +320,10 @@ function DetailModal({ vehicle, onClose }) {
               </div>
 
               <div className="info-blocks">
-                <div>
-                  <Sparkles size={22} />
-                  <h4>Best for</h4>
-                  <p>{vehicle.idealFor}</p>
-                </div>
-                <div>
-                  <Users size={22} />
-                  <h4>Interior</h4>
-                  <p>{vehicle.interior}</p>
-                </div>
-                <div>
-                  <Car size={22} />
-                  <h4>Exterior</h4>
-                  <p>{vehicle.exterior}</p>
-                </div>
-                <div>
-                  <BadgeCheck size={22} />
-                  <h4>Rental checks</h4>
-                  <p>{vehicle.requirements}</p>
-                </div>
+                <div><Sparkles size={22} /><h4>Best for</h4><p>{vehicle.idealFor}</p></div>
+                <div><Users size={22} /><h4>Interior</h4><p>{vehicle.interior}</p></div>
+                <div><Car size={22} /><h4>Exterior</h4><p>{vehicle.exterior}</p></div>
+                <div><BadgeCheck size={22} /><h4>Rental checks</h4><p>{vehicle.requirements}</p></div>
               </div>
             </div>
 
@@ -286,39 +331,18 @@ function DetailModal({ vehicle, onClose }) {
               <div className="reserve-card">
                 <p className="eyebrow small">Reservation</p>
                 <h3>Reserve this vehicle</h3>
-                <p className="muted">
-                  Pay only after availability is confirmed. Message first so Velaire Cars can confirm dates, deposit and rental requirements.
-                </p>
-
-                <div className="reserve-price">
-                  <span>Reservation fee</span>
-                  <strong>£99</strong>
-                </div>
-
-                <ButtonLink href={reserveLink(vehicle)} target="_blank" rel="noreferrer" className="btn-dark full">
-                  <WalletCards size={18} /> Request £99 Reserve
-                </ButtonLink>
-
-                <ButtonLink href={whatsappLink(vehicle)} target="_blank" rel="noreferrer" className="btn-soft full">
-                  <MessageCircle size={18} /> WhatsApp Enquiry
-                </ButtonLink>
-
-                <ButtonLink href={whatsappCallRequest(vehicle)} target="_blank" rel="noreferrer" className="btn-soft full">
-                  <MessageCircle size={18} /> WhatsApp Call Request
-                </ButtonLink>
-
-                <a href={RESERVE_PAYMENT_LINK} target="_blank" rel="noreferrer" className="stripe-note">
-                  Stripe payment link placeholder
-                </a>
+                <p className="muted">Confirm availability first. Then use the secure Stripe reserve link after Velaire Cars approves the booking.</p>
+                <div className="reserve-price"><span>Reserve fee</span><strong>£99</strong></div>
+                <BookingFlow vehicle={vehicle} />
               </div>
 
               <div className="process-card">
-                <h4><KeyRound size={18} /> Rental process</h4>
+                <h4><KeyRound size={18} /> Customer options</h4>
                 <ul>
-                  <li><FileText size={16} /> Send enquiry</li>
-                  <li><BadgeCheck size={16} /> Confirm dates and checks</li>
-                  <li><CreditCard size={16} /> Pay reserve/deposit</li>
-                  <li><Car size={16} /> Collect vehicle</li>
+                  <li><MessageCircle size={16} /> WhatsApp message</li>
+                  <li><MessageCircle size={16} /> WhatsApp call request</li>
+                  <li><CreditCard size={16} /> £99 reserve payment</li>
+                  <li><Car size={16} /> Vehicle handover after checks</li>
                 </ul>
               </div>
             </aside>
@@ -326,6 +350,98 @@ function DetailModal({ vehicle, onClose }) {
         </motion.section>
       </motion.div>
     </AnimatePresence>
+  );
+}
+
+function ChatBot() {
+  const [open, setOpen] = useState(false);
+  const [messages, setMessages] = useState([
+    { from: "bot", text: "Hi, I’m the Velaire assistant. Ask about rental requirements, deposits, availability, payments or the fleet." },
+  ]);
+  const [input, setInput] = useState("");
+
+  const getReply = (text) => {
+    const q = text.toLowerCase();
+
+    if (q.includes("price") || q.includes("cost") || q.includes("rate")) {
+      return "Rental rates depend on the vehicle, dates, duration and checks. Message Velaire Cars on WhatsApp with the car and dates for a fast quote.";
+    }
+    if (q.includes("deposit")) {
+      return "A refundable deposit may be required before handover. The amount depends on the vehicle and rental approval checks.";
+    }
+    if (q.includes("licence") || q.includes("license") || q.includes("id")) {
+      return "Customers usually need a valid driving licence, ID verification and approval before handover.";
+    }
+    if (q.includes("tesla")) {
+      return "The Tesla Model 3 Performance is a white 2020 model with white interior. It’s ideal for electric performance and premium daily rental.";
+    }
+    if (q.includes("bmw") || q.includes("m140")) {
+      return "The BMW M140i M Sport is a 2019 black performance hatch with kit styling. It’s best for customers wanting a compact performance car.";
+    }
+    if (q.includes("range") || q.includes("svr")) {
+      return "The 2020 Range Rover SVR is a luxury performance SUV with major road presence, ideal for weekends, events and executive use.";
+    }
+    if (q.includes("g63") || q.includes("mercedes") || q.includes("amg")) {
+      return "The 2021 Mercedes-Benz G63 AMG is a grey luxury SUV, ideal for premium events, VIP travel and high-impact arrivals.";
+    }
+    if (q.includes("pay") || q.includes("stripe") || q.includes("reserve")) {
+      return "You can request availability first, then use the £99 Stripe reserve option after Velaire Cars confirms your booking.";
+    }
+    if (q.includes("where") || q.includes("location") || q.includes("address")) {
+      return "Velaire Cars is based at 42 Bell Road, Hounslow TW3 3PB, UK.";
+    }
+
+    return "Best move: send your car choice and rental dates on WhatsApp, and Velaire Cars will confirm availability, price, deposit and requirements.";
+  };
+
+  const sendMessage = () => {
+    if (!input.trim()) return;
+    const userMessage = { from: "user", text: input.trim() };
+    const botMessage = { from: "bot", text: getReply(input.trim()) };
+    setMessages((prev) => [...prev, userMessage, botMessage]);
+    setInput("");
+  };
+
+  return (
+    <>
+      <button className="chat-launcher" onClick={() => setOpen(true)}>
+        <Bot size={22} /> AI Assistant
+      </button>
+
+      <AnimatePresence>
+        {open && (
+          <motion.div className="chat-window" initial={{ opacity: 0, y: 20, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 20, scale: 0.96 }}>
+            <div className="chat-head">
+              <div><Bot size={20} /><strong>Velaire AI Assistant</strong></div>
+              <button onClick={() => setOpen(false)}><X size={18} /></button>
+            </div>
+
+            <div className="chat-messages">
+              {messages.map((msg, index) => (
+                <div key={index} className={`chat-msg ${msg.from}`}>{msg.text}</div>
+              ))}
+            </div>
+
+            <div className="quick-prompts">
+              {["Deposit?", "Tesla info", "How to reserve?", "Location?"].map((prompt) => (
+                <button key={prompt} onClick={() => {
+                  setMessages((prev) => [...prev, { from: "user", text: prompt }, { from: "bot", text: getReply(prompt) }]);
+                }}>{prompt}</button>
+              ))}
+            </div>
+
+            <div className="chat-input">
+              <input value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && sendMessage()} placeholder="Ask anything..." />
+              <button onClick={sendMessage}><Send size={17} /></button>
+            </div>
+
+            <a className="chat-whatsapp" href={whatsappLink()} target="_blank" rel="noreferrer">
+              Continue on WhatsApp <ChevronRight size={16} />
+            </a>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
   );
 }
 
@@ -370,7 +486,7 @@ function App() {
 
             <div className="nav-links">
               <a href="#stock">Fleet</a>
-              <a href="#enquiry">Enquiry</a>
+              <a href="#enquiry">Reserve</a>
               <a href="#contact">Contact</a>
             </div>
 
@@ -389,7 +505,7 @@ function App() {
               <div className="hero-pill">Luxury rental experience</div>
               <h1>Luxury car rental in West London.</h1>
               <p className="hero-copy">
-                Explore selected rental vehicles from Velaire Cars in Hounslow. Click any vehicle for full specifications, rental requirements and reservation options.
+                Explore selected rental vehicles from Velaire Cars in Hounslow. Click any vehicle for full specs, rental requirements, WhatsApp options and £99 reservation flow.
               </p>
 
               <div className="hero-actions">
@@ -405,18 +521,18 @@ function App() {
               <div className="stats">
                 <div><strong>4</strong><span>Featured Cars</span></div>
                 <div><strong>£99</strong><span>Reserve Option</span></div>
-                <div><strong>West</strong><span>London Based</span></div>
+                <div><strong>AI</strong><span>Assistant Live</span></div>
               </div>
             </motion.div>
 
-            <motion.div className="featured-card" initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.6, delay: 0.1 }}>
-              <img src="/cars/range-rover-svr-blue.jpg" alt="Featured Range Rover SVR" />
+            <motion.button className="featured-card clean-button" onClick={() => setSelectedVehicle(vehicles[2])} initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.6, delay: 0.1 }}>
+              <img src={vehicles[2].image} alt="Featured Range Rover SVR" />
               <div>
                 <span>Featured rental</span>
                 <h2>Range Rover SVR</h2>
-                <strong>Enquire<br />for rates</strong>
+                <strong>Click<br />for details</strong>
               </div>
-            </motion.div>
+            </motion.button>
           </div>
         </div>
       </section>
@@ -424,9 +540,9 @@ function App() {
       <section className="container feature-row">
         {[
           [CalendarDays, "Flexible Rentals", "Daily, weekly and monthly rental enquiries."],
-          [CreditCard, "£99 Reserve Option", "Reservation request after availability confirmation."],
+          [CreditCard, "£99 Reserve Option", "Reservation flow with Stripe Payment Link."],
           [ShieldCheck, "Verified Process", "ID, licence and deposit checks before handover."],
-          [Star, "Curated Fleet", "Luxury, performance and prestige rental vehicles."],
+          [Bot, "AI Assistant", "Answers key questions and routes leads to WhatsApp."],
         ].map(([Icon, title, text]) => (
           <div className="feature-card" key={title}>
             <Icon size={26} />
@@ -441,7 +557,7 @@ function App() {
           <div>
             <p className="eyebrow">Our Fleet</p>
             <h2>Luxury vehicles available for rental</h2>
-            <p>Click any vehicle image or title to open full specifications and reservation options.</p>
+            <p>Click any vehicle image or title to open full specifications, customer options and reservation flow.</p>
           </div>
 
           <div className="filters">
@@ -467,20 +583,20 @@ function App() {
       <section id="enquiry" className="enquiry">
         <div className="container enquiry-grid">
           <div>
-            <p className="eyebrow">Enquiry</p>
-            <h2>Request availability today.</h2>
+            <p className="eyebrow">Booking Flow</p>
+            <h2>Request availability, reserve, then confirm.</h2>
             <p>
-              Message Velaire Cars directly to confirm dates, requirements, deposits and reservation options before payment.
+              Keep it premium and controlled: customers enquire first, Velaire Cars confirms availability, then the customer pays the £99 reservation fee using Stripe.
             </p>
             <div className="check-list">
-              {["Direct WhatsApp enquiries", "Reservation request before payment", "ID and licence verification", "West London collection"].map((text) => (
+              {["WhatsApp-first lead handling", "£99 Stripe reservation placeholder", "Payment confirmation via WhatsApp", "ID and licence verification before handover"].map((text) => (
                 <div key={text}><CheckCircle2 size={18} />{text}</div>
               ))}
             </div>
           </div>
 
           <div className="enquiry-card">
-            <h3>Fast rental enquiry</h3>
+            <h3>Start a booking</h3>
             <p>Choose WhatsApp message or request a callback through WhatsApp.</p>
             <ButtonLink href={whatsappLink()} target="_blank" rel="noreferrer" className="btn-dark full">
               <MessageCircle size={18} /> WhatsApp Message
@@ -488,10 +604,10 @@ function App() {
             <ButtonLink href={whatsappCallRequest()} target="_blank" rel="noreferrer" className="btn-soft full">
               <MessageCircle size={18} /> WhatsApp Call Request
             </ButtonLink>
-            <ButtonLink href={RESERVE_PAYMENT_LINK} target="_blank" rel="noreferrer" className="btn-gold full">
+            <ButtonLink href={STRIPE_RESERVE_LINK} target="_blank" rel="noreferrer" className="btn-gold full">
               <CreditCard size={18} /> Pay £99 Reserve Placeholder
             </ButtonLink>
-            <span className="tiny">Replace this later with your real Stripe Payment Link.</span>
+            <span className="tiny">Replace this with your real Stripe Payment Link before taking payments.</span>
           </div>
         </div>
       </section>
@@ -545,6 +661,7 @@ function App() {
       </footer>
 
       <DetailModal vehicle={selectedVehicle} onClose={() => setSelectedVehicle(null)} />
+      <ChatBot />
     </main>
   );
 }

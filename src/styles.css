@@ -129,6 +129,10 @@ h1 {
   background: rgba(255,255,255,.08);
   backdrop-filter: blur(18px);
   box-shadow: 0 32px 90px rgba(0,0,0,.5);
+  width: 100%;
+  color: white;
+  text-align: left;
+  cursor: pointer;
 }
 .featured-card img { height: 430px; width: 100%; object-fit: cover; border-radius: 25px; }
 .featured-card div { padding: 18px; display: flex; justify-content: space-between; align-items: end; gap: 20px; }
@@ -166,7 +170,7 @@ h1 {
 
 .vehicle-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 22px; }
 .vehicle-card { overflow: hidden; }
-.clean-button { border: 0; padding: 0; width: 100%; cursor: pointer; text-align: inherit; }
+.clean-button { border: 0; padding: 0; width: 100%; cursor: pointer; text-align: inherit; background: transparent; }
 .vehicle-image-wrap { position: relative; height: 290px; overflow: hidden; background: #141414; }
 .vehicle-image { width: 100%; height: 100%; object-fit: cover; transition: .55s ease; display: block; }
 .vehicle-card:hover .vehicle-image { transform: scale(1.045); }
@@ -263,7 +267,7 @@ footer { border-top: 1px solid var(--line); padding: 45px 0 100px; }
 .detail-overlay h2 { margin: 8px 0; font-size: clamp(38px, 6vw, 74px); line-height: .95; letter-spacing: -.06em; text-transform: uppercase; }
 .detail-overlay p { color: rgba(255,255,255,.76); max-width: 640px; line-height: 1.6; }
 
-.detail-content { display: grid; grid-template-columns: 1fr 340px; gap: 26px; padding: 34px; }
+.detail-content { display: grid; grid-template-columns: 1fr 360px; gap: 26px; padding: 34px; }
 .section-kicker { color: var(--gold); text-transform: uppercase; letter-spacing: .22em; font-size: 12px; font-weight: 1000; }
 .detail-main h3 { font-size: 36px; margin: 10px 0; letter-spacing: -.04em; }
 .detail-copy { color: var(--muted); line-height: 1.8; }
@@ -282,11 +286,122 @@ footer { border-top: 1px solid var(--line); padding: 45px 0 100px; }
 .reserve-price { display: flex; justify-content: space-between; align-items: center; border: 1px solid var(--line); border-radius: 20px; padding: 18px; margin: 18px 0; }
 .reserve-price span { color: var(--muted); }
 .reserve-price strong { font-size: 32px; color: var(--gold2); }
-.reserve-card .btn { margin-top: 10px; }
-.stripe-note { display: block; color: var(--gold2); text-align: center; margin-top: 14px; font-size: 12px; }
+
+.booking-flow { margin-top: 14px; }
+.flow-steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
+.flow-steps button {
+  height: 38px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  color: white;
+  background: rgba(255,255,255,.06);
+  font-weight: 1000;
+  cursor: pointer;
+}
+.flow-steps button.active { background: var(--gold); color: #111; }
+.flow-panel { border: 1px solid var(--line); border-radius: 20px; padding: 16px; background: rgba(255,255,255,.045); }
+.flow-panel h4 { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; }
+.flow-panel p { color: var(--muted); line-height: 1.6; }
+
 .process-card h4 { display: flex; align-items: center; gap: 8px; margin-top: 0; }
 .process-card ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 12px; color: var(--muted); }
 .process-card li { display: flex; gap: 9px; align-items: center; }
+
+.chat-launcher {
+  position: fixed;
+  right: 18px;
+  bottom: 94px;
+  z-index: 70;
+  border: 1px solid rgba(216,176,106,.28);
+  background: linear-gradient(135deg, rgba(216,176,106,.95), rgba(243,208,140,.95));
+  color: #111;
+  border-radius: 999px;
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-weight: 1000;
+  box-shadow: 0 16px 45px rgba(0,0,0,.42);
+  cursor: pointer;
+}
+.chat-window {
+  position: fixed;
+  right: 18px;
+  bottom: 152px;
+  width: min(390px, calc(100vw - 28px));
+  height: 560px;
+  z-index: 90;
+  background: rgba(8,8,9,.96);
+  border: 1px solid var(--line);
+  border-radius: 28px;
+  overflow: hidden;
+  box-shadow: 0 30px 90px rgba(0,0,0,.65);
+  backdrop-filter: blur(18px);
+  display: flex;
+  flex-direction: column;
+}
+.chat-head {
+  padding: 16px;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.chat-head div { display: flex; align-items: center; gap: 9px; }
+.chat-head svg { color: var(--gold); }
+.chat-head button { background: transparent; color: white; border: 0; cursor: pointer; }
+.chat-messages { flex: 1; padding: 16px; display: flex; flex-direction: column; gap: 10px; overflow-y: auto; }
+.chat-msg {
+  max-width: 84%;
+  padding: 12px 13px;
+  border-radius: 16px;
+  line-height: 1.45;
+  font-size: 14px;
+}
+.chat-msg.bot { background: rgba(255,255,255,.08); color: rgba(255,255,255,.86); align-self: flex-start; }
+.chat-msg.user { background: var(--gold); color: #111; align-self: flex-end; font-weight: 800; }
+.quick-prompts { display: flex; gap: 7px; flex-wrap: wrap; padding: 0 14px 12px; }
+.quick-prompts button {
+  border: 1px solid var(--line);
+  background: rgba(255,255,255,.06);
+  color: white;
+  border-radius: 999px;
+  padding: 7px 10px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.chat-input { display: flex; gap: 8px; padding: 14px; border-top: 1px solid var(--line); }
+.chat-input input {
+  flex: 1;
+  background: rgba(255,255,255,.08);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 0 13px;
+  color: white;
+  outline: 0;
+}
+.chat-input button {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  border: 0;
+  background: var(--gold);
+  color: #111;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+.chat-whatsapp {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 13px;
+  background: rgba(255,255,255,.06);
+  border-top: 1px solid var(--line);
+  color: var(--gold2);
+  font-weight: 900;
+}
 
 @media (max-width: 900px) {
   .nav-links, .nav-actions, .featured-card { display: none; }
@@ -302,4 +417,6 @@ footer { border-top: 1px solid var(--line); padding: 45px 0 100px; }
   .floating-contact { width: calc(100% - 24px); }
   .detail-hero { height: 330px; }
   .detail-content { padding: 18px; }
+  .chat-launcher { right: 12px; bottom: 92px; padding: 12px 14px; }
+  .chat-window { right: 12px; bottom: 145px; height: 520px; }
 }
