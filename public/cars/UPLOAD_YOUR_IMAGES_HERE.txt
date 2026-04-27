@@ -1,0 +1,6 @@
+Upload car images here with these exact names:
+bmw-m140i-black.jpg
+range-rover-svr-blue.jpg
+g63-grey.jpg
+
+Tesla image is using the online image you liked, so no Tesla upload is required unless you want your own.
