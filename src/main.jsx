@@ -4,8 +4,8 @@ import { createRoot } from "react-dom/client";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Car, CalendarDays, ShieldCheck, MessageCircle, Search, Gauge, Fuel, Settings,
-  CreditCard, Star, MapPin, Mail, ArrowRight, Clock, CheckCircle2, X, Sparkles,
-  Users, BadgeCheck, FileText, WalletCards, KeyRound, Bot, Send, ChevronRight,
+  CreditCard, MapPin, Mail, ArrowRight, Clock, CheckCircle2, X, Sparkles,
+  Users, BadgeCheck, WalletCards, KeyRound, Bot, Send, ChevronRight,
   LockKeyhole, CalendarCheck
 } from "lucide-react";
 import "./styles.css";
@@ -16,7 +16,7 @@ const BUSINESS_ADDRESS = "42 Bell Road, Hounslow TW3 3PB, UK";
 const BUSINESS_PHONE = "+44 7845 589543";
 const BUSINESS_EMAIL = "info@velairecars.co.uk";
 
-// Replace with your real Stripe £99 Payment Link when ready.
+// Replace with your live Stripe £99 Payment Link when ready.
 const STRIPE_RESERVE_LINK = "https://buy.stripe.com/test_replace_this_with_your_99_reserve_link";
 
 const vehicles = [
@@ -40,7 +40,7 @@ const vehicles = [
     interior: "Minimal white interior, panoramic glass roof, heated seats, premium audio feel and large touchscreen cabin.",
     exterior: "White exterior with a sharp modern road presence.",
     requirements: "Valid driving licence, ID verification, refundable deposit and rental approval required before handover.",
-    image: "/cars/tesla-model-3-white.jpg",
+    image: "https://images.unsplash.com/photo-1560958089-b8a1929cea89?q=80&w=1600&auto=format&fit=crop",
     badge: "White Interior",
   },
   {
@@ -51,7 +51,7 @@ const vehicles = [
     year: 2019,
     colour: "Black exterior with kit",
     price: "Enquire for rental rates",
-    highlight: "Performance hatch with aggressive M Sport styling.",
+    highlight: "Black 5-door performance hatch with aggressive M Sport styling.",
     urgency: "High demand this week",
     fuel: "Petrol",
     gearbox: "Auto",
@@ -63,7 +63,7 @@ const vehicles = [
     interior: "Driver-focused BMW cabin with M Sport details, practical hatchback layout and premium everyday usability.",
     exterior: "Black 5-door M Sport body with aggressive kit styling.",
     requirements: "Valid driving licence, ID verification, refundable deposit and rental approval required before handover.",
-    image: "/cars/bmw-m140i-black-2019.jpg",
+    image: "https://f7432d8eadcf865aa9d9-9c672a3a4ecaaacdf2fee3b3e6fd2716.ssl.cf3.rackcdn.com/C2907/U1717/IMG_39100-large.jpg",
     badge: "M Sport Kit",
   },
   {
@@ -72,9 +72,9 @@ const vehicles = [
     make: "Range Rover",
     model: "SVR",
     year: 2020,
-    colour: "Blue exterior / black bonnet decal",
+    colour: "Blue exterior / black bonnet",
     price: "Enquire for rental rates",
-    highlight: "Luxury performance SUV with serious road presence.",
+    highlight: "Blue SVR facelift look with black bonnet styling and huge road presence.",
     urgency: "Weekend availability",
     fuel: "Petrol",
     gearbox: "Auto",
@@ -84,9 +84,9 @@ const vehicles = [
     acceleration: "Approx. 0–60 mph in 4.3 seconds",
     idealFor: "Premium events, weddings, weekends, executive use, airport transfers and luxury SUV presence.",
     interior: "High seating position, luxury cabin materials, performance SUV layout and comfortable premium space.",
-    exterior: "Blue SVR facelift look with black bonnet styling.",
+    exterior: "Blue SVR with black bonnet/carbon-style bonnet look and gloss black detailing.",
     requirements: "Valid driving licence, ID verification, refundable deposit and rental approval required before handover.",
-    image: "/cars/range-rover-svr-blue-2020.jpg",
+    image: "https://img.pistonheads.com/LargeSize/land-rover/range-rover-sport/5-0-p575-v8-svr-auto-4wd-euro-6-s-s-5dr/land-rover-range-rover-sport-5-0-p575-v8-svr-auto-4wd-euro-6-s-s-5dr-1390024492-1.jpg?resize=1440",
     badge: "SVR",
   },
   {
@@ -97,7 +97,7 @@ const vehicles = [
     year: 2020,
     colour: "Grey exterior",
     price: "Enquire for rental rates",
-    highlight: "Iconic AMG luxury SUV for premium occasions.",
+    highlight: "Grey AMG G-Wagon for premium occasions and high-impact arrivals.",
     urgency: "Limited dates",
     fuel: "Petrol",
     gearbox: "Auto",
@@ -109,7 +109,7 @@ const vehicles = [
     interior: "Commanding AMG cabin with luxury seating, premium tech and a strong executive SUV feel.",
     exterior: "Grey G-Wagon exterior with signature AMG road presence.",
     requirements: "Valid driving licence, ID verification, refundable deposit and rental approval required before handover.",
-    image: "/cars/g63-amg-grey-2020.jpg",
+    image: "https://images.clickdealer.co.uk/vehicles/5490/5490594/large1/176924137.jpg",
     badge: "AMG G-Wagon",
   },
 ];
@@ -338,7 +338,7 @@ function ChatBot() {
     if (q.includes("licence") || q.includes("license") || q.includes("id")) return "Customers usually need a valid driving licence, ID verification and approval before handover.";
     if (q.includes("tesla")) return "The Tesla Model 3 Performance is a white 2020 model with white interior. It’s ideal for electric performance and premium daily rental.";
     if (q.includes("bmw") || q.includes("m140")) return "The BMW M140i M Sport is a 2019 black 5-door performance hatch with kit styling.";
-    if (q.includes("range") || q.includes("svr")) return "The 2020 Range Rover SVR is a blue luxury performance SUV with major road presence.";
+    if (q.includes("range") || q.includes("svr")) return "The 2020 Range Rover SVR is a blue luxury performance SUV with a black bonnet/carbon-style bonnet look.";
     if (q.includes("g63") || q.includes("mercedes") || q.includes("amg")) return "The 2020 Mercedes-Benz G63 AMG is a grey luxury SUV, ideal for premium events, VIP travel and high-impact arrivals.";
     if (q.includes("pay") || q.includes("stripe") || q.includes("reserve")) return "You can request availability first, then use the £99 Stripe reserve option after Velaire Cars confirms your booking.";
     if (q.includes("where") || q.includes("location") || q.includes("address")) return "Velaire Cars is based at 42 Bell Road, Hounslow TW3 3PB, UK.";
@@ -421,11 +421,7 @@ function App() {
         </ButtonLink>
       </div>
 
-      <section className="hero">
-        <div className="hero-bg">
-          <img src="/cars/tesla-model-3-white.jpg" alt="Luxury Tesla car background" />
-        </div>
-
+      <section className="hero hero-clean">
         <div className="container hero-inner">
           <nav className="nav">
             <div className="brand">
