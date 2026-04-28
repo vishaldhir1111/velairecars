@@ -1,3 +1,61 @@
+import React, { useState } from “react”;
+import { createRoot } from “react-dom/client”;
+import { AnimatePresence, motion } from “framer-motion”;
+import { Heart, X, Users, Settings, Fuel } from “lucide-react”;
+import “./styles.css”;
+
+//////////////////////////////
+// SAVE SELECTED CAR
+//////////////////////////////
+function selectCar(car){
+localStorage.setItem(“selectedCar”, JSON.stringify(car))
+}
+
+//////////////////////////////
+// CARS DATA
+//////////////////////////////
+const cars = [
+{
+title:“Tesla Model 3 Performance”,
+year:“2020”,
+price:“£129”,
+seats:“5 Seats”,
+gearbox:“Automatic”,
+fuel:“Electric”,
+images:[
+“https://images.unsplash.com/photo-1560958089-b8a1929cea89?q=80&w=1600&auto=format&fit=crop”
+]
+},
+{
+title:“Range Rover SVR”,
+year:“2021”,
+price:“£299”,
+seats:“5 Seats”,
+gearbox:“Automatic”,
+fuel:“Petrol”,
+images:[
+“https://images.unsplash.com/photo-1606016159991-dfe4f2746ad5?q=80&w=1600&auto=format&fit=crop”
+]
+},
+{
+title:“BMW 530e M Sport”,
+year:“2022”,
+price:“£149”,
+seats:“5 Seats”,
+gearbox:“Automatic”,
+fuel:“Hybrid”,
+images:[
+“https://images.unsplash.com/photo-1555215695-3004980ad54e?q=80&w=1600&auto=format&fit=crop”
+]
+}
+];
+
+//////////////////////////////
+// CAR CARD
+//////////////////////////////
+function CarCard({car,onOpen}) {
+return (
+<motion.article className=“car-card” whileHover={{ y: -8 }}>
   <button 
     className="img-btn"
     onClick={()=>{
@@ -33,6 +91,18 @@
   </div>
 
 </motion.article>
+  );
+}
+
+//////////////////////////////
+// MODAL
+//////////////////////////////
+function Detail({car,onClose}) {
+if(!car) return null;
+
+return (
+<motion.div className=“overlay”>
+<motion.div className=“modal”>
       <button className="close" onClick={onClose}><X/></button>
 
       <img 
@@ -44,7 +114,7 @@
       <p className="price">{car.price}/day</p>
 
       <div className="modal-actions">
-        <a href="/booking.html" className="btn primary">
+        <a href="booking.html" className="btn primary">
           Reserve This Car
         </a>
 
@@ -60,6 +130,16 @@
     </motion.div>
   </motion.div>
 </AnimatePresence>
+  );
+}
+
+//////////////////////////////
+// MAIN APP
+//////////////////////////////
+function App(){
+const [selected,setSelected]=useState(null);
+
+return (
   {/* NAV */}
   <nav className="nav">
     <div className="logo">VELAIRE <span>CARS</span></div>
@@ -112,3 +192,7 @@
   />
 
 </main>
+  );
+}
+
+createRoot(document.getElementById(“root”)).render();
