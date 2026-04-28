@@ -4,8 +4,9 @@ import "./styles.css";
 
 function App(){
   return (
-    <main>
+    <main className="app">
 
+      {/* NAV */}
       <nav className="nav">
         <div className="logo">VELAIRE <span>CARS</span></div>
         <div className="nav-links">
@@ -16,12 +17,14 @@ function App(){
         <button className="nav-btn">Reserve Now</button>
       </nav>
 
+      {/* HERO */}
       <section className="hero">
         <div className="hero-left">
           <h1>
             DRIVE LUXURY.<br/>
             <span>LIVE EXTRAORDINARY.</span>
           </h1>
+          <p>Premium performance vehicles delivered across London.</p>
         </div>
 
         <img 
@@ -30,6 +33,7 @@ function App(){
         />
       </section>
 
+      {/* FLEET */}
       <section className="fleet">
         <h2>Our Premium Fleet</h2>
 
