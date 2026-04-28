@@ -1,22 +1,61 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <title>Success</title>
-  <style>
-    body {
-      background:#0b0b0b;
-      color:white;
-      font-family:Arial;
-      text-align:center;
-      padding:100px;
-    }
-  </style>
-</head>
-<body>
-<h1>Booking Confirmed ✅</h1>
-<p>We will contact you shortly.</p>
-<a href="/" style="display:inline-block;margin-top:30px;padding:12px 20px;background:#c89b6d;border-radius:8px;text-decoration:none;color:black;font-weight:bold;">
-  Back to Home
-</a>
-</body>
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Reservation Received | Velaire Cars</title>
+    <meta name="description" content="Your Velaire Cars reservation request has been received." />
+    <link rel="stylesheet" href="flow.css" />
+  </head>
+  <body>
+    <header class="flow-nav">
+      <a class="brand" href="/">
+        <span class="brand-mark">V</span>
+        <span>
+          <strong>Velaire Cars</strong>
+          <small>Luxury rental concierge</small>
+        </span>
+      </a>
+      <nav>
+        <a href="/">Home</a>
+        <a href="/#fleet">Fleet</a>
+      </nav>
+    </header>
+
+    <main class="success-shell">
+      <section class="success-card">
+        <p class="eyebrow">Reservation received</p>
+        <h1>Your Velaire experience is being prepared.</h1>
+        <p>
+          Thank you for choosing Velaire Cars. A concierge will review the details, confirm vehicle
+          availability and contact you with the final handover plan.
+        </p>
+
+        <div class="success-steps">
+          <div>
+            <span>01</span>
+            <strong>Review</strong>
+            <p>We confirm vehicle availability, dates and delivery requirements.</p>
+          </div>
+          <div>
+            <span>02</span>
+            <strong>Verification</strong>
+            <p>Licence, ID, deposit and insurance details are checked before release.</p>
+          </div>
+          <div>
+            <span>03</span>
+            <strong>Handover</strong>
+            <p>Your vehicle is prepared, inspected and delivered with premium presentation.</p>
+          </div>
+        </div>
+
+        <div class="success-actions">
+          <a class="primary-button" href="/">Return home</a>
+          <a class="secondary-button" href="booking.html">Reserve another vehicle</a>
+        </div>
+      </section>
+    </main>
+
+    <script type="module" src="/flow.js"></script>
+  </body>
 </html>
