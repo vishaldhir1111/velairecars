@@ -1,179 +1,132 @@
 import React from "react";
 
-const fleetCars = [
+const cars = [
   {
-    ribbon: "HIGH DEMAND\nTHIS WEEK",
-    title: "2019 BMW M140i M Sport",
-    fuel: "Petrol",
-    gearbox: "Auto",
-    seats: "5 Seats",
-    cta: "ENQUIRE FOR RENTAL RATES",
+    name: "Mercedes G63 AMG",
+    year: "2021",
+    price: "£399/day",
+    type: "SUV",
     image:
-      "https://images.unsplash.com/photo-1542362567-b07e54358753?q=80&w=1400&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?q=80&w=1600&auto=format&fit=crop",
   },
   {
-    ribbon: "WEEKEND\nAVAILABILITY",
-    title: "2020 Range Rover SVR",
-    fuel: "Petrol",
-    gearbox: "Auto",
-    seats: "5 Seats",
-    cta: "ENQUIRE FOR RENTAL RATES",
+    name: "Tesla Model 3 Performance",
+    year: "2020",
+    price: "£129/day",
+    type: "Electric",
     image:
-      "https://images.unsplash.com/photo-1606016159991-dfe4f2746ad5?q=80&w=1400&auto=format&fit=crop",
-  },
-  {
-    ribbon: "LIMITED\nDATES",
-    title: "2021 Mercedes G63 AMG",
-    fuel: "Petrol",
-    gearbox: "Auto",
-    seats: "5 Seats",
-    cta: "ENQUIRE FOR RENTAL RATES",
-    image:
-      "https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?q=80&w=1400&auto=format&fit=crop",
-  },
-  {
-    ribbon: "HIGH DEMAND\nTHIS WEEK",
-    title: "2020 Tesla Model 3 Performance",
-    fuel: "Electric",
-    gearbox: "Auto",
-    seats: "5 Seats",
-    cta: "ENQUIRE FOR RENTAL RATES",
-    image:
-      "https://images.unsplash.com/photo-1560958089-b8a1929cea89?q=80&w=1400&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1560958089-b8a1929cea89?q=80&w=1600&auto=format&fit=crop",
   },
 ];
 
-function App() {
+export default function App() {
   return (
-    <div className="site-shell">
-      <header className="topbar">
-        <div className="brand">
-          <div className="brand-mark">V</div>
-          <div className="brand-copy">
-            <div className="brand-name">VELAIRE</div>
-            <div className="brand-sub">CARS</div>
+    <div className="site">
+      <header className="header">
+        <div className="logo">
+          <div className="logo-mark">V</div>
+          <div className="logo-text">
+            <div className="logo-main">VELAIRE</div>
+            <div className="logo-sub">CARS</div>
           </div>
         </div>
 
-        <nav className="main-nav">
-          <a href="#fleet">FLEET</a>
-          <a href="#enquiry">ENQUIRY</a>
-          <a href="#about">ABOUT US</a>
-          <a href="#contact">CONTACT</a>
+        <nav className="nav">
+          <a href="#fleet">Fleet</a>
+          <a href="#about">About</a>
+          <a href="#contact">Contact</a>
         </nav>
 
-        <div className="header-actions">
-          <a className="call-chip" href="tel:+447845589543">
-            <span className="chip-icon">📞</span>
-            <span>
-              <small>Call Now</small>
-              <strong>+44 7845 589543</strong>
-            </span>
-          </a>
-          <a
-            className="whatsapp-chip"
-            href="https://wa.me/447845589543"
-            target="_blank"
-            rel="noreferrer"
-          >
-            <span className="chip-icon">◔</span>
-            <span>WhatsApp</span>
-          </a>
-        </div>
+        <a className="header-btn" href="#fleet">
+          Reserve Now
+        </a>
       </header>
 
       <main>
-        <section className="hero-panel">
-          <div className="hero-left">
+        <section className="hero">
+          <div className="hero-copy">
+            <p className="eyebrow">LUXURY CAR RENTAL</p>
             <h1>
-              LUXURY CAR
+              Minimal.
               <br />
-              RENTAL
+              <span>Luxury.</span>
             </h1>
-
-            <div className="hero-location">IN WEST LONDON</div>
-
-            <div className="hero-divider" />
-
             <p className="hero-text">
-              Premium vehicles for every occasion. Enquire on WhatsApp or call
-              us directly for availability.
+              Premium self-drive vehicles in West London. Clean design, elite
+              cars, effortless booking.
             </p>
 
-            <div className="hero-ctas">
-              <a className="btn btn-gold" href="tel:+447845589543">
-                <span className="btn-icon">📞</span>
-                CALL NOW
+            <div className="hero-actions">
+              <a className="btn btn-solid" href="#fleet">
+                Browse Fleet
               </a>
-              <a
-                className="btn btn-outline"
-                href="https://wa.me/447845589543"
-                target="_blank"
-                rel="noreferrer"
-              >
-                <span className="btn-icon">◔</span>
-                WHATSAPP
+              <a className="btn btn-outline" href="#contact">
+                Enquire
               </a>
             </div>
           </div>
 
-          <div className="hero-right">
+          <div className="hero-image-wrap">
             <img
+              className="hero-image"
               src="https://images.unsplash.com/photo-1560958089-b8a1929cea89?q=80&w=1800&auto=format&fit=crop"
-              alt="White Tesla Model 3 Performance"
+              alt="Tesla Model 3 Performance"
             />
           </div>
         </section>
 
-        <section className="fleet-heading" id="fleet">
-          <div className="section-kicker">OUR FLEET</div>
-          <h2>LUXURY VEHICLES AVAILABLE FOR RENTAL</h2>
-        </section>
+        <section className="fleet" id="fleet">
+          <div className="section-head">
+            <p className="eyebrow">OUR FLEET</p>
+            <h2>Choose Your Vehicle</h2>
+          </div>
 
-        <section className="fleet-grid">
-          {fleetCars.map((car) => (
-            <article className="fleet-card" key={car.title}>
-              <div className="fleet-ribbon">
-                {car.ribbon.split("\n").map((line) => (
-                  <span key={line}>{line}</span>
-                ))}
-              </div>
-
-              <div className="fleet-image-wrap">
-                <img src={car.image} alt={car.title} />
-              </div>
-
-              <div className="fleet-card-body">
-                <h3>{car.title}</h3>
-
-                <div className="fleet-specs">
-                  <span>⛽ {car.fuel}</span>
-                  <span>⚙ {car.gearbox}</span>
-                  <span>👤 {car.seats}</span>
+          <div className="car-grid">
+            {cars.map((car) => (
+              <article className="car-card" key={car.name}>
+                <div className="car-image-wrap">
+                  <img src={car.image} alt={car.name} />
                 </div>
 
-                <button className="fleet-link" type="button">
-                  {car.cta} <span>›</span>
-                </button>
-              </div>
-            </article>
-          ))}
+                <div className="car-body">
+                  <div className="car-topline">
+                    <span className="car-type">{car.type}</span>
+                    <span className="car-year">{car.year}</span>
+                  </div>
+
+                  <h3>{car.name}</h3>
+                  <div className="car-price">{car.price}</div>
+
+                  <button className="card-btn">View Details</button>
+                </div>
+              </article>
+            ))}
+          </div>
         </section>
 
-        <section className="bottom-cta-strip" id="enquiry">
-          <a href="tel:+447845589543">📞 Call Now: +44 7845 589543</a>
-          <span className="strip-divider" />
-          <a
-            href="https://wa.me/447845589543"
-            target="_blank"
-            rel="noreferrer"
-          >
-            ◔ WhatsApp Us
-          </a>
+        <section className="about" id="about">
+          <div className="about-card">
+            <p className="eyebrow">WHY VELAIRE</p>
+            <h2>Luxury without clutter.</h2>
+            <p>
+              A refined rental experience focused on standout vehicles, simple
+              booking and premium presentation.
+            </p>
+          </div>
         </section>
       </main>
+
+      <footer className="footer" id="contact">
+        <div>
+          <div className="footer-brand">VELAIRE CARS</div>
+          <p>West London luxury car rental.</p>
+        </div>
+
+        <div className="footer-links">
+          <a href="tel:+447845589543">+44 7845 589543</a>
+          <a href="mailto:info@velairecars.com">info@velairecars.com</a>
+        </div>
+      </footer>
     </div>
   );
 }
-
-export default App;
