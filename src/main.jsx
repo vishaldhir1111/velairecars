@@ -56,6 +56,56 @@ function App(){
 
       {/* FLEET */}
       <section className="fleet">
+  <h2>Our Premium Fleet</h2>
+
+  <div className="grid">
+
+    {[
+      {
+        title:"Range Rover SVR",
+        year:"2022",
+        price:"£299",
+        img:"https://images.unsplash.com/photo-1606016159991-dfe4f2746ad5?q=80&w=1600"
+      },
+      {
+        title:"Mercedes G63 AMG",
+        year:"2021",
+        price:"£399",
+        img:"https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?q=80&w=1600"
+      },
+      {
+        title:"BMW 530e M Sport",
+        year:"2021",
+        price:"£149",
+        img:"https://images.unsplash.com/photo-1555215695-3004980ad54e?q=80&w=1600"
+      },
+      {
+        title:"BMW X5 M Sport",
+        year:"2024",
+        price:"£199",
+        img:"https://images.unsplash.com/photo-1542362567-b07e54358753?q=80&w=1600"
+      }
+    ].map(car => (
+
+      <div className="card" key={car.title}>
+
+        <img src={car.img} />
+
+        <div className="card-body">
+          <h3>{car.title}</h3>
+          <p>{car.year}</p>
+
+          <strong>{car.price} <span>/day</span></strong>
+
+          <button>View Details</button>
+        </div>
+
+      </div>
+
+    ))}
+
+  </div>
+</section>
         <h2>Our Premium Fleet</h2>
 
         <div className="grid">
