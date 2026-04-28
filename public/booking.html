@@ -1,87 +1,139 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <title>Booking - Velaire Cars</title>
-  <style>
-    body {
-      background:#0b0b0b;
-      color:white;
-      font-family:Arial;
-      padding:40px;
-    }
-.box {
-  max-width:500px;
-  margin:auto;
-  background:#111;
-  padding:30px;
-  border-radius:12px;
-}
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Reserve | Velaire Cars</title>
+    <meta
+      name="description"
+      content="Reserve a Velaire Cars luxury vehicle with premium pickup, delivery and concierge support."
+    />
+    <link rel="stylesheet" href="flow.css" />
+  </head>
+  <body>
+    <header class="flow-nav">
+      <a class="brand" href="/">
+        <span class="brand-mark">V</span>
+        <span>
+          <strong>Velaire Cars</strong>
+          <small>Luxury rental concierge</small>
+        </span>
+      </a>
+      <nav>
+        <a href="/">Home</a>
+        <a href="/#fleet">Fleet</a>
+        <a href="login.html">Client login</a>
+      </nav>
+    </header>
 
-input, select {
-  width:100%;
-  padding:12px;
-  margin:10px 0 20px;
-  border-radius:8px;
-  border:none;
-  background:#222;
-  color:white;
-}
+    <main class="flow-shell">
+      <section class="flow-hero">
+        <p class="eyebrow">Reserve your vehicle</p>
+        <h1>Luxury booking, without the rental counter.</h1>
+        <p>
+          Select your car, choose the delivery window and confirm the details. A Velaire concierge
+          will prepare the handover around your itinerary.
+        </p>
+      </section>
 
-button {
-  width:100%;
-  padding:14px;
-  background:#c89b6d;
-  border:none;
-  border-radius:10px;
-  cursor:pointer;
-  font-weight:bold;
-}
+      <section class="flow-grid">
+        <form class="flow-panel booking-form" action="login.html">
+          <div class="step-label">Step 01 / Vehicle and schedule</div>
 
-button:hover {
-  opacity:0.9;
-}
-  </style>
-</head>
-<body>
-<div class="box">
-  <h2 id="carName">Loading...</h2>
-  <p id="carPrice"></p>
-  <input type="date" id="date">
-  <select id="time">
-    <option>10:00</option>
-    <option>12:00</option>
-    <option>14:00</option>
-    <option>16:00</option>
-  </select>
-  <input id="location" placeholder="Delivery location">
-  <button onclick="continueBooking()">Continue</button>
-</div>
-<script>
-const car = JSON.parse(localStorage.getItem("selectedCar"))
+          <label>
+            Vehicle
+            <select name="vehicle" id="vehicle-select">
+              <option value="tesla-model-3-performance">Tesla Model 3 Performance 2020</option>
+              <option value="lamborghini-urus">Lamborghini Urus 2021</option>
+              <option value="range-rover-sport-svr">Range Rover Sport SVR 2021</option>
+              <option value="bmw-m440i-convertible">BMW M440i Convertible 2022</option>
+              <option value="bmw-m140i-shadow-edition">BMW M140i Shadow Edition 2019</option>
+            </select>
+          </label>
 
-if(car){
-  document.getElementById("carName").innerText = car.title
-  document.getElementById("carPrice").innerText = car.price + " /day"
-}
+          <div class="form-pair">
+            <label>
+              Pickup date
+              <input type="date" name="pickup" id="pickup-date" required />
+            </label>
+            <label>
+              Return date
+              <input type="date" name="return" id="return-date" required />
+            </label>
+          </div>
 
-function continueBooking(){
+          <div class="form-pair">
+            <label>
+              Delivery time
+              <input type="time" name="time" value="10:00" required />
+            </label>
+            <label>
+              Rental days
+              <input type="number" name="days" id="rental-days" min="1" value="1" />
+            </label>
+          </div>
 
-  const booking = {
-    car: car,
-    date: document.getElementById("date").value,
-    time: document.getElementById("time").value,
-    location: document.getElementById("location").value,
-    status:"pending"
-  }
+          <label>
+            Pickup or delivery location
+            <input
+              type="text"
+              name="location"
+              placeholder="Mayfair, Heathrow, Manchester, hotel or venue"
+              required
+            />
+          </label>
 
-  localStorage.setItem("currentBooking", JSON.stringify(booking))
+          <label>
+            Occasion
+            <select name="occasion">
+              <option>Private hire</option>
+              <option>Business travel</option>
+              <option>Airport delivery</option>
+              <option>Wedding or event</option>
+              <option>Content or brand shoot</option>
+            </select>
+          </label>
 
-  if(!localStorage.getItem("user")){
-    window.location.href = "login.html"
-  } else {
-    window.location.href = "payment.html"
-  }
-}
-</script>
-</body>
+          <button class="primary-button full-button" type="submit">Continue to client details</button>
+          <p class="fine-print">No payment is taken on this step. Pricing and deposit are shown clearly first.</p>
+        </form>
+
+        <aside class="flow-panel summary-card">
+          <div class="summary-media">
+            <img id="vehicle-image" src="" alt="" />
+          </div>
+          <p class="eyebrow">Reservation summary</p>
+          <h2 id="vehicle-name">Tesla Model 3 Performance</h2>
+          <p id="vehicle-description"></p>
+
+          <dl class="price-list">
+            <div>
+              <dt>Daily rate</dt>
+              <dd id="daily-rate">£195</dd>
+            </div>
+            <div>
+              <dt>Reserve deposit</dt>
+              <dd id="deposit">£500</dd>
+            </div>
+            <div>
+              <dt>Estimated total</dt>
+              <dd id="estimated-total">£195</dd>
+            </div>
+          </dl>
+
+          <div class="availability">
+            <span></span>
+            Available for concierge delivery subject to final confirmation.
+          </div>
+
+          <div class="map-preview">
+            <span>Delivery preview</span>
+            <strong>London, airports and event venues</strong>
+          </div>
+        </aside>
+      </section>
+    </main>
+
+    <script type="module" src="/flow.js"></script>
+  </body>
 </html>
