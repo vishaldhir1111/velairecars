@@ -6,7 +6,7 @@ import {
   Car, CalendarDays, ShieldCheck, MessageCircle, Users, Settings, Fuel, Heart,
   Phone, MapPin, Mail, ArrowRight, X, ChevronLeft, ChevronRight, Bot, Send,
   CreditCard, CheckCircle2, Clock, LockKeyhole, Plane, BriefcaseBusiness, Gem,
-  Star, Sparkles, BadgeCheck, Search, Crown, KeyRound
+  Star, Sparkles, BadgeCheck, Search, KeyRound, Truck, Shield
 } from "lucide-react";
 import "./styles.css";
 
@@ -105,6 +105,15 @@ function Button({children, className="", ...props}){
   return <a className={`btn ${className}`} {...props}>{children}</a>;
 }
 
+function Brand(){
+  return (
+    <a href="#home" className="brand" aria-label="Velaire Cars home">
+      <span className="brand-v">V</span>
+      <div className="brand-word">VELAIRE<small>CARS</small></div>
+    </a>
+  );
+}
+
 function CarCard({car,onOpen}) {
   return (
     <motion.article className="car-card" whileHover={{ y: -8 }} transition={{ duration: 0.25 }}>
@@ -126,7 +135,7 @@ function CarCard({car,onOpen}) {
         <div className="price"><strong>{car.price}</strong><span>/day</span></div>
         <div className="actions">
           <button className="outline action-button" onClick={()=>onOpen(car)}>View Details</button>
-          <Button className="rose action-button" target="_blank" href={wa(`Hi Velaire Cars, I'm interested in renting the ${car.year} ${car.title}.`)}>WhatsApp</Button>
+          <Button className="rose action-button" target="_blank" rel="noreferrer" href={wa(`Hi Velaire Cars, I'm interested in renting the ${car.year} ${car.title}.`)}>WhatsApp</Button>
         </div>
       </div>
     </motion.article>
@@ -146,6 +155,7 @@ function Detail({car,onClose}) {
           <div className="gallery">
             <div className="main-img">
               <img src={car.images[img]} alt={car.title}/>
+              <div className="plate-overlay">VELAIRE <small>CARS</small></div>
               <button className="gal left" onClick={()=>setImg((img+car.images.length-1)%car.images.length)}><ChevronLeft/></button>
               <button className="gal right" onClick={()=>setImg((img+1)%car.images.length)}><ChevronRight/></button>
             </div>
@@ -188,9 +198,9 @@ function Detail({car,onClose}) {
                 <h3>Reserve this car</h3>
                 <p>Confirm availability first. Then reserve securely after approval.</p>
                 <div className="big-price"><span>From</span><strong>{car.price}<small>/day</small></strong></div>
-                <Button className="rose full" target="_blank" href={wa(`Hi Velaire Cars, I want to reserve the ${car.year} ${car.title}. Please confirm availability before I pay the £99 reserve fee.`)}><MessageCircle size={18}/> Request Availability</Button>
-                <Button className="outline full" target="_blank" href={STRIPE_RESERVE_LINK}><CreditCard size={18}/> Pay £99 Reserve</Button>
-                <Button className="outline full" target="_blank" href={wa(`Hi Velaire Cars, please call me about the ${car.year} ${car.title}.`)}><MessageCircle size={18}/> WhatsApp Call Request</Button>
+                <Button className="rose full" target="_blank" rel="noreferrer" href={wa(`Hi Velaire Cars, I want to reserve the ${car.year} ${car.title}. Please confirm availability before I pay the £99 reserve fee.`)}><MessageCircle size={18}/> Request Availability</Button>
+                <Button className="outline full" target="_blank" rel="noreferrer" href={STRIPE_RESERVE_LINK}><CreditCard size={18}/> Pay £99 Reserve</Button>
+                <Button className="outline full" target="_blank" rel="noreferrer" href={wa(`Hi Velaire Cars, please call me about the ${car.year} ${car.title}.`)}><MessageCircle size={18}/> WhatsApp Call Request</Button>
               </div>
 
               <div className="process-box">
@@ -240,7 +250,7 @@ function ChatBot(){
           <div className="chat-body">{messages.map((m,i)=><div key={i} className={`msg ${m.from}`}>{m.text}</div>)}</div>
           <div className="quick">{["Deposit?","Prices?","Reserve?"].map(x=><button onClick={()=>setMessages([...messages,{from:"user",text:x},{from:"bot",text:reply(x)}])} key={x}>{x}</button>)}</div>
           <div className="chat-input"><input value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&send()} placeholder="Ask anything..."/><button onClick={send}><Send size={16}/></button></div>
-          <Button className="chat-wa" target="_blank" href={wa("Hi Velaire Cars, I need help with a booking.")}>Continue on WhatsApp <ChevronRight size={15}/></Button>
+          <Button className="chat-wa" target="_blank" rel="noreferrer" href={wa("Hi Velaire Cars, I need help with a booking.")}>Continue on WhatsApp <ChevronRight size={15}/></Button>
         </div>
       )}
     </>
@@ -253,7 +263,7 @@ function App(){
   return (
     <main>
       <nav className="nav">
-        <a href="#home" className="brand"><span>V</span><div>VELAIRE<small>CARS</small></div></a>
+        <Brand />
         <div className="links">
           <a href="#home">Home</a>
           <a href="#fleet">Fleet</a>
@@ -261,7 +271,7 @@ function App(){
           <a href="#contact">Contact</a>
         </div>
         <div className="nav-actions">
-          <a href={wa("Hi Velaire Cars, please call me.")} target="_blank" rel="noreferrer"><Phone size={15}/>{BUSINESS_PHONE}</a>
+          <a href={wa("Hi Velaire Cars, please call me.")} target="_blank" rel="noreferrer" className="phone-link"><Phone size={15}/>{BUSINESS_PHONE}</a>
           <a className="reserve-btn" href="#fleet">Reserve Now <CalendarDays size={15}/></a>
         </div>
       </nav>
@@ -278,12 +288,13 @@ function App(){
           <div className="rating"><span>5.0</span><Star/><Star/><Star/><Star/><Star/><small>From 250+ reviews</small></div>
         </motion.div>
         <motion.div className="hero-img" initial={{opacity:0,scale:.96}} animate={{opacity:1,scale:1}} transition={{duration:.8,delay:.1}}>
-          <img src={cars[0].images[0]} alt="White Tesla Model 3 Performance" />
+          <img src="https://images.unsplash.com/photo-1606016159991-dfe4f2746ad5?q=80&w=1600&auto=format&fit=crop" alt="Luxury Range Rover for Velaire Cars" />
+          <div className="hero-plate">VELAIRE <small>CARS</small></div>
         </motion.div>
       </section>
 
       <section className="trust">
-        {[[Car,"Premium Fleet","2020+ luxury vehicles"],[ShieldCheck,"Fully Insured","Peace of mind"],[Clock,"Flexible Rentals","Daily, weekly, monthly"],[MapPin,"Delivery Available","We bring it to you"]].map(([Icon,a,b])=>(
+        {[[Car,"Premium Fleet","2020+ luxury vehicles"],[Shield,"Fully Insured","Peace of mind"],[Clock,"Flexible Rentals","Daily, weekly, monthly"],[Truck,"Delivery Available","We bring it to you"]].map(([Icon,a,b])=>(
           <div key={a}><Icon/><strong>{a}</strong><p>{b}</p></div>
         ))}
       </section>
@@ -318,7 +329,7 @@ function App(){
       </section>
 
       <footer id="contact">
-        <div><a className="brand"><span>V</span><div>VELAIRE<small>CARS</small></div></a><p>London’s premier luxury car rental service.</p></div>
+        <div><Brand /><p>London’s premier luxury car rental service.</p></div>
         <div><h4>Contact</h4><p><Phone size={15}/>{BUSINESS_PHONE}</p><p><Mail size={15}/>{BUSINESS_EMAIL}</p><p><MapPin size={15}/>{BUSINESS_ADDRESS}</p></div>
       </footer>
 
