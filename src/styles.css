@@ -1,28 +1,152 @@
+body {
+  margin:0;
+  background:#0b0b0b;
+  color:white;
+  font-family:Arial;
+}
+
+/* NAV */
+.nav {
+  display:flex;
+  justify-content:space-between;
+  padding:20px 50px;
+  border-bottom:1px solid #222;
+}
+
+.nav span {
+  color:#c89b6d;
+}
+
+/* HERO */
+.hero {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:80px 50px;
+}
+
+.hero-left h1 {
+  font-size:48px;
+}
+
 .hero-left span {
-  background: linear-gradient(135deg, #c89b6d, #e6c79c);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  color:#c89b6d;
+}
+
+.hero-left p {
+  color:#aaa;
+  margin-top:10px;
 }
 
 .hero-buttons {
   margin-top:20px;
   display:flex;
-  gap:15px;
+  gap:10px;
 }
 
 .btn {
   padding:12px 20px;
   border-radius:8px;
   text-decoration:none;
-  font-weight:bold;
 }
 
 .btn.primary {
-  background:linear-gradient(135deg, #c89b6d, #e6c79c);
+  background:#c89b6d;
   color:black;
 }
 
 .btn.outline {
   border:1px solid #c89b6d;
   color:#c89b6d;
+}
+
+.hero img {
+  width:420px;
+  border-radius:16px;
+}
+
+/* SEARCH */
+.search {
+  display:flex;
+  gap:10px;
+  padding:20px 50px;
+}
+
+.search input {
+  padding:10px;
+  border-radius:6px;
+  border:none;
+}
+
+.search button {
+  background:#c89b6d;
+  border:none;
+  padding:10px 20px;
+  border-radius:6px;
+}
+
+/* FLEET */
+.fleet {
+  padding:60px;
+}
+
+.grid {
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(250px,1fr));
+  gap:20px;
+}
+
+.card {
+  background:#111;
+  border-radius:12px;
+  overflow:hidden;
+}
+
+.card img {
+  width:100%;
+  height:180px;
+  object-fit:cover;
+}
+
+.card-body {
+  padding:15px;
+}
+
+.card button {
+  margin-top:10px;
+  width:100%;
+  padding:10px;
+  background:#c89b6d;
+  border:none;
+  border-radius:6px;
+}
+
+/* REVIEWS */
+.reviews {
+  padding:60px;
+  background:#0f0f0f;
+}
+
+.reviews-grid {
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+  gap:20px;
+}
+
+.review {
+  background:#111;
+  padding:20px;
+  border-radius:10px;
+}
+
+.review span {
+  color:#aaa;
+}
+
+/* FOOTER */
+.footer {
+  text-align:center;
+  padding:30px;
+  border-top:1px solid #222;
+  color:#aaa;
 }
