@@ -1,1 +1,68 @@
-<h2>Login</h2><input placeholder='Email'><button onclick="localStorage.setItem('user','test');location.href='payment.html'">Login</button>
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Login - Velaire Cars</title>
+  <style>
+    body {
+      background:#0b0b0b;
+      color:white;
+      font-family:Arial;
+      padding:40px;
+    }
+.box {
+  max-width:400px;
+  margin:auto;
+  background:#111;
+  padding:30px;
+  border-radius:12px;
+  text-align:center;
+}
+
+input {
+  width:100%;
+  padding:12px;
+  margin:10px 0 20px;
+  border-radius:8px;
+  border:none;
+  background:#222;
+  color:white;
+}
+
+button {
+  width:100%;
+  padding:14px;
+  background:#c89b6d;
+  border:none;
+  border-radius:10px;
+  cursor:pointer;
+  font-weight:bold;
+}
+
+button:hover {
+  opacity:0.9;
+}
+  </style>
+</head>
+<body>
+<div class="box">
+  <h2>Login / Create Account</h2>
+
+  <input id="email" placeholder="Email">
+  <input id="password" type="password" placeholder="Password">
+
+  <button onclick="login()">Continue</button>
+</div>
+<script>
+function login(){
+  if(!email.value || !email.value.includes("@")){
+    alert("Enter a valid email")
+    return
+  }
+
+  localStorage.setItem("user", email.value)
+
+  window.location.href = "payment.html"
+}
+</script>
+</body>
+</html>
