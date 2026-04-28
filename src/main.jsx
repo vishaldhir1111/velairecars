@@ -46,10 +46,28 @@ function App(){
       <nav style={{
         display:"flex",
         justifyContent:"space-between",
-        padding:"20px 40px"
+        alignItems:"center",
+        padding:"20px 60px",
+        borderBottom:"1px solid #222"
       }}>
-        <h2>VELAIRE <span style={{color:"#c89b6d"}}>CARS</span></h2>
-        <a href="#fleet" style={{color:"#c89b6d"}}>Reserve</a>
+        <h2 style={{letterSpacing:"2px"}}>
+          VELAIRE{" "}
+          <span style={{
+            background:"linear-gradient(135deg, #c89b6d, #e6c79c)",
+            WebkitBackgroundClip:"text",
+            WebkitTextFillColor:"transparent"
+          }}>
+            CARS
+          </span>
+        </h2>
+
+        <a href="#fleet" style={{
+          color:"#c89b6d",
+          textDecoration:"none",
+          fontWeight:"bold"
+        }}>
+          Reserve Now
+        </a>
       </nav>
 
       {/* HERO */}
@@ -57,55 +75,68 @@ function App(){
         display:"flex",
         justifyContent:"space-between",
         alignItems:"center",
-        padding:"60px 40px",
-        gap:"40px"
+        padding:"80px 60px",
+        gap:"50px"
       }}>
-        <div>
+        <div style={{maxWidth:"500px"}}>
           <h1 style={{
             fontSize:"52px",
             lineHeight:"1.1",
             letterSpacing:"-1px"
           }}>
-            Drive Luxury.<br/>Live Different.
+            Drive luxury.<br/>Live extraordinary.
           </h1>
 
-          <p style={{color:"#aaa", marginTop:"10px"}}>
-            Premium vehicles delivered across London.
+          <p style={{
+            color:"#aaa",
+            marginTop:"15px",
+            fontSize:"16px"
+          }}>
+            Premium performance vehicles across London. Delivered to your door.
           </p>
         </div>
 
         <img 
           src="https://images.unsplash.com/photo-1606016159991-dfe4f2746ad5?q=80&w=1600"
-          style={{width:"400px", borderRadius:"16px"}}
+          style={{
+            width:"420px",
+            borderRadius:"20px"
+          }}
         />
       </section>
 
       {/* FLEET */}
-      <section id="fleet" style={{padding:"40px"}}>
-        <h2>Our Premium Fleet</h2>
+      <section id="fleet" style={{padding:"60px"}}>
+        <h2 style={{marginBottom:"30px"}}>Our Premium Fleet</h2>
 
         <div style={{
           display:"grid",
-          gridTemplateColumns:"repeat(auto-fit, minmax(280px,1fr))",
-          gap:"20px",
-          marginTop:"20px"
+          gridTemplateColumns:"repeat(auto-fit, minmax(300px,1fr))",
+          gap:"30px"
         }}>
 
           {cars.map(car => (
-            <div 
+            <div
               key={car.title}
               style={{
                 background:"#111",
-                borderRadius:"16px",
+                borderRadius:"18px",
                 overflow:"hidden",
                 transition:"0.3s",
-                cursor:"pointer"
+                cursor:"pointer",
+                boxShadow:"0 0 0 rgba(0,0,0,0)"
               }}
-              onMouseEnter={(e)=> e.currentTarget.style.transform = "translateY(-8px)"}
-              onMouseLeave={(e)=> e.currentTarget.style.transform = "translateY(0)"}
+              onMouseEnter={(e)=>{
+                e.currentTarget.style.transform = "translateY(-8px)";
+                e.currentTarget.style.boxShadow = "0 15px 40px rgba(200,155,109,0.25)";
+              }}
+              onMouseLeave={(e)=>{
+                e.currentTarget.style.transform = "translateY(0)";
+                e.currentTarget.style.boxShadow = "0 0 0 rgba(0,0,0,0)";
+              }}
             >
 
-              <img 
+              <img
                 src={car.image}
                 style={{
                   width:"100%",
@@ -116,7 +147,7 @@ function App(){
 
               <div style={{padding:"20px"}}>
                 <h3 style={{marginBottom:"5px"}}>{car.title}</h3>
-                <p style={{color:"#aaa", marginBottom:"10px"}}>{car.year}</p>
+                <p style={{color:"#aaa", marginBottom:"12px"}}>{car.year}</p>
 
                 <div style={{
                   display:"flex",
@@ -125,18 +156,19 @@ function App(){
                 }}>
                   <strong>{car.price}/day</strong>
 
-                  <button 
+                  <button
                     onClick={()=>{
                       selectCar(car);
                       window.location.href = "booking.html";
                     }}
                     style={{
-                      background:"#c89b6d",
+                      background:"linear-gradient(135deg, #c89b6d, #e6c79c)",
                       border:"none",
                       padding:"10px 16px",
                       borderRadius:"10px",
                       cursor:"pointer",
-                      fontWeight:"bold"
+                      fontWeight:"bold",
+                      color:"#000"
                     }}
                   >
                     Reserve
