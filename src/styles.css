@@ -1,122 +1,123 @@
-body {
-  margin:0;
-  background:#0b0b0b;
-  color:white;
-  font-family:Arial;
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import './styles.css';
+
+function selectCar(car){
+  localStorage.setItem("selectedCar", JSON.stringify(car));
 }
 
-/* NAV */
-.nav {
-  display:flex;
-  justify-content:space-between;
-  padding:20px 50px;
-  border-bottom:1px solid #222;
+const cars = [
+  {
+    title: "Tesla Model 3 Performance",
+    year: "2020",
+    price: "£129",
+    image: "https://images.unsplash.com/photo-1560958089-b8a1929cea89?q=80&w=1600"
+  },
+  {
+    title: "Range Rover SVR",
+    year: "2021",
+    price: "£299",
+    image: "https://images.unsplash.com/photo-1606016159991-dfe4f2746ad5?q=80&w=1600"
+  },
+  {
+    title: "BMW 530e M Sport",
+    year: "2022",
+    price: "£149",
+    image: "https://images.unsplash.com/photo-1555215695-3004980ad54e?q=80&w=1600"
+  }
+];
+
+function App(){
+  return (
+    <main>
+
+      {/* NAV */}
+      <nav className="nav">
+        <h2>VELAIRE <span>CARS</span></h2>
+        <a href="#fleet">Reserve</a>
+      </nav>
+
+      {/* HERO */}
+      <section className="hero">
+        <div className="hero-left">
+          <h1>
+            DRIVE LUXURY.<br/>
+            <span>LIVE EXTRAORDINARY.</span>
+          </h1>
+
+          <p>
+            London’s premier luxury and performance car rental experience.
+            Unmatched service. Unforgettable journeys.
+          </p>
+
+          <div className="hero-buttons">
+            <a href="#fleet" className="btn primary">Browse Fleet</a>
+            <a href="#" className="btn outline">WhatsApp Us</a>
+          </div>
+        </div>
+
+        <div className="hero-right">
+          <img src="https://images.unsplash.com/photo-1560958089-b8a1929cea89?q=80&w=1600"/>
+        </div>
+      </section>
+
+      {/* FLEET */}
+      <section id="fleet" className="fleet">
+        <h2>Our Premium Fleet</h2>
+
+        <div className="grid">
+          {cars.map(car=>(
+            <div className="card" key={car.title}>
+              <img src={car.image}/>
+              <div className="card-body">
+                <h3>{car.title}</h3>
+                <p>{car.year}</p>
+                <strong>{car.price}/day</strong>
+
+                <button onClick={()=>{
+                  selectCar(car);
+                  window.location.href = "booking.html";
+                }}>
+                  Reserve
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* REVIEWS */}
+      <section className="reviews">
+        <h2>What Our Clients Say</h2>
+
+        <div className="reviews-grid">
+          <div className="review">
+            ⭐⭐⭐⭐⭐
+            <p>Best car rental experience I’ve ever had.</p>
+            <span>- James, London</span>
+          </div>
+
+          <div className="review">
+            ⭐⭐⭐⭐⭐
+            <p>Car was delivered spotless and on time.</p>
+            <span>- Sarah, Chelsea</span>
+          </div>
+
+          <div className="review">
+            ⭐⭐⭐⭐⭐
+            <p>Felt like a luxury service from start to finish.</p>
+            <span>- Daniel, Kensington</span>
+          </div>
+        </div>
+      </section>
+
+      {/* FOOTER */}
+      <footer className="footer">
+        <p>© Velaire Cars — Luxury Car Hire London</p>
+      </footer>
+
+    </main>
+  );
 }
 
-.nav span {
-  background: linear-gradient(135deg, #c89b6d, #e6c79c);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
-/* HERO */
-.hero {
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  padding:80px 50px;
-}
-
-.hero h1 {
-  font-size:52px;
-}
-
-.hero p {
-  color:#aaa;
-}
-
-.hero img {
-  width:420px;
-  border-radius:20px;
-}
-
-/* FLEET */
-.fleet {
-  padding:60px;
-}
-
-.grid {
-  display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
-  gap:30px;
-}
-
-.card {
-  background:#111;
-  border-radius:18px;
-  overflow:hidden;
-  transition:0.3s;
-  cursor:pointer;
-}
-
-.card:hover {
-  transform:translateY(-8px);
-  box-shadow:0 15px 40px rgba(200,155,109,0.25);
-}
-
-.card img {
-  width:100%;
-  height:200px;
-  object-fit:cover;
-}
-
-.card-body {
-  padding:20px;
-}
-
-.card-body p {
-  color:#aaa;
-}
-
-.card button {
-  margin-top:15px;
-  width:100%;
-  padding:12px;
-  border:none;
-  border-radius:10px;
-  background:linear-gradient(135deg, #c89b6d, #e6c79c);
-  font-weight:bold;
-  cursor:pointer;
-}
-
-/* REVIEWS */
-.reviews {
-  padding:60px;
-  background:#0f0f0f;
-}
-
-.reviews-grid {
-  display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(250px,1fr));
-  gap:20px;
-  margin-top:20px;
-}
-
-.review {
-  background:#111;
-  padding:20px;
-  border-radius:12px;
-}
-
-.review span {
-  color:#aaa;
-  font-size:14px;
-}
-
-/* FOOTER */
-.footer {
-  text-align:center;
-  padding:30px;
-  border-top:1px solid #222;
-  color:#aaa;
-}
+createRoot(document.getElementById("root")).render(<App />);
