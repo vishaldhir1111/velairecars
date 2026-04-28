@@ -24,163 +24,83 @@ const cars = [
     year: "2022",
     price: "£149",
     image: "https://images.unsplash.com/photo-1555215695-3004980ad54e?q=80&w=1600"
-  },
-  {
-    title: "BMW M140i",
-    year: "2019",
-    price: "£119",
-    image: "https://images.unsplash.com/photo-1542362567-b07e54358753?q=80&w=1600"
   }
 ];
 
 function App(){
   return (
-    <main style={{
-      background:"#0b0b0b",
-      color:"white",
-      minHeight:"100vh",
-      fontFamily:"Arial"
-    }}>
+    <main>
 
       {/* NAV */}
-      <nav style={{
-        display:"flex",
-        justifyContent:"space-between",
-        alignItems:"center",
-        padding:"20px 60px",
-        borderBottom:"1px solid #222"
-      }}>
-        <h2 style={{letterSpacing:"2px"}}>
-          VELAIRE{" "}
-          <span style={{
-            background:"linear-gradient(135deg, #c89b6d, #e6c79c)",
-            WebkitBackgroundClip:"text",
-            WebkitTextFillColor:"transparent"
-          }}>
-            CARS
-          </span>
-        </h2>
-
-        <a href="#fleet" style={{
-          color:"#c89b6d",
-          textDecoration:"none",
-          fontWeight:"bold"
-        }}>
-          Reserve Now
-        </a>
+      <nav className="nav">
+        <h2>VELAIRE <span>CARS</span></h2>
+        <a href="#fleet">Reserve</a>
       </nav>
 
       {/* HERO */}
-      <section style={{
-        display:"flex",
-        justifyContent:"space-between",
-        alignItems:"center",
-        padding:"80px 60px",
-        gap:"50px"
-      }}>
-        <div style={{maxWidth:"500px"}}>
-          <h1 style={{
-            fontSize:"52px",
-            lineHeight:"1.1",
-            letterSpacing:"-1px"
-          }}>
-            Drive luxury.<br/>Live extraordinary.
-          </h1>
-
-          <p style={{
-            color:"#aaa",
-            marginTop:"15px",
-            fontSize:"16px"
-          }}>
-            Premium performance vehicles across London. Delivered to your door.
-          </p>
+      <section className="hero">
+        <div>
+          <h1>Drive Luxury.<br/>Live Different.</h1>
+          <p>Premium vehicles delivered across London.</p>
         </div>
 
-        <img 
-          src="https://images.unsplash.com/photo-1606016159991-dfe4f2746ad5?q=80&w=1600"
-          style={{
-            width:"420px",
-            borderRadius:"20px"
-          }}
-        />
+        <img src="https://images.unsplash.com/photo-1606016159991-dfe4f2746ad5?q=80&w=1600"/>
       </section>
 
       {/* FLEET */}
-      <section id="fleet" style={{padding:"60px"}}>
-        <h2 style={{marginBottom:"30px"}}>Our Premium Fleet</h2>
+      <section id="fleet" className="fleet">
+        <h2>Our Premium Fleet</h2>
 
-        <div style={{
-          display:"grid",
-          gridTemplateColumns:"repeat(auto-fit, minmax(300px,1fr))",
-          gap:"30px"
-        }}>
+        <div className="grid">
+          {cars.map(car=>(
+            <div className="card" key={car.title}>
+              <img src={car.image}/>
+              <div className="card-body">
+                <h3>{car.title}</h3>
+                <p>{car.year}</p>
+                <strong>{car.price}/day</strong>
 
-          {cars.map(car => (
-            <div
-              key={car.title}
-              style={{
-                background:"#111",
-                borderRadius:"18px",
-                overflow:"hidden",
-                transition:"0.3s",
-                cursor:"pointer",
-                boxShadow:"0 0 0 rgba(0,0,0,0)"
-              }}
-              onMouseEnter={(e)=>{
-                e.currentTarget.style.transform = "translateY(-8px)";
-                e.currentTarget.style.boxShadow = "0 15px 40px rgba(200,155,109,0.25)";
-              }}
-              onMouseLeave={(e)=>{
-                e.currentTarget.style.transform = "translateY(0)";
-                e.currentTarget.style.boxShadow = "0 0 0 rgba(0,0,0,0)";
-              }}
-            >
-
-              <img
-                src={car.image}
-                style={{
-                  width:"100%",
-                  height:"200px",
-                  objectFit:"cover"
-                }}
-              />
-
-              <div style={{padding:"20px"}}>
-                <h3 style={{marginBottom:"5px"}}>{car.title}</h3>
-                <p style={{color:"#aaa", marginBottom:"12px"}}>{car.year}</p>
-
-                <div style={{
-                  display:"flex",
-                  justifyContent:"space-between",
-                  alignItems:"center"
+                <button onClick={()=>{
+                  selectCar(car);
+                  window.location.href = "booking.html";
                 }}>
-                  <strong>{car.price}/day</strong>
-
-                  <button
-                    onClick={()=>{
-                      selectCar(car);
-                      window.location.href = "booking.html";
-                    }}
-                    style={{
-                      background:"linear-gradient(135deg, #c89b6d, #e6c79c)",
-                      border:"none",
-                      padding:"10px 16px",
-                      borderRadius:"10px",
-                      cursor:"pointer",
-                      fontWeight:"bold",
-                      color:"#000"
-                    }}
-                  >
-                    Reserve
-                  </button>
-                </div>
+                  Reserve
+                </button>
               </div>
-
             </div>
           ))}
-
         </div>
       </section>
+
+      {/* REVIEWS */}
+      <section className="reviews">
+        <h2>What Our Clients Say</h2>
+
+        <div className="reviews-grid">
+          <div className="review">
+            ⭐⭐⭐⭐⭐
+            <p>Best car rental experience I’ve ever had.</p>
+            <span>- James, London</span>
+          </div>
+
+          <div className="review">
+            ⭐⭐⭐⭐⭐
+            <p>Car was delivered spotless and on time.</p>
+            <span>- Sarah, Chelsea</span>
+          </div>
+
+          <div className="review">
+            ⭐⭐⭐⭐⭐
+            <p>Felt like a luxury service from start to finish.</p>
+            <span>- Daniel, Kensington</span>
+          </div>
+        </div>
+      </section>
+
+      {/* FOOTER */}
+      <footer className="footer">
+        <p>© Velaire Cars — Luxury Car Hire London</p>
+      </footer>
 
     </main>
   );
