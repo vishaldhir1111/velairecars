@@ -43,7 +43,6 @@ body {
 
 .hero-left h1 {
   font-size:52px;
-  line-height:1.1;
 }
 
 .hero-left span {
@@ -52,131 +51,9 @@ body {
 
 .tag {
   color:#c89b6d;
-  letter-spacing:2px;
-  margin-bottom:10px;
-}
-
-.sub {
-  color:#666;
-  margin-top:10px;
-}
-
-.hero-buttons {
-  margin-top:20px;
-  display:flex;
-  gap:10px;
-}
-
-.btn {
-  padding:12px 20px;
-  border-radius:8px;
-  border:none;
-}
-
-.primary {
-  background:#c89b6d;
-  color:white;
-}
-
-.outline {
-  border:1px solid #c89b6d;
-  color:#c89b6d;
-  background:white;
 }
 
 .hero-img {
-  width:520px;
+  width:500px;
   border-radius:20px;
-}
-
-/* SEARCH BAR */
-.search-box {
-  background:white;
-  margin:0 60px;
-  padding:25px;
-  border-radius:12px;
-  display:flex;
-  gap:10px;
-  box-shadow:0 10px 30px rgba(0,0,0,0.05);
-}
-
-.search-box input {
-  padding:12px;
-  border:1px solid #eee;
-  border-radius:8px;
-}
-
-.search-box button {
-  background:#c89b6d;
-  color:white;
-  border:none;
-  padding:12px 20px;
-  border-radius:8px;
-}
-
-/* FLEET */
-.fleet {
-  padding:60px;
-}
-
-.grid {
-  display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
-  gap:25px;
-}
-
-.card {
-  background:white;
-  border-radius:12px;
-  padding:15px;
-  border:1px solid #eee;
-  transition:0.3s;
-}
-
-.card:hover {
-  transform:translateY(-5px);
-  box-shadow:0 10px 30px rgba(0,0,0,0.08);
-}
-
-.card img {
-  width:100%;
-  border-radius:10px;
-}
-
-.card h3 {
-  margin-top:10px;
-}
-
-.card strong {
-  color:#c89b6d;
-}
-
-.card button {
-  margin-top:10px;
-  width:100%;
-  background:#c89b6d;
-  color:white;
-  border:none;
-  padding:10px;
-  border-radius:8px;
-}
-
-/* REVIEWS */
-.reviews {
-  padding:60px;
-  background:#fafafa;
-}
-
-.review-box {
-  background:white;
-  padding:20px;
-  border-radius:12px;
-  border:1px solid #eee;
-}
-
-/* FOOTER */
-.footer {
-  text-align:center;
-  padding:40px;
-  color:#777;
 }
