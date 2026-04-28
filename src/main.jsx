@@ -1,5 +1,5 @@
-import React, { useState } from “react”;
-import { createRoot } from “react-dom/client”;
+import React, { useState } from 'react';
+import { createRoot } from 'react-dom/client';
 import { AnimatePresence, motion } from “framer-motion”;
 import { Heart, X, Users, Settings, Fuel } from “lucide-react”;
 import “./styles.css”;
