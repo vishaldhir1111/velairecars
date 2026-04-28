@@ -1,39 +1,100 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <title>Login - Velaire Cars</title>
-  <style>
-    body {
-      background:#0b0b0b;
-      color:white;
-      font-family:Arial;
-      padding:40px;
-    }
-.box {
-  max-width:400px;
-  margin:auto;
-  background:#111;
-  padding:30px;
-  border-radius:12px;
-  text-align:center;
-}
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Client Login | Velaire Cars</title>
+    <meta name="description" content="Enter your details for a Velaire Cars premium reservation." />
+    <link rel="stylesheet" href="flow.css" />
+  </head>
+  <body>
+    <header class="flow-nav">
+      <a class="brand" href="/">
+        <span class="brand-mark">V</span>
+        <span>
+          <strong>Velaire Cars</strong>
+          <small>Luxury rental concierge</small>
+        </span>
+      </a>
+      <nav>
+        <a href="booking.html">Booking</a>
+        <a href="/#fleet">Fleet</a>
+      </nav>
+    </header>
 
-input {
-  width:100%;
-  padding:12px;
-  margin:10px 0 20px;
-  border-radius:8px;
-  border:none;
-  background:#222;
-  color:white;
-}
+    <main class="flow-shell compact-shell">
+      <section class="flow-hero">
+        <p class="eyebrow">Client details</p>
+        <h1>Tell us where to confirm your reservation.</h1>
+        <p>
+          We use these details to prepare the booking, confirm eligibility and coordinate delivery.
+        </p>
+      </section>
 
-button {
-  width:100%;
-  padding:14px;
-  background:#c89b6d;
-  border:none;
-  border-radius:10px;
+      <section class="flow-grid two-column">
+        <form class="flow-panel" action="payment.html">
+          <div class="step-label">Step 02 / Account entry</div>
+
+          <div class="form-pair">
+            <label>
+              First name
+              <input type="text" name="firstName" required />
+            </label>
+            <label>
+              Last name
+              <input type="text" name="lastName" required />
+            </label>
+          </div>
+
+          <label>
+            Email address
+            <input type="email" name="email" placeholder="you@example.com" required />
+          </label>
+
+          <label>
+            Phone number
+            <input type="tel" name="phone" placeholder="+44" required />
+          </label>
+
+          <label>
+            Driver age
+            <select name="age" required>
+              <option value="">Select age range</option>
+              <option>21-24</option>
+              <option>25-34</option>
+              <option>35-44</option>
+              <option>45+</option>
+            </select>
+          </label>
+
+          <label class="check-row">
+            <input type="checkbox" required />
+            <span>I confirm I hold a valid driving licence and can provide ID before handover.</span>
+          </label>
+
+          <button class="primary-button full-button" type="submit">Continue to payment</button>
+        </form>
+
+        <aside class="flow-panel concierge-panel">
+          <p class="eyebrow">Premium handling</p>
+          <h2>Concierge confirmation before handover.</h2>
+          <p>
+            Velaire confirms identity, delivery details, deposit and insurance requirements before
+            the vehicle is released.
+          </p>
+          <ul>
+            <li>Secure reservation review</li>
+            <li>Clear deposit guidance</li>
+            <li>Flexible delivery coordination</li>
+            <li>Professional vehicle inspection</li>
+          </ul>
+        </aside>
+      </section>
+    </main>
+
+    <script type="module" src="/flow.js"></script>
+  </body>
+</html>
   cursor:pointer;
   font-weight:bold;
 }
