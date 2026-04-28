@@ -1,1 +1,87 @@
-<h2>Booking</h2><input type='date'><select><option>10:00</option></select><input placeholder='Location'><button onclick="location.href='login.html'">Continue</button>
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Booking - Velaire Cars</title>
+  <style>
+    body {
+      background:#0b0b0b;
+      color:white;
+      font-family:Arial;
+      padding:40px;
+    }
+.box {
+  max-width:500px;
+  margin:auto;
+  background:#111;
+  padding:30px;
+  border-radius:12px;
+}
+
+input, select {
+  width:100%;
+  padding:12px;
+  margin:10px 0 20px;
+  border-radius:8px;
+  border:none;
+  background:#222;
+  color:white;
+}
+
+button {
+  width:100%;
+  padding:14px;
+  background:#c89b6d;
+  border:none;
+  border-radius:10px;
+  cursor:pointer;
+  font-weight:bold;
+}
+
+button:hover {
+  opacity:0.9;
+}
+  </style>
+</head>
+<body>
+<div class="box">
+  <h2 id="carName">Loading...</h2>
+  <p id="carPrice"></p>
+  <input type="date" id="date">
+  <select id="time">
+    <option>10:00</option>
+    <option>12:00</option>
+    <option>14:00</option>
+    <option>16:00</option>
+  </select>
+  <input id="location" placeholder="Delivery location">
+  <button onclick="continueBooking()">Continue</button>
+</div>
+<script>
+const car = JSON.parse(localStorage.getItem("selectedCar"))
+
+if(car){
+  document.getElementById("carName").innerText = car.title
+  document.getElementById("carPrice").innerText = car.price + " /day"
+}
+
+function continueBooking(){
+
+  const booking = {
+    car: car,
+    date: document.getElementById("date").value,
+    time: document.getElementById("time").value,
+    location: document.getElementById("location").value,
+    status:"pending"
+  }
+
+  localStorage.setItem("currentBooking", JSON.stringify(booking))
+
+  if(!localStorage.getItem("user")){
+    window.location.href = "login.html"
+  } else {
+    window.location.href = "payment.html"
+  }
+}
+</script>
+</body>
+</html>
