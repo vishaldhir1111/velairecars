@@ -9,12 +9,26 @@ body {
 .nav {
   display:flex;
   justify-content:space-between;
+  align-items:center;
   padding:20px 50px;
   border-bottom:1px solid #222;
 }
 
-.nav span {
+.logo span {
   color:#c89b6d;
+}
+
+.nav-links {
+  display:flex;
+  gap:20px;
+  color:#aaa;
+}
+
+.nav-btn {
+  background:#c89b6d;
+  border:none;
+  padding:10px 20px;
+  border-radius:8px;
 }
 
 /* HERO */
@@ -33,9 +47,13 @@ body {
   color:#c89b6d;
 }
 
-.hero-left p {
+.tag {
+  color:#c89b6d;
+  margin-bottom:10px;
+}
+
+.sub {
   color:#aaa;
-  margin-top:10px;
 }
 
 .hero-buttons {
@@ -47,47 +65,47 @@ body {
 .btn {
   padding:12px 20px;
   border-radius:8px;
-  text-decoration:none;
 }
 
-.btn.primary {
+.primary {
   background:#c89b6d;
-  color:black;
 }
 
-.btn.outline {
+.outline {
   border:1px solid #c89b6d;
   color:#c89b6d;
 }
 
-.hero img {
-  width:420px;
-  border-radius:16px;
+.hero-img {
+  width:450px;
+  border-radius:20px;
 }
 
 /* SEARCH */
-.search {
+.search-box {
+  background:#111;
+  margin:20px 50px;
+  padding:20px;
+  border-radius:10px;
   display:flex;
   gap:10px;
-  padding:20px 50px;
 }
 
-.search input {
+.search-box input {
   padding:10px;
-  border-radius:6px;
   border:none;
+  border-radius:6px;
 }
 
-.search button {
+.search-box button {
   background:#c89b6d;
   border:none;
   padding:10px 20px;
-  border-radius:6px;
 }
 
 /* FLEET */
 .fleet {
-  padding:60px;
+  padding:50px;
 }
 
 .grid {
@@ -98,55 +116,38 @@ body {
 
 .card {
   background:#111;
-  border-radius:12px;
-  overflow:hidden;
+  padding:15px;
+  border-radius:10px;
 }
 
 .card img {
   width:100%;
-  height:180px;
-  object-fit:cover;
-}
-
-.card-body {
-  padding:15px;
+  border-radius:10px;
 }
 
 .card button {
   margin-top:10px;
   width:100%;
-  padding:10px;
   background:#c89b6d;
   border:none;
-  border-radius:6px;
+  padding:10px;
 }
 
 /* REVIEWS */
 .reviews {
-  padding:60px;
-  background:#0f0f0f;
-}
-
-.reviews-grid {
-  display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
-  gap:20px;
-}
-
-.review {
+  padding:50px;
   background:#111;
+}
+
+.review-box {
+  background:#0b0b0b;
   padding:20px;
   border-radius:10px;
-}
-
-.review span {
-  color:#aaa;
 }
 
 /* FOOTER */
 .footer {
   text-align:center;
   padding:30px;
-  border-top:1px solid #222;
   color:#aaa;
 }
