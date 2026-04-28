@@ -1,132 +1,144 @@
 import React from "react";
 
-const cars = [
+const fleetCars = [
   {
-    name: "Mercedes G63 AMG",
-    year: "2021",
-    price: "£399/day",
-    type: "SUV",
-    image:
-      "https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?q=80&w=1600&auto=format&fit=crop",
-  },
-  {
-    name: "Tesla Model 3 Performance",
-    year: "2020",
-    price: "£129/day",
-    type: "Electric",
+    title: "TESLA MODEL 3",
     image:
       "https://images.unsplash.com/photo-1560958089-b8a1929cea89?q=80&w=1600&auto=format&fit=crop",
+  },
+  {
+    title: "BMW M140i",
+    image:
+      "https://images.unsplash.com/photo-1542362567-b07e54358753?q=80&w=1600&auto=format&fit=crop",
+  },
+  {
+    title: "RANGE ROVER SVR",
+    image:
+      "https://images.unsplash.com/photo-1606016159991-dfe4f2746ad5?q=80&w=1600&auto=format&fit=crop",
+  },
+  {
+    title: "MERCEDES G63 AMG",
+    image:
+      "https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?q=80&w=1600&auto=format&fit=crop",
   },
 ];
 
 export default function App() {
   return (
     <div className="site">
-      <header className="header">
-        <div className="logo">
-          <div className="logo-mark">V</div>
-          <div className="logo-text">
-            <div className="logo-main">VELAIRE</div>
-            <div className="logo-sub">CARS</div>
-          </div>
+      <header className="topbar">
+        <div className="brand">
+          <div className="brand-main">VELAIRE</div>
+          <div className="brand-sub">CARS</div>
         </div>
 
         <nav className="nav">
-          <a href="#fleet">Fleet</a>
-          <a href="#about">About</a>
-          <a href="#contact">Contact</a>
+          <a href="#home">HOME</a>
+          <a href="#fleet">OUR CARS</a>
+          <a href="#book">BOOK NOW</a>
+          <a href="#about">ABOUT US</a>
+          <a href="#faq">FAQS</a>
+          <a href="#contact">CONTACT</a>
         </nav>
 
-        <a className="header-btn" href="#fleet">
-          Reserve Now
-        </a>
+        <div className="top-actions">
+          <button className="book-btn">BOOK NOW</button>
+          <button className="icon-btn">◯</button>
+        </div>
       </header>
 
       <main>
-        <section className="hero">
-          <div className="hero-copy">
-            <p className="eyebrow">LUXURY CAR RENTAL</p>
-            <h1>
-              Minimal.
-              <br />
-              <span>Luxury.</span>
-            </h1>
-            <p className="hero-text">
-              Premium self-drive vehicles in West London. Clean design, elite
-              cars, effortless booking.
-            </p>
+        <section className="hero" id="home">
+          <div className="hero-overlay" />
+          <div className="hero-content">
+            <div className="hero-copy">
+              <h1>
+                PREMIUM CARS.
+                <br />
+                EXCLUSIVE DRIVING.
+              </h1>
 
-            <div className="hero-actions">
-              <a className="btn btn-solid" href="#fleet">
-                Browse Fleet
-              </a>
-              <a className="btn btn-outline" href="#contact">
-                Enquire
-              </a>
+              <h2>LUXURY CAR RENTAL IN THE UK</h2>
+
+              <p>Drive prestige. Make an impression.</p>
+
+              <div className="hero-buttons">
+                <a className="btn btn-gold" href="#fleet">
+                  VIEW OUR CARS
+                </a>
+                <a className="btn btn-outline" href="#contact">
+                  WHATSAPP US
+                </a>
+              </div>
             </div>
-          </div>
 
-          <div className="hero-image-wrap">
-            <img
-              className="hero-image"
-              src="https://images.unsplash.com/photo-1560958089-b8a1929cea89?q=80&w=1800&auto=format&fit=crop"
-              alt="Tesla Model 3 Performance"
-            />
+            <div className="hero-image-wrap">
+              <img
+                className="hero-image"
+                src="https://images.unsplash.com/photo-1560958089-b8a1929cea89?q=80&w=2000&auto=format&fit=crop"
+                alt="Tesla"
+              />
+            </div>
           </div>
         </section>
 
-        <section className="fleet" id="fleet">
-          <div className="section-head">
-            <p className="eyebrow">OUR FLEET</p>
-            <h2>Choose Your Vehicle</h2>
+        <section className="features-strip">
+          <div className="feature">
+            <div className="feature-icon">🛡</div>
+            <div>
+              <strong>FULLY INSURED</strong>
+              <span>Your safety is our priority</span>
+            </div>
           </div>
 
-          <div className="car-grid">
-            {cars.map((car) => (
-              <article className="car-card" key={car.name}>
-                <div className="car-image-wrap">
-                  <img src={car.image} alt={car.name} />
+          <div className="feature">
+            <div className="feature-icon">🗓</div>
+            <div>
+              <strong>FLEXIBLE RENTALS</strong>
+              <span>Daily, weekly & monthly</span>
+            </div>
+          </div>
+
+          <div className="feature">
+            <div className="feature-icon">◈</div>
+            <div>
+              <strong>PREMIUM VEHICLES</strong>
+              <span>Handpicked luxury cars</span>
+            </div>
+          </div>
+
+          <div className="feature">
+            <div className="feature-icon">💬</div>
+            <div>
+              <strong>24/7 SUPPORT</strong>
+              <span>We’re here for you</span>
+            </div>
+          </div>
+        </section>
+
+        <section className="fleet-section" id="fleet">
+          <div className="section-title-wrap">
+            <div className="section-line" />
+            <h2>OUR LUXURY FLEET</h2>
+            <div className="section-line" />
+          </div>
+
+          <div className="fleet-grid">
+            {fleetCars.map((car) => (
+              <article className="fleet-card" key={car.title}>
+                <div className="fleet-image-wrap">
+                  <img src={car.image} alt={car.title} />
                 </div>
 
-                <div className="car-body">
-                  <div className="car-topline">
-                    <span className="car-type">{car.type}</span>
-                    <span className="car-year">{car.year}</span>
-                  </div>
-
-                  <h3>{car.name}</h3>
-                  <div className="car-price">{car.price}</div>
-
-                  <button className="card-btn">View Details</button>
+                <div className="fleet-body">
+                  <h3>{car.title}</h3>
+                  <button className="card-btn">VIEW CAR</button>
                 </div>
               </article>
             ))}
           </div>
         </section>
-
-        <section className="about" id="about">
-          <div className="about-card">
-            <p className="eyebrow">WHY VELAIRE</p>
-            <h2>Luxury without clutter.</h2>
-            <p>
-              A refined rental experience focused on standout vehicles, simple
-              booking and premium presentation.
-            </p>
-          </div>
-        </section>
       </main>
-
-      <footer className="footer" id="contact">
-        <div>
-          <div className="footer-brand">VELAIRE CARS</div>
-          <p>West London luxury car rental.</p>
-        </div>
-
-        <div className="footer-links">
-          <a href="tel:+447845589543">+44 7845 589543</a>
-          <a href="mailto:info@velairecars.com">info@velairecars.com</a>
-        </div>
-      </footer>
     </div>
   );
 }
