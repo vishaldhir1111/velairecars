@@ -1,67 +1,100 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <title>Payment - Velaire Cars</title>
-  <style>
-    body {
-      background:#0b0b0b;
-      color:white;
-      font-family:Arial;
-      padding:40px;
-      text-align:center;
-    }
-.box {
-  max-width:400px;
-  margin:auto;
-  background:#111;
-  padding:30px;
-  border-radius:12px;
-}
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Payment | Velaire Cars</title>
+    <meta name="description" content="Review and confirm your Velaire Cars reservation payment." />
+    <link rel="stylesheet" href="flow.css" />
+  </head>
+  <body>
+    <header class="flow-nav">
+      <a class="brand" href="/">
+        <span class="brand-mark">V</span>
+        <span>
+          <strong>Velaire Cars</strong>
+          <small>Luxury rental concierge</small>
+        </span>
+      </a>
+      <nav>
+        <a href="booking.html">Booking</a>
+        <a href="login.html">Client details</a>
+      </nav>
+    </header>
 
-button {
-  width:100%;
-  padding:14px;
-  background:#c89b6d;
-  border:none;
-  border-radius:10px;
-  cursor:pointer;
-  font-weight:bold;
-  margin-top:20px;
-}
+    <main class="flow-shell compact-shell">
+      <section class="flow-hero">
+        <p class="eyebrow">Secure reservation</p>
+        <h1>Confirm the booking request.</h1>
+        <p>
+          This premium payment screen is ready for Stripe or your preferred provider. The current
+          button completes the front-end confirmation flow.
+        </p>
+      </section>
 
-button:hover {
-  opacity:0.9;
-}
-  </style>
-</head>
-<body>
-<div class="box">
-  <h2>Secure Reservation</h2>
+      <section class="flow-grid two-column">
+        <form class="flow-panel" action="success.html">
+          <div class="step-label">Step 03 / Payment details</div>
 
-  <p id="carName"></p>
-  <p><strong>£99 Reservation Fee</strong></p>
+          <label>
+            Name on card
+            <input type="text" name="cardName" required />
+          </label>
 
-  <button onclick="pay()">Pay £99</button>
-</div>
-<script>
-const booking = JSON.parse(localStorage.getItem("currentBooking"))
+          <label>
+            Card number
+            <input inputmode="numeric" name="cardNumber" placeholder="4242 4242 4242 4242" required />
+          </label>
 
-if(booking){
-  document.getElementById("carName").innerText = booking.car.title
-}
+          <div class="form-pair">
+            <label>
+              Expiry
+              <input inputmode="numeric" name="expiry" placeholder="MM / YY" required />
+            </label>
+            <label>
+              CVC
+              <input inputmode="numeric" name="cvc" placeholder="123" required />
+            </label>
+          </div>
 
-function pay(){
+          <label>
+            Billing postcode
+            <input type="text" name="postcode" required />
+          </label>
 
-  let allBookings = JSON.parse(localStorage.getItem("bookings")) || []
+          <div class="secure-note">
+            <strong>Reserve fee today</strong>
+            <span>Deposit and balance terms are confirmed by concierge before release.</span>
+          </div>
 
-  booking.status = "paid"
+          <button class="primary-button full-button" type="submit">Confirm reservation</button>
+        </form>
 
-  allBookings.push(booking)
+        <aside class="flow-panel receipt-panel">
+          <p class="eyebrow">Booking protection</p>
+          <h2>Transparent costs. Premium support.</h2>
+          <dl class="price-list">
+            <div>
+              <dt>Reservation handling</dt>
+              <dd>Included</dd>
+            </div>
+            <div>
+              <dt>Concierge delivery quote</dt>
+              <dd>On request</dd>
+            </div>
+            <div>
+              <dt>Security deposit</dt>
+              <dd>Vehicle dependent</dd>
+            </div>
+          </dl>
+          <p>
+            Your reservation is reviewed by the Velaire team before final release. This keeps the
+            experience personal, secure and aligned with premium vehicle requirements.
+          </p>
+        </aside>
+      </section>
+    </main>
 
-  localStorage.setItem("bookings", JSON.stringify(allBookings))
-
-  window.location.href = "success.html"
-}
-</script>
-</body>
+    <script type="module" src="/flow.js"></script>
+  </body>
 </html>
