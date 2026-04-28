@@ -1,1 +1,67 @@
-<h2>Pay £99</h2><button onclick="location.href='success.html'">Pay</button>
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Payment - Velaire Cars</title>
+  <style>
+    body {
+      background:#0b0b0b;
+      color:white;
+      font-family:Arial;
+      padding:40px;
+      text-align:center;
+    }
+.box {
+  max-width:400px;
+  margin:auto;
+  background:#111;
+  padding:30px;
+  border-radius:12px;
+}
+
+button {
+  width:100%;
+  padding:14px;
+  background:#c89b6d;
+  border:none;
+  border-radius:10px;
+  cursor:pointer;
+  font-weight:bold;
+  margin-top:20px;
+}
+
+button:hover {
+  opacity:0.9;
+}
+  </style>
+</head>
+<body>
+<div class="box">
+  <h2>Secure Reservation</h2>
+
+  <p id="carName"></p>
+  <p><strong>£99 Reservation Fee</strong></p>
+
+  <button onclick="pay()">Pay £99</button>
+</div>
+<script>
+const booking = JSON.parse(localStorage.getItem("currentBooking"))
+
+if(booking){
+  document.getElementById("carName").innerText = booking.car.title
+}
+
+function pay(){
+
+  let allBookings = JSON.parse(localStorage.getItem("bookings")) || []
+
+  booking.status = "paid"
+
+  allBookings.push(booking)
+
+  localStorage.setItem("bookings", JSON.stringify(allBookings))
+
+  window.location.href = "success.html"
+}
+</script>
+</body>
+</html>
