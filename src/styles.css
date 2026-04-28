@@ -1,15 +1,16 @@
 @font-face {
   font-family: "Nexa";
-  src: url("/fonts/Nexa-Light.woff2") format("woff2");
+  src: url("/Nexa-ExtraLight.ttf") format("truetype");
   font-weight: 300;
 }
 
 @font-face {
   font-family: "Nexa";
-  src: url("/fonts/Nexa-Regular.woff2") format("woff2");
+  src: url("/Nexa-Heavy.ttf") format("truetype");
   font-weight: 600;
 }
 
 body {
   font-family: "Nexa", sans-serif;
+  margin: 0;
 }
