@@ -62,13 +62,16 @@ function App(){
       }}>
         <div>
           <h1 style={{
-  fontSize:"52px",
-  lineHeight:"1.1",
-  letterSpacing:"-1px"
-}}>
+            fontSize:"52px",
+            lineHeight:"1.1",
+            letterSpacing:"-1px"
+          }}>
             Drive Luxury.<br/>Live Different.
           </h1>
-          <p>Premium vehicles delivered across London.</p>
+
+          <p style={{color:"#aaa", marginTop:"10px"}}>
+            Premium vehicles delivered across London.
+          </p>
         </div>
 
         <img 
@@ -87,80 +90,63 @@ function App(){
           gap:"20px",
           marginTop:"20px"
         }}>
-{cars.map(car=>(
-  <div 
-    key={car.title} 
-    style={{
-      background:"#111",
-      borderRadius:"16px",
-      overflow:"hidden",
-      transition:"0.3s",
-      cursor:"pointer"
-    }}
-    onMouseEnter={e => e.currentTarget.style.transform = "translateY(-8px)"}
-    onMouseLeave={e => e.currentTarget.style.transform = "translateY(0)"}
-  >
 
-    <img 
-      src={car.image} 
-      style={{
-        width:"100%",
-        height:"200px",
-        objectFit:"cover"
-      }} 
-    />
-
-    <div style={{padding:"20px"}}>
-      <h3 style={{marginBottom:"5px"}}>{car.title}</h3>
-      <p style={{color:"#aaa", marginBottom:"10px"}}>{car.year}</p>
-
-      <div style={{
-        display:"flex",
-        justifyContent:"space-between",
-        alignItems:"center"
-      }}>
-        <strong>{car.price}/day</strong>
-
-        <button onClick={()=>{
-          selectCar(car);
-          window.location.href = "booking.html";
-        }} style={{
-          background:"#c89b6d",
-          border:"none",
-          padding:"10px 16px",
-          borderRadius:"10px",
-          cursor:"pointer",
-          fontWeight:"bold"
-        }}>
-          Reserve
-        </button>
-      </div>
-    </div>
-
-  </div>
-))}
-              <img src={car.image} style={{width:"100%", borderRadius:"10px"}} />
-              <h3>{car.title}</h3>
-              <p>{car.year}</p>
-              <strong>{car.price}/day</strong>
-
-              <br/><br/>
-
-              <button onClick={()=>{
-                selectCar(car);
-                window.location.href = "booking.html";
-              }} style={{
-                width:"100%",
-                padding:"10px",
-                background:"#c89b6d",
-                border:"none",
-                borderRadius:"8px",
+          {cars.map(car => (
+            <div 
+              key={car.title}
+              style={{
+                background:"#111",
+                borderRadius:"16px",
+                overflow:"hidden",
+                transition:"0.3s",
                 cursor:"pointer"
-              }}>
-                Reserve
-              </button>
+              }}
+              onMouseEnter={(e)=> e.currentTarget.style.transform = "translateY(-8px)"}
+              onMouseLeave={(e)=> e.currentTarget.style.transform = "translateY(0)"}
+            >
+
+              <img 
+                src={car.image}
+                style={{
+                  width:"100%",
+                  height:"200px",
+                  objectFit:"cover"
+                }}
+              />
+
+              <div style={{padding:"20px"}}>
+                <h3 style={{marginBottom:"5px"}}>{car.title}</h3>
+                <p style={{color:"#aaa", marginBottom:"10px"}}>{car.year}</p>
+
+                <div style={{
+                  display:"flex",
+                  justifyContent:"space-between",
+                  alignItems:"center"
+                }}>
+                  <strong>{car.price}/day</strong>
+
+                  <button 
+                    onClick={()=>{
+                      selectCar(car);
+                      window.location.href = "booking.html";
+                    }}
+                    style={{
+                      background:"#c89b6d",
+                      border:"none",
+                      padding:"10px 16px",
+                      borderRadius:"10px",
+                      cursor:"pointer",
+                      fontWeight:"bold"
+                    }}
+                  >
+                    Reserve
+                  </button>
+                </div>
+              </div>
+
             </div>
           ))}
+
         </div>
       </section>
 
