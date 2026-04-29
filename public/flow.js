@@ -72,6 +72,7 @@ const vehicles = {
 };
 
 const storageKey = "velaireReservation";
+const accountStorageKey = "velaireAccount";
 const defaultVehicle = "lamborghini-urus";
 const MAPBOX_TOKEN = "PASTE_MAPBOX_TOKEN_HERE";
 const MAPBOX_GL_VERSION = "v3.10.0";
@@ -86,6 +87,31 @@ const UK_BOUNDS = {
 };
 const LONDON_CENTER = { lat: 51.5074, lng: -0.1278 };
 let mapboxLoaderPromise;
+
+const fleetKnowledgeBase = Object.entries(vehicles).map(([slug, vehicle]) => ({
+  slug,
+  name: vehicle.name,
+  category: vehicle.category,
+  finish: vehicle.finish,
+  dailyRate: vehicle.rate,
+  deposit: vehicle.deposit,
+  description: vehicle.description,
+  bestFor:
+    {
+      "tesla-model-3-performance": "quiet executive travel, electric performance and understated city movement",
+      "lamborghini-urus": "high-impact arrivals, VIP events, launches and dramatic road presence",
+      "range-rover-sport-svr": "airport transfers, luggage, family trips, rural escapes and all-weather luxury",
+      "bmw-m440i-convertible": "summer weekends, weddings, coastal drives and open-top occasions",
+      "bmw-m140i-shadow-edition": "driver-focused weekends, compact performance and accessible luxury",
+    }[slug] || vehicle.category,
+}));
+
+const fileLabelDefaults = {
+  displayPhoto: "Upload a polished client image",
+  drivingLicence: "Upload front and back or PDF",
+  proofOfAddress: "Utility bill or bank statement",
+  selfieId: "Upload a clear verification image",
+};
 
 function money(value) {
   return new Intl.NumberFormat("en-GB", {
@@ -107,6 +133,61 @@ function saveReservation(next) {
   const reservation = { ...loadReservation(), ...next };
   window.localStorage.setItem(storageKey, JSON.stringify(reservation));
   return reservation;
+}
+
+function loadAccount() {
+  const reservation = loadReservation();
+  try {
+    return {
+      fullName: "",
+      email: reservation.email || "",
+      phone: reservation.phone || "",
+      preferredContact: "Email",
+      licenceCountry: "United Kingdom",
+      billingAddress: "",
+      billingPostcode: "",
+      preferredLocation: "",
+      handoverType: "Concierge delivery",
+      vehicleCategories: ["Super SUV", "Luxury SUV"],
+      communication: ["Concierge updates"],
+      files: {},
+      cardSummary: "No saved card",
+      cardName: "Add a preferred card for reservation holds.",
+      membership: "Private client status",
+      ...JSON.parse(window.localStorage.getItem(accountStorageKey)),
+    };
+  } catch {
+    return {
+      fullName: "",
+      email: reservation.email || "",
+      phone: reservation.phone || "",
+      preferredContact: "Email",
+      licenceCountry: "United Kingdom",
+      billingAddress: "",
+      billingPostcode: "",
+      preferredLocation: "",
+      handoverType: "Concierge delivery",
+      vehicleCategories: ["Super SUV", "Luxury SUV"],
+      communication: ["Concierge updates"],
+      files: {},
+      cardSummary: "No saved card",
+      cardName: "Add a preferred card for reservation holds.",
+      membership: "Private client status",
+    };
+  }
+}
+
+function saveAccount(next) {
+  const account = {
+    ...loadAccount(),
+    ...next,
+    files: {
+      ...(loadAccount().files || {}),
+      ...(next.files || {}),
+    },
+  };
+  window.localStorage.setItem(accountStorageKey, JSON.stringify(account));
+  return account;
 }
 
 function selectedSlug() {
@@ -922,6 +1003,252 @@ function setupMapboxDeliveryPicker(form) {
   );
 }
 
+function accountInitials(name) {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "VC";
+  return parts
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join("")
+    .toUpperCase();
+}
+
+function bindAccountText(name, value) {
+  document.querySelectorAll(`[data-account-bind="${name}"]`).forEach((node) => {
+    node.textContent = value;
+  });
+}
+
+function verificationStatus(account = loadAccount()) {
+  const files = account.files || {};
+  const required = ["drivingLicence", "proofOfAddress", "selfieId"];
+  const selected = required.filter((key) => files[key]?.name).length;
+  if (selected === required.length) return "Ready for review";
+  if (selected > 0) return "Documents pending";
+  return "Not submitted";
+}
+
+function updateAccountDisplay(account = loadAccount()) {
+  const displayName = account.fullName || "Velaire Client";
+  const initials = accountInitials(displayName);
+
+  ["client-avatar", "profile-avatar"].forEach((id) => {
+    const avatar = document.getElementById(id);
+    if (avatar) avatar.textContent = initials;
+  });
+
+  bindAccountText("displayName", displayName);
+  bindAccountText("membership", account.membership || "Private client status");
+  bindAccountText("upcomingCount", "1");
+  bindAccountText("verificationStatus", verificationStatus(account));
+  bindAccountText("cardSummary", account.cardSummary || "No saved card");
+  bindAccountText("cardName", account.cardName || "Add a preferred card for reservation holds.");
+
+  document.querySelectorAll("[data-file-label]").forEach((label) => {
+    const key = label.dataset.fileLabel;
+    label.textContent = account.files?.[key]?.name || fileLabelDefaults[key] || "Select file";
+  });
+}
+
+function fillAccountForm(form, account = loadAccount()) {
+  [...form.elements].forEach((field) => {
+    if (!field.name || field.type === "file" || field.name === "cardNumber") return;
+
+    const value = account[field.name];
+    if (field.type === "checkbox") {
+      field.checked = Array.isArray(value) ? value.includes(field.value) : Boolean(value);
+      return;
+    }
+
+    if (field.type === "radio") {
+      field.checked = value === field.value;
+      return;
+    }
+
+    if (value) field.value = value;
+  });
+}
+
+function readAccountForm(form) {
+  const next = {};
+
+  [...form.elements].forEach((field) => {
+    if (!field.name || field.type === "file" || field.name === "cardNumber") return;
+
+    if (field.type === "checkbox") {
+      if (!Array.isArray(next[field.name])) next[field.name] = [];
+      if (field.checked) next[field.name].push(field.value);
+      return;
+    }
+
+    if (field.type === "radio") {
+      if (field.checked) next[field.name] = field.value;
+      return;
+    }
+
+    next[field.name] = field.value;
+  });
+
+  return next;
+}
+
+function pulseSaved(button, label = "Saved") {
+  if (!button) return;
+  const original = button.textContent;
+  button.textContent = label;
+  window.setTimeout(() => {
+    button.textContent = original;
+  }, 1400);
+}
+
+function maskCard(value) {
+  const digits = value.replace(/\D/g, "");
+  if (digits.length < 4) return "";
+  return `Card ending ${digits.slice(-4)}`;
+}
+
+function appendConciergeMessage(role, message) {
+  const chat = document.getElementById("concierge-chat");
+  if (!chat) return;
+
+  const bubble = document.createElement("div");
+  bubble.className = `concierge-message ${role}`;
+  const label = document.createElement("strong");
+  label.textContent = role === "user" ? "You" : "Velaire Concierge";
+  const text = document.createElement("p");
+  text.textContent = message;
+  bubble.append(label, text);
+  chat.appendChild(bubble);
+  chat.scrollTop = chat.scrollHeight;
+}
+
+function conciergeRecommendation(question) {
+  const lower = question.toLowerCase();
+  const bySlug = Object.fromEntries(fleetKnowledgeBase.map((vehicle) => [vehicle.slug, vehicle]));
+  let pick = bySlug["lamborghini-urus"];
+  let reason = "It creates the strongest arrival impact while keeping full SUV usability.";
+
+  if (lower.includes("airport") || lower.includes("luggage") || lower.includes("family") || lower.includes("four")) {
+    pick = bySlug["range-rover-sport-svr"];
+    reason = "It is the most practical premium choice for luggage, passengers and refined airport handover.";
+  } else if (lower.includes("electric") || lower.includes("quiet") || lower.includes("tesla") || lower.includes("city")) {
+    pick = bySlug["tesla-model-3-performance"];
+    reason = "It gives quiet electric performance, low-key executive presence and simple city usability.";
+  } else if (lower.includes("wedding") || lower.includes("summer") || lower.includes("convertible") || lower.includes("coastal")) {
+    pick = bySlug["bmw-m440i-convertible"];
+    reason = "It brings an open-top, polished GT feel without becoming too loud for elegant occasions.";
+  } else if (lower.includes("driver") || lower.includes("budget") || lower.includes("compact") || lower.includes("m140")) {
+    pick = bySlug["bmw-m140i-shadow-edition"];
+    reason = "It is the best driver-focused value in the fleet while still feeling special.";
+  }
+
+  if (lower.includes("upsell") || lower.includes("exclusive") || lower.includes("impress") || lower.includes("vip")) {
+    pick = bySlug["lamborghini-urus"];
+    reason = "For a more exclusive step up, the Urus adds theatre, colour and flagship presence.";
+  }
+
+  return `${pick.name} is my recommendation. ${reason} Daily rate is ${money(
+    pick.dailyRate,
+  )}, with deposit guidance from ${money(
+    pick.deposit,
+  )}. I would pair it with concierge delivery, pre-handover detailing and a confirmed arrival window for a properly Velaire experience.`;
+}
+
+function setupConciergeAssistant() {
+  const form = document.getElementById("concierge-form");
+  const input = form?.elements?.conciergeQuestion;
+  if (!form || !input) return;
+
+  function ask(question) {
+    const clean = question.trim();
+    if (!clean) return;
+    appendConciergeMessage("user", clean);
+    appendConciergeMessage("assistant", conciergeRecommendation(clean));
+    input.value = "";
+  }
+
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
+    ask(input.value);
+  });
+
+  document.querySelectorAll("[data-concierge-prompt]").forEach((button) => {
+    button.addEventListener("click", () => ask(button.dataset.conciergePrompt || button.textContent));
+  });
+}
+
+function setupAccount() {
+  const account = loadAccount();
+
+  document.querySelectorAll("[data-account-form]").forEach((form) => {
+    fillAccountForm(form, account);
+
+    if (form.dataset.accountForm !== "payment") {
+      form.addEventListener("input", () => {
+        updateAccountDisplay(saveAccount(readAccountForm(form)));
+      });
+      form.addEventListener("change", () => {
+        updateAccountDisplay(saveAccount(readAccountForm(form)));
+      });
+    }
+
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+
+      if (form.dataset.accountForm === "payment") {
+        const cardSummary = maskCard(form.elements.cardNumber?.value || "");
+        const cardName = form.elements.cardName?.value || "Preferred card saved";
+        const cardExpiry = form.elements.cardExpiry?.value || "";
+        updateAccountDisplay(
+          saveAccount({
+            cardSummary: cardSummary || "No saved card",
+            cardName,
+            cardExpiry,
+          }),
+        );
+        if (form.elements.cardNumber) form.elements.cardNumber.value = "";
+      } else {
+        updateAccountDisplay(saveAccount(readAccountForm(form)));
+      }
+
+      pulseSaved(form.querySelector('button[type="submit"]'));
+    });
+  });
+
+  document.querySelectorAll("[data-file-input]").forEach((input) => {
+    input.addEventListener("change", () => {
+      const file = input.files?.[0];
+      if (!file) return;
+      const accountNext = loadAccount();
+      updateAccountDisplay(
+        saveAccount({
+          files: {
+            ...(accountNext.files || {}),
+            [input.dataset.fileInput]: {
+              name: file.name,
+              type: file.type || "Selected document",
+              updatedAt: new Date().toISOString(),
+            },
+          },
+        }),
+      );
+    });
+  });
+
+  document.getElementById("remove-card")?.addEventListener("click", () => {
+    updateAccountDisplay(
+      saveAccount({
+        cardSummary: "No saved card",
+        cardName: "Add a preferred card for reservation holds.",
+        cardExpiry: "",
+      }),
+    );
+  });
+
+  updateAccountDisplay(account);
+  setupConciergeAssistant();
+}
+
 function setupBooking() {
   const form = document.querySelector("form");
   const reservation = loadReservation();
@@ -1007,4 +1334,5 @@ const page = document.body.dataset.page;
 if (page === "booking") setupBooking();
 if (page === "login") setupLogin();
 if (page === "payment") setupPayment();
+if (page === "account") setupAccount();
 updateSummary();
