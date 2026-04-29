@@ -43,6 +43,7 @@ const fleet = [
     rate: 195,
     deposit: 500,
     visualClass: "tesla-model-3-performance",
+    modelType: "saloon",
     image: fleetImageSources["tesla-model-3-performance"],
     paint: "Pearl white",
     interior: "White interior",
@@ -60,6 +61,7 @@ const fleet = [
     rate: 695,
     deposit: 2000,
     visualClass: "mercedes-g63-amg",
+    modelType: "suv",
     image: fleetImageSources["mercedes-g63-amg"],
     paint: "Grey exterior",
     interior: "AMG luxury cabin",
@@ -77,6 +79,7 @@ const fleet = [
     rate: 495,
     deposit: 1500,
     visualClass: "range-rover-sport-svr",
+    modelType: "suv",
     image: fleetImageSources["range-rover-sport-svr"],
     paint: "SVR performance finish",
     interior: "Command seating",
@@ -94,6 +97,7 @@ const fleet = [
     rate: 295,
     deposit: 900,
     visualClass: "bmw-m440i-convertible",
+    modelType: "convertible",
     image: fleetImageSources["bmw-m440i-convertible"],
     paint: "Sky blue wrap",
     interior: "Convertible cabin",
@@ -111,6 +115,7 @@ const fleet = [
     rate: 175,
     deposit: 600,
     visualClass: "bmw-m140i-shadow-edition",
+    modelType: "hatch",
     image: fleetImageSources["bmw-m140i-shadow-edition"],
     paint: "Shadow Edition finish",
     interior: "Compact performance cabin",
@@ -400,10 +405,43 @@ function buildConciergeResponse(question) {
   )}/day. If you want an alternative, ${conciergeVehicleLabel(second)} gives you ${second.personality.toLowerCase()} ${pick.upsellAngle} Start a reservation and the concierge can confirm availability, handover and deposit terms.`;
 }
 
+function VehicleModelParts() {
+  return (
+    <div className="vehicle-model-scene" aria-hidden="true">
+      <div className="vehicle-model-turntable">
+        <span className="model-ground" />
+        <span className="model-reflection" />
+        <div className="model-car">
+          <span className="model-body" />
+          <span className="model-body-top" />
+          <span className="model-cabin" />
+          <span className="model-glass model-glass-front" />
+          <span className="model-glass model-glass-rear" />
+          <span className="model-grille" />
+          <span className="model-light model-light-front" />
+          <span className="model-light model-light-rear" />
+          <span className="model-wheel model-wheel-rear">
+            <span />
+          </span>
+          <span className="model-wheel model-wheel-front">
+            <span />
+          </span>
+          <span className="model-door-line" />
+          <span className="model-highlight" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function VehiclePhoto({ car, size = "card" }) {
   return (
-    <figure className={`vehicle-photo vehicle-photo-${size} vehicle-photo-${car.visualClass}`}>
-      <img src={car.image.src} alt={car.image.alt} loading={size === "large" ? "eager" : "lazy"} />
+    <figure
+      className={`vehicle-photo vehicle-photo-${size} vehicle-model vehicle-model-${car.visualClass} vehicle-model-${car.modelType}`}
+      role="img"
+      aria-label={`3D studio mockup of ${car.image.alt}`}
+    >
+      <VehicleModelParts />
       <figcaption className="vehicle-photo-meta">
         <span>{car.paint}</span>
         <strong>{car.year}</strong>
