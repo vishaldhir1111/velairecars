@@ -7,7 +7,6 @@
       name="description"
       content="Reserve a Velaire Cars luxury rental with concierge delivery, clear pricing and premium booking support."
     />
-    <meta name="google-maps-api-key" content="" />
     <title>Reserve | Velaire Cars</title>
     <link rel="stylesheet" href="flow.css" />
   </head>
@@ -176,23 +175,51 @@
 
             <div class="date-popover" id="date-popover" role="dialog" aria-label="Choose date" hidden></div>
 
-            <div class="location-picker">
+            <div class="location-picker concierge-location-picker">
               <div class="panel-heading compact-heading">
                 <p class="eyebrow">Delivery location</p>
                 <h2>Pin the handover.</h2>
+                <span>Private delivery, collection or hotel handover anywhere our concierge can safely access.</span>
               </div>
 
-              <label class="field">
-                UK postcode or full address
-                <input
-                  type="text"
-                  id="delivery-location"
-                  name="location"
-                  placeholder="Enter postcode, hotel, airport or full UK address"
-                  autocomplete="street-address"
-                  aria-describedby="delivery-map-status"
-                />
-              </label>
+              <div class="address-search-shell">
+                <label class="field">
+                  UK postcode, hotel, airport or landmark
+                  <input
+                    type="text"
+                    id="delivery-location"
+                    name="location"
+                    placeholder="Start typing a UK handover location"
+                    autocomplete="off"
+                    aria-autocomplete="list"
+                    aria-controls="delivery-suggestions"
+                    aria-expanded="false"
+                    aria-describedby="delivery-map-status"
+                  />
+                </label>
+                <div
+                  class="address-suggestions"
+                  id="delivery-suggestions"
+                  role="listbox"
+                  aria-label="Delivery address suggestions"
+                  hidden
+                ></div>
+              </div>
+
+              <div class="location-shortcuts" aria-label="Popular Velaire handover locations">
+                <button type="button" data-location-shortcut data-query="The Dorchester, Park Lane, London">
+                  The Dorchester
+                </button>
+                <button type="button" data-location-shortcut data-query="Harrods, Knightsbridge, London">
+                  Harrods
+                </button>
+                <button type="button" data-location-shortcut data-query="London Heathrow Airport Terminal 5">
+                  Heathrow T5
+                </button>
+                <button type="button" data-location-shortcut data-query="Mayfair, London">
+                  Mayfair
+                </button>
+              </div>
 
               <input type="hidden" id="delivery-place-id" name="place-id" />
               <input type="hidden" id="delivery-lat" name="lat" />
@@ -200,10 +227,14 @@
               <input type="hidden" id="delivery-formatted-address" name="formatted-address" />
 
               <div class="delivery-map-card">
-                <div id="delivery-map" class="delivery-map" aria-label="Google delivery map">
+                <div class="map-card-topline" aria-hidden="true">
+                  <span>Private handover map</span>
+                  <strong>Live UK address intelligence</strong>
+                </div>
+                <div id="delivery-map" class="delivery-map" aria-label="Mapbox delivery map">
                   <div class="map-fallback">
-                    <span>Google Maps delivery picker</span>
-                    <strong>Enter a postcode or drop a pin for concierge handover.</strong>
+                    <span>Mapbox delivery picker</span>
+                    <strong>Search an address, hotel, airport or landmark to place your handover pin.</strong>
                   </div>
                 </div>
                 <div class="map-toolbar">
@@ -211,6 +242,25 @@
                   <button class="map-pin-button" type="button" id="confirm-pin">Use selected pin</button>
                 </div>
               </div>
+
+              <div class="selected-location-panel" id="selected-location-panel" aria-live="polite">
+                <span>Selected handover</span>
+                <strong id="selected-location-title">Awaiting a precise location</strong>
+                <small id="selected-location-detail">
+                  Choose a suggestion or place the pin so your concierge receives the exact arrival point.
+                </small>
+                <em id="selected-location-coordinates">Latitude and longitude will be secured after pin placement.</em>
+              </div>
+
+              <label class="field location-notes-field">
+                Concierge notes
+                <textarea
+                  id="handover-notes"
+                  name="handover-notes"
+                  rows="3"
+                  placeholder="Gate code, hotel entrance, preferred arrival note or concierge desk details"
+                ></textarea>
+              </label>
             </div>
 
             <button class="primary-button full-width" type="submit">Continue to account</button>

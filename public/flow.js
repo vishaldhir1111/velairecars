@@ -73,6 +73,19 @@ const vehicles = {
 
 const storageKey = "velaireReservation";
 const defaultVehicle = "lamborghini-urus";
+const MAPBOX_TOKEN = "PASTE_MAPBOX_TOKEN_HERE";
+const MAPBOX_GL_VERSION = "v3.10.0";
+const MAPBOX_GL_JS = `https://api.mapbox.com/mapbox-gl-js/${MAPBOX_GL_VERSION}/mapbox-gl.js`;
+const MAPBOX_GL_CSS = `https://api.mapbox.com/mapbox-gl-js/${MAPBOX_GL_VERSION}/mapbox-gl.css`;
+const MAPBOX_GEOCODING_ENDPOINT = "https://api.mapbox.com/geocoding/v5/mapbox.places";
+const UK_BOUNDS = {
+  west: -8.65,
+  south: 49.86,
+  east: 1.77,
+  north: 60.86,
+};
+const LONDON_CENTER = { lat: 51.5074, lng: -0.1278 };
+let mapboxLoaderPromise;
 
 function money(value) {
   return new Intl.NumberFormat("en-GB", {
@@ -153,7 +166,7 @@ function updateSummary() {
   const slug = reservation.vehicle || selectedSlug();
   const vehicle = selectedVehicle(slug);
   const days = Math.max(Number.parseInt(reservation.days || "2", 10), 1);
-  const location = reservation.location || "Delivery location pending";
+  const location = reservation.formattedAddress || reservation.location || "Delivery location pending";
 
   bindText("vehicleName", vehicle.name);
   bindText("vehicleShortName", vehicle.shortName);
@@ -170,6 +183,36 @@ function updateSummary() {
   bindText("handoverLocation", location);
   bindText("reference", referenceFor(slug));
   bindVehicleVisual(vehicle);
+  updateSelectedLocationPanel(reservation);
+}
+
+function updateSelectedLocationPanel(reservation = loadReservation()) {
+  const panel = document.getElementById("selected-location-panel");
+  if (!panel) return;
+
+  const title = document.getElementById("selected-location-title");
+  const detail = document.getElementById("selected-location-detail");
+  const coordinates = document.getElementById("selected-location-coordinates");
+  const address = reservation.formattedAddress || reservation.location || "";
+  const hasCoordinates = Boolean(reservation.lat && reservation.lng);
+
+  panel.classList.toggle("has-location", Boolean(address && hasCoordinates));
+
+  if (title) {
+    title.textContent = address || "Awaiting a precise location";
+  }
+
+  if (detail) {
+    detail.textContent = hasCoordinates
+      ? "Exact handover point saved for concierge review."
+      : "Choose a suggestion or place the pin so your concierge receives the exact arrival point.";
+  }
+
+  if (coordinates) {
+    coordinates.textContent = hasCoordinates
+      ? `Pinned at ${Number.parseFloat(reservation.lat).toFixed(5)}, ${Number.parseFloat(reservation.lng).toFixed(5)}`
+      : "Latitude and longitude will be secured after pin placement.";
+  }
 }
 
 function setFieldValue(form, name, value) {
@@ -382,6 +425,7 @@ function readBookingForm(form) {
     placeId: data.get("place-id") || "",
     lat: normaliseCoordinate(data.get("lat")),
     lng: normaliseCoordinate(data.get("lng")),
+    handoverNotes: data.get("handover-notes") || "",
     days: String(Math.max(days, 1)),
   };
 }
@@ -389,14 +433,6 @@ function readBookingForm(form) {
 function setDeliveryStatus(message) {
   const status = document.getElementById("delivery-map-status");
   if (status) status.textContent = message;
-}
-
-function getGoogleMapsApiKey() {
-  return (
-    document.querySelector('meta[name="google-maps-api-key"]')?.content?.trim() ||
-    window.VELAIRE_GOOGLE_MAPS_API_KEY ||
-    ""
-  );
 }
 
 function setDeliveryFields(form, details, shouldSave = true) {
@@ -422,162 +458,468 @@ function setDeliveryFields(form, details, shouldSave = true) {
   }
 }
 
-function positionToObject(position) {
+function coordinateFrom(value) {
+  if (Array.isArray(value)) {
+    return { lng: Number.parseFloat(value[0]), lat: Number.parseFloat(value[1]) };
+  }
+
   return {
-    lat: typeof position.lat === "function" ? position.lat() : position.lat,
-    lng: typeof position.lng === "function" ? position.lng() : position.lng,
+    lat: Number.parseFloat(typeof value.lat === "function" ? value.lat() : value.lat),
+    lng: Number.parseFloat(typeof value.lng === "function" ? value.lng() : value.lng),
   };
 }
 
-function setupGoogleMapsDeliveryPicker(form) {
-  const mapElement = document.getElementById("delivery-map");
-  const input = document.getElementById("delivery-location");
-  const confirmButton = document.getElementById("confirm-pin");
-  if (!form || !mapElement || !input) return;
-
-  const key = getGoogleMapsApiKey();
-  if (!key) {
-    mapElement.classList.add("is-map-locked");
-    confirmButton?.setAttribute("disabled", "true");
-    setDeliveryStatus("Add a Google Maps browser API key to activate postcode search and pin selection.");
-    return;
-  }
-
-  window.initVelaireDeliveryMap = () => initialiseDeliveryMap(form);
-
-  if (window.google?.maps?.places) {
-    initialiseDeliveryMap(form);
-    return;
-  }
-
-  if (!document.querySelector("script[data-velaire-google-maps]")) {
-    const script = document.createElement("script");
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(
-      key,
-    )}&loading=async&libraries=places&callback=initVelaireDeliveryMap`;
-    script.async = true;
-    script.defer = true;
-    script.dataset.velaireGoogleMaps = "true";
-    script.onerror = () => {
-      setDeliveryStatus("Google Maps could not load. Please check the API key and domain restrictions.");
-    };
-    document.head.appendChild(script);
-  }
+function isConfiguredMapboxToken() {
+  return MAPBOX_TOKEN && MAPBOX_TOKEN !== "PASTE_MAPBOX_TOKEN_HERE";
 }
 
-function initialiseDeliveryMap(form) {
+function ensureMapboxCss() {
+  if (document.querySelector("link[data-velaire-mapbox-css]")) return;
+  const link = document.createElement("link");
+  link.rel = "stylesheet";
+  link.href = MAPBOX_GL_CSS;
+  link.dataset.velaireMapboxCss = "true";
+  document.head.appendChild(link);
+}
+
+function loadMapboxGl() {
+  if (window.mapboxgl) return Promise.resolve(window.mapboxgl);
+  if (mapboxLoaderPromise) return mapboxLoaderPromise;
+
+  ensureMapboxCss();
+  mapboxLoaderPromise = new Promise((resolve, reject) => {
+    const existing = document.querySelector("script[data-velaire-mapbox-js]");
+    if (existing) {
+      existing.addEventListener("load", () => resolve(window.mapboxgl), { once: true });
+      existing.addEventListener("error", () => reject(new Error("Mapbox GL could not load.")), { once: true });
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.src = MAPBOX_GL_JS;
+    script.async = true;
+    script.defer = true;
+    script.dataset.velaireMapboxJs = "true";
+    script.onload = () => resolve(window.mapboxgl);
+    script.onerror = () => reject(new Error("Mapbox GL could not load."));
+    document.head.appendChild(script);
+  });
+
+  return mapboxLoaderPromise;
+}
+
+function mapboxGeocodingUrl(query, params = {}) {
+  const url = new URL(`${MAPBOX_GEOCODING_ENDPOINT}/${encodeURIComponent(query)}.json`);
+  const search = {
+    access_token: MAPBOX_TOKEN,
+    country: "gb",
+    language: "en",
+    limit: "6",
+    ...params,
+  };
+
+  Object.entries(search).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== "") {
+      url.searchParams.set(key, value);
+    }
+  });
+
+  return url;
+}
+
+function featureAddress(feature) {
+  return feature?.place_name || feature?.text || "";
+}
+
+function featureTitle(feature) {
+  return feature?.text || featureAddress(feature).split(",")[0] || "Selected location";
+}
+
+function featureDetail(feature) {
+  const address = featureAddress(feature);
+  const title = featureTitle(feature);
+  return address.replace(title, "").replace(/^,\s*/, "") || "United Kingdom";
+}
+
+function createMapMarkerElement() {
+  const marker = document.createElement("div");
+  marker.className = "velaire-map-marker";
+  marker.innerHTML = "<span></span>";
+  return marker;
+}
+
+function setupMapboxDeliveryPicker(form) {
   const mapElement = document.getElementById("delivery-map");
   const input = document.getElementById("delivery-location");
+  const suggestions = document.getElementById("delivery-suggestions");
   const confirmButton = document.getElementById("confirm-pin");
-  if (!mapElement || !input || mapElement.dataset.ready === "true" || !window.google?.maps?.places) return;
+  const shortcutButtons = [...document.querySelectorAll("[data-location-shortcut]")];
+  if (!form || !mapElement || !input) return;
 
-  mapElement.dataset.ready = "true";
-  mapElement.classList.add("is-map-ready");
-  mapElement.innerHTML = "";
-  confirmButton?.removeAttribute("disabled");
+  if (!isConfiguredMapboxToken()) {
+    mapElement.classList.add("is-map-locked");
+    confirmButton?.setAttribute("disabled", "true");
+    input.setAttribute("aria-expanded", "false");
+    if (suggestions) suggestions.hidden = true;
+    setDeliveryStatus("Paste your Mapbox token in flow.js to activate live UK search, map and draggable pin selection.");
+    return;
+  }
 
+  let map;
+  let marker;
+  let mapboxglRef;
+  let searchTimer;
+  let searchController;
+  let activeSuggestion = -1;
+  let currentSuggestions = [];
   const reservation = loadReservation();
   const savedPosition =
     reservation.lat && reservation.lng
-      ? { lat: Number.parseFloat(reservation.lat), lng: Number.parseFloat(reservation.lng) }
+      ? { lng: Number.parseFloat(reservation.lng), lat: Number.parseFloat(reservation.lat) }
       : null;
-  const london = { lat: 51.5074, lng: -0.1278 };
-  const center = savedPosition || london;
-  const ukBounds = new google.maps.LatLngBounds(
-    { lat: 49.75, lng: -8.62 },
-    { lat: 60.9, lng: 1.77 },
-  );
+  let selectedPoint = savedPosition;
 
-  const map = new google.maps.Map(mapElement, {
-    center,
-    zoom: savedPosition ? 15 : 11,
-    disableDefaultUI: true,
-    zoomControl: true,
-    fullscreenControl: true,
-    streetViewControl: false,
-    mapTypeControl: false,
-    clickableIcons: false,
-  });
+  function hideSuggestions() {
+    activeSuggestion = -1;
+    currentSuggestions = [];
+    input.setAttribute("aria-expanded", "false");
+    input.removeAttribute("aria-activedescendant");
+    if (suggestions) {
+      suggestions.hidden = true;
+      suggestions.innerHTML = "";
+    }
+  }
 
-  const marker = new google.maps.Marker({
-    map,
-    position: center,
-    draggable: true,
-    title: "Velaire delivery pin",
-  });
-  const geocoder = new google.maps.Geocoder();
-  const autocomplete = new google.maps.places.Autocomplete(input, {
-    componentRestrictions: { country: "gb" },
-    fields: ["formatted_address", "geometry", "name", "place_id"],
-    strictBounds: false,
-    types: ["geocode"],
-  });
+  function ensureMarker(point) {
+    if (!map || !mapboxglRef) return;
+    if (!marker) {
+      marker = new mapboxglRef.Marker({
+        element: createMapMarkerElement(),
+        draggable: true,
+        anchor: "bottom",
+      })
+        .setLngLat([point.lng, point.lat])
+        .addTo(map);
 
-  autocomplete.setBounds(ukBounds);
-
-  function commitPosition(position, address = "", placeId = "", reverse = false) {
-    const point = positionToObject(position);
-    marker.setPosition(point);
-    map.panTo(point);
-    map.setZoom(15);
-
-    if (!reverse) {
-      setDeliveryFields(form, {
-        address: address || input.value,
-        placeId,
-        lat: point.lat,
-        lng: point.lng,
+      marker.on("dragend", () => {
+        const markerPoint = coordinateFrom(marker.getLngLat());
+        commitPosition(markerPoint, "", "", true);
       });
-      setDeliveryStatus("Delivery address selected. You can drag the pin to refine the handover point.");
       return;
     }
 
-    setDeliveryStatus("Finding the nearest UK address for your selected pin...");
-    geocoder.geocode({ location: point }, (results, status) => {
-      const result =
-        status === "OK"
-          ? results?.find((item) => item.types.includes("street_address")) || results?.[0]
-          : null;
-      const resolvedAddress = result?.formatted_address || `Pinned location ${point.lat.toFixed(5)}, ${point.lng.toFixed(5)}`;
-      setDeliveryFields(form, {
-        address: resolvedAddress,
-        placeId: result?.place_id || "",
-        lat: point.lat,
-        lng: point.lng,
-      });
-      setDeliveryStatus("Delivery pin set. Your concierge can confirm the exact handover notes.");
+    marker.setLngLat([point.lng, point.lat]);
+  }
+
+  function moveMap(point) {
+    if (!map) return;
+    ensureMarker(point);
+    map.flyTo({
+      center: [point.lng, point.lat],
+      zoom: 15.4,
+      essential: true,
+      duration: 900,
     });
   }
 
-  autocomplete.addListener("place_changed", () => {
-    const place = autocomplete.getPlace();
-    if (!place.geometry?.location) {
-      setDeliveryStatus("Select one of the UK address suggestions to place the delivery pin.");
+  async function reverseGeocode(point) {
+    const url = mapboxGeocodingUrl(`${point.lng},${point.lat}`, {
+      types: "address,poi,postcode,place,locality,neighborhood",
+      limit: "1",
+    });
+    const response = await fetch(url);
+    if (!response.ok) throw new Error("Reverse geocoding failed.");
+    const data = await response.json();
+    return data.features?.[0] || null;
+  }
+
+  function savePoint(point, address, placeId = "") {
+    setDeliveryFields(form, {
+      address,
+      placeId,
+      lat: point.lat,
+      lng: point.lng,
+    });
+  }
+
+  async function commitPosition(position, address = "", placeId = "", reverse = false) {
+    const point = coordinateFrom(position);
+    if (!Number.isFinite(point.lat) || !Number.isFinite(point.lng)) return;
+
+    selectedPoint = point;
+    moveMap(point);
+
+    if (!reverse) {
+      const selectedAddress = address || input.value || `Pinned handover ${point.lat.toFixed(5)}, ${point.lng.toFixed(5)}`;
+      input.value = selectedAddress;
+      savePoint(point, selectedAddress, placeId);
+      setDeliveryStatus("Handover location selected. Drag the rose-gold pin to refine the exact point.");
       return;
     }
 
-    commitPosition(place.geometry.location, place.formatted_address || place.name, place.place_id);
-  });
-
-  map.addListener("click", (event) => {
-    if (event.latLng) commitPosition(event.latLng, "", "", true);
-  });
-
-  marker.addListener("dragend", () => {
-    const position = marker.getPosition();
-    if (position) commitPosition(position, "", "", true);
-  });
-
-  confirmButton?.addEventListener("click", () => {
-    const position = marker.getPosition();
-    if (position) commitPosition(position, input.value, "", !input.value);
-  });
-
-  if (savedPosition) {
-    setDeliveryStatus("Saved delivery pin restored. Drag the pin or search a postcode to update it.");
-  } else {
-    setDeliveryStatus("Search a UK postcode or click the map to set a concierge handover pin.");
+    setDeliveryStatus("Refining the nearest UK address from your selected pin...");
+    try {
+      const feature = await reverseGeocode(point);
+      const resolvedAddress = featureAddress(feature) || `Pinned handover ${point.lat.toFixed(5)}, ${point.lng.toFixed(5)}`;
+      input.value = resolvedAddress;
+      savePoint(point, resolvedAddress, feature?.id || "");
+      setDeliveryStatus("Pin refined and saved. Your concierge can confirm any final handover notes.");
+    } catch {
+      const fallback = `Pinned handover ${point.lat.toFixed(5)}, ${point.lng.toFixed(5)}`;
+      input.value = fallback;
+      savePoint(point, fallback, "");
+      setDeliveryStatus("Pin saved. Reverse geocoding could not resolve a full address for this exact point.");
+    }
   }
+
+  function renderSuggestions(features) {
+    if (!suggestions) return;
+    suggestions.innerHTML = "";
+    currentSuggestions = features;
+    activeSuggestion = -1;
+
+    if (features.length === 0) {
+      const empty = document.createElement("div");
+      empty.className = "address-suggestion address-suggestion-empty";
+      empty.textContent = "No UK matches found. Try a postcode, hotel, airport or landmark.";
+      suggestions.appendChild(empty);
+      suggestions.hidden = false;
+      input.setAttribute("aria-expanded", "true");
+      return;
+    }
+
+    features.forEach((feature, index) => {
+      const button = document.createElement("button");
+      button.className = "address-suggestion";
+      button.type = "button";
+      button.role = "option";
+      button.id = `delivery-suggestion-${index}`;
+      button.dataset.suggestionIndex = String(index);
+
+      const title = document.createElement("span");
+      title.textContent = featureTitle(feature);
+      const detail = document.createElement("small");
+      detail.textContent = featureDetail(feature);
+      button.append(title, detail);
+
+      button.addEventListener("click", () => selectSuggestion(index));
+      suggestions.appendChild(button);
+    });
+
+    suggestions.hidden = false;
+    input.setAttribute("aria-expanded", "true");
+  }
+
+  function setActiveSuggestion(index) {
+    if (!suggestions || currentSuggestions.length === 0) return;
+    activeSuggestion = index;
+    suggestions.querySelectorAll(".address-suggestion").forEach((item, itemIndex) => {
+      const isActive = itemIndex === activeSuggestion;
+      item.classList.toggle("is-active", isActive);
+      item.setAttribute("aria-selected", String(isActive));
+    });
+    input.setAttribute("aria-activedescendant", `delivery-suggestion-${activeSuggestion}`);
+  }
+
+  function selectSuggestion(index) {
+    const feature = currentSuggestions[index];
+    if (!feature?.center) return;
+    hideSuggestions();
+    commitPosition(feature.center, featureAddress(feature), feature.id || "", false);
+  }
+
+  async function searchAddress(query) {
+    searchController?.abort();
+    searchController = new AbortController();
+    const url = mapboxGeocodingUrl(query, {
+      autocomplete: "true",
+      bbox: `${UK_BOUNDS.west},${UK_BOUNDS.south},${UK_BOUNDS.east},${UK_BOUNDS.north}`,
+      proximity: `${LONDON_CENTER.lng},${LONDON_CENTER.lat}`,
+      types: "address,poi,postcode,place,locality,neighborhood,district",
+    });
+
+    const response = await fetch(url, { signal: searchController.signal });
+    if (!response.ok) throw new Error("Address search failed.");
+    const data = await response.json();
+    return data.features || [];
+  }
+
+  function clearSelectedAddressForTyping() {
+    setFieldValue(form, "formatted-address", "");
+    setFieldValue(form, "place-id", "");
+    setFieldValue(form, "lat", "");
+    setFieldValue(form, "lng", "");
+    saveReservation({
+      location: input.value,
+      formattedAddress: "",
+      placeId: "",
+      lat: "",
+      lng: "",
+    });
+    updateSummary();
+  }
+
+  input.addEventListener("input", () => {
+    const query = input.value.trim();
+    window.clearTimeout(searchTimer);
+    shortcutButtons.forEach((button) => button.classList.remove("is-selected"));
+    clearSelectedAddressForTyping();
+
+    if (query.length < 3) {
+      hideSuggestions();
+      setDeliveryStatus("Type at least 3 characters to search UK addresses, hotels, airports and landmarks.");
+      return;
+    }
+
+    setDeliveryStatus("Searching Mapbox for premium handover locations...");
+    searchTimer = window.setTimeout(async () => {
+      try {
+        const features = await searchAddress(query);
+        renderSuggestions(features);
+        setDeliveryStatus(
+          features.length
+            ? "Select a suggestion to place the handover pin, then drag it if needed."
+            : "No UK matches found. Try a postcode, hotel, airport or nearby landmark.",
+        );
+      } catch (error) {
+        if (error.name === "AbortError") return;
+        hideSuggestions();
+        setDeliveryStatus("Mapbox address search could not respond. Check your token and network access.");
+      }
+    }, 240);
+  });
+
+  input.addEventListener("keydown", (event) => {
+    if (suggestions?.hidden || currentSuggestions.length === 0) return;
+
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      setActiveSuggestion((activeSuggestion + 1) % currentSuggestions.length);
+    }
+
+    if (event.key === "ArrowUp") {
+      event.preventDefault();
+      setActiveSuggestion((activeSuggestion - 1 + currentSuggestions.length) % currentSuggestions.length);
+    }
+
+    if (event.key === "Enter" && activeSuggestion >= 0) {
+      event.preventDefault();
+      selectSuggestion(activeSuggestion);
+    }
+
+    if (event.key === "Escape") {
+      hideSuggestions();
+    }
+  });
+
+  document.addEventListener("click", (event) => {
+    if (event.target === input || suggestions?.contains(event.target)) return;
+    hideSuggestions();
+  });
+
+  shortcutButtons.forEach((button) => {
+    button.addEventListener("click", async () => {
+      const query = button.dataset.query || button.textContent.trim();
+      if (!query) return;
+
+      input.value = query;
+      shortcutButtons.forEach((item) => item.classList.toggle("is-selected", item === button));
+      clearSelectedAddressForTyping();
+      setDeliveryStatus(`Preparing premium handover options for ${button.textContent.trim()}...`);
+
+      try {
+        const features = await searchAddress(query);
+        renderSuggestions(features);
+        if (features[0]) {
+          selectSuggestion(0);
+        } else {
+          setDeliveryStatus("No Mapbox match found for that preset. Try the full address or postcode.");
+        }
+      } catch {
+        setDeliveryStatus("Mapbox could not load that concierge preset. Try typing the address manually.");
+      }
+    });
+  });
+
+  confirmButton?.removeAttribute("disabled");
+  confirmButton?.addEventListener("click", () => {
+    if (marker) {
+      commitPosition(marker.getLngLat(), input.value, "", !input.value);
+      return;
+    }
+
+    if (input.value.trim()) {
+      input.focus();
+      setDeliveryStatus("Choose a Mapbox suggestion first so Velaire can save the exact latitude and longitude.");
+      return;
+    }
+
+    setDeliveryStatus("Search an address or click the map to set the handover pin.");
+  });
+
+  loadMapboxGl()
+    .then((mapboxgl) => {
+      mapboxglRef = mapboxgl;
+      mapboxglRef.accessToken = MAPBOX_TOKEN;
+      const center = selectedPoint || LONDON_CENTER;
+      mapElement.dataset.ready = "true";
+      mapElement.classList.add("is-map-ready");
+      mapElement.innerHTML = "";
+
+      map = new mapboxglRef.Map({
+        container: mapElement,
+        style: "mapbox://styles/mapbox/navigation-night-v1",
+        center: [center.lng, center.lat],
+        zoom: savedPosition ? 15 : 10.4,
+        attributionControl: false,
+        cooperativeGestures: true,
+        maxBounds: [
+          [UK_BOUNDS.west, UK_BOUNDS.south],
+          [UK_BOUNDS.east, UK_BOUNDS.north],
+        ],
+      });
+
+      map.addControl(
+        new mapboxglRef.NavigationControl({
+          showCompass: false,
+          visualizePitch: false,
+        }),
+        "bottom-right",
+      );
+      map.addControl(new mapboxglRef.AttributionControl({ compact: true }), "bottom-left");
+
+      map.on("load", () => {
+        map.resize();
+        if (selectedPoint) ensureMarker(selectedPoint);
+      });
+
+      map.on("click", (event) => {
+        commitPosition(event.lngLat, "", "", true);
+      });
+
+      if (selectedPoint) {
+        ensureMarker(selectedPoint);
+        setDeliveryStatus("Saved handover pin restored. Search again or drag the pin to refine it.");
+      } else {
+        setDeliveryStatus("Search a UK address or click the Mapbox map to set a concierge handover pin.");
+      }
+    })
+    .catch(() => {
+      mapElement.classList.add("is-map-locked");
+      confirmButton?.setAttribute("disabled", "true");
+      setDeliveryStatus("Mapbox GL could not load. Check the token, browser network access and domain settings.");
+    });
+
+  window.addEventListener(
+    "pagehide",
+    () => {
+      window.clearTimeout(searchTimer);
+      searchController?.abort();
+      marker?.remove();
+      map?.remove();
+    },
+    { once: true },
+  );
 }
 
 function setupBooking() {
@@ -596,6 +938,7 @@ function setupBooking() {
   setFieldValue(form, "place-id", reservation.placeId);
   setFieldValue(form, "lat", reservation.lat);
   setFieldValue(form, "lng", reservation.lng);
+  setFieldValue(form, "handover-notes", reservation.handoverNotes);
 
   function refreshCards() {
     document.querySelectorAll("[data-vehicle-card]").forEach((card) => {
@@ -631,7 +974,7 @@ function setupBooking() {
   refreshCards();
   persistDraft();
   setupElegantDatePicker(form);
-  setupGoogleMapsDeliveryPicker(form);
+  setupMapboxDeliveryPicker(form);
 }
 
 function setupLogin() {
