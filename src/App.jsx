@@ -1,5 +1,38 @@
 import { useState } from "react";
 
+const fleetImageSources = {
+  "tesla-model-3-performance": {
+    src: "/cars/tesla-model-3-white.jpg",
+    alt: "White Tesla Model 3 Performance 2020 with white interior",
+    swapWith: "/cars/tesla-model-3-performance-2020-white.jpg",
+    sourceType: "Owned or repository fleet photo",
+  },
+  "lamborghini-urus": {
+    src: "https://commons.wikimedia.org/wiki/Special:Redirect/file/2021_Lamborghini_Urus.jpg?width=1400",
+    alt: "Orange Lamborghini Urus 2021 full vehicle",
+    swapWith: "/cars/lamborghini-urus-2021-orange.jpg",
+    sourceType: "Temporary best-match photo until owned fleet photography is uploaded",
+  },
+  "range-rover-sport-svr": {
+    src: "/cars/range-rover-svr-blue-2020.jpg",
+    alt: "Land Rover Range Rover Sport SVR performance SUV full vehicle",
+    swapWith: "/cars/range-rover-sport-svr-2021.jpg",
+    sourceType: "Owned or repository fleet photo",
+  },
+  "bmw-m440i-convertible": {
+    src: "https://commons.wikimedia.org/wiki/Special:Redirect/file/BMW_G23_M440i_IMG_6571.jpg?width=1400",
+    alt: "BMW M440i Convertible 2022 blue full vehicle",
+    swapWith: "/cars/bmw-m440i-convertible-2022-sky-blue-wrap.jpg",
+    sourceType: "Temporary best-match photo until sky blue wrap photography is uploaded",
+  },
+  "bmw-m140i-shadow-edition": {
+    src: "/cars/bmw-m140i-black-2019.jpg",
+    alt: "BMW M140i Shadow Edition 2019 full vehicle",
+    swapWith: "/cars/bmw-m140i-shadow-edition-2019.jpg",
+    sourceType: "Owned or repository fleet photo",
+  },
+};
+
 const fleet = [
   {
     slug: "tesla-model-3-performance",
@@ -10,6 +43,7 @@ const fleet = [
     rate: 195,
     deposit: 500,
     visualClass: "tesla-model-3-performance",
+    image: fleetImageSources["tesla-model-3-performance"],
     paint: "Pearl white",
     interior: "White interior",
     specs: ["Dual Motor AWD", "Performance trim", "White cabin", "5 seats"],
@@ -26,6 +60,7 @@ const fleet = [
     rate: 895,
     deposit: 2500,
     visualClass: "lamborghini-urus",
+    image: fleetImageSources["lamborghini-urus"],
     paint: "Orange exterior",
     interior: "Luxury sport cabin",
     specs: ["4.0L twin-turbo V8", "Super SUV stance", "Orange finish", "5 seats"],
@@ -42,6 +77,7 @@ const fleet = [
     rate: 495,
     deposit: 1500,
     visualClass: "range-rover-sport-svr",
+    image: fleetImageSources["range-rover-sport-svr"],
     paint: "SVR performance finish",
     interior: "Command seating",
     specs: ["5.0L supercharged V8", "SVR exhaust", "Command seating", "5 seats"],
@@ -58,6 +94,7 @@ const fleet = [
     rate: 295,
     deposit: 900,
     visualClass: "bmw-m440i-convertible",
+    image: fleetImageSources["bmw-m440i-convertible"],
     paint: "Sky blue wrap",
     interior: "Convertible cabin",
     specs: ["M Performance", "Open-top roof", "Sky blue wrap", "4 seats"],
@@ -74,6 +111,7 @@ const fleet = [
     rate: 175,
     deposit: 600,
     visualClass: "bmw-m140i-shadow-edition",
+    image: fleetImageSources["bmw-m140i-shadow-edition"],
     paint: "Shadow Edition finish",
     interior: "Compact performance cabin",
     specs: ["B58 3.0 turbo", "Shadow Edition trim", "Driver-focused", "5 seats"],
@@ -142,23 +180,15 @@ function reserveLink(car) {
   return `booking.html?vehicle=${car.slug}`;
 }
 
-function VehicleVisual({ car, size = "card" }) {
+function VehiclePhoto({ car, size = "card" }) {
   return (
-    <div
-      className={`vehicle-art vehicle-art-${size} vehicle-art-${car.visualClass}`}
-      aria-label={`${car.year} ${car.name}, ${car.finish}`}
-      role="img"
-    >
-      <div className="vehicle-art-glow" aria-hidden="true" />
-      <div className="vehicle-art-roof" aria-hidden="true" />
-      <div className="vehicle-art-body" aria-hidden="true" />
-      <div className="vehicle-art-wheel vehicle-art-wheel-front" aria-hidden="true" />
-      <div className="vehicle-art-wheel vehicle-art-wheel-rear" aria-hidden="true" />
-      <div className="vehicle-art-meta">
+    <figure className={`vehicle-photo vehicle-photo-${size} vehicle-photo-${car.visualClass}`}>
+      <img src={car.image.src} alt={car.image.alt} loading={size === "large" ? "eager" : "lazy"} />
+      <figcaption className="vehicle-photo-meta">
         <span>{car.paint}</span>
         <strong>{car.year}</strong>
-      </div>
-    </div>
+      </figcaption>
+    </figure>
   );
 }
 
@@ -267,8 +297,7 @@ function App() {
             {fleet.map((car) => (
               <article className="fleet-card" key={car.slug}>
                 <div className="fleet-media">
-                  <VehicleVisual car={car} />
-                  <span className="fleet-year">{car.year}</span>
+                  <VehiclePhoto car={car} />
                 </div>
                 <div className="fleet-card-body">
                   <div className="fleet-title-row">
@@ -300,7 +329,7 @@ function App() {
 
         <section className="detail-section" id="experience">
           <div className="detail-media">
-            <VehicleVisual car={selectedCar} size="large" />
+            <VehiclePhoto car={selectedCar} size="large" />
           </div>
           <div className="detail-copy">
             <p className="eyebrow">Selected experience</p>
