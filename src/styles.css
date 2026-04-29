@@ -539,10 +539,26 @@ select {
   height: 420px;
 }
 
+.vehicle-glb-viewer {
+  position: relative;
+  z-index: 2;
+  display: block;
+  width: min(96%, 760px);
+  height: 230px;
+  --poster-color: transparent;
+  --progress-bar-color: var(--rose);
+  --progress-mask: transparent;
+}
+
+.vehicle-photo-large .vehicle-glb-viewer {
+  width: min(96%, 920px);
+  height: 460px;
+}
+
 .vehicle-model-turntable {
   position: absolute;
   inset: 0;
-  transform: rotateX(58deg) rotateZ(-5deg) translateY(3px);
+  transform: rotateX(58deg) rotateZ(var(--model-rotate-z, -5deg)) translateY(var(--model-lift, 3px));
   transform-style: preserve-3d;
   transition: transform 260ms ease, filter 260ms ease;
 }
@@ -551,7 +567,7 @@ select {
 .fleet-card:focus-within .vehicle-model-turntable,
 .detail-media:hover .vehicle-model-turntable {
   filter: saturate(1.08) contrast(1.06);
-  transform: rotateX(58deg) rotateZ(-2deg) translateY(-5px);
+  transform: rotateX(58deg) rotateZ(var(--model-rotate-z, -2deg)) translateY(var(--model-lift, -5px));
 }
 
 .model-ground,
@@ -822,14 +838,6 @@ select {
   --model-accent: #f8f2ec;
 }
 
-.vehicle-model-mercedes-g63-amg {
-  --model-paint: #85817a;
-  --model-paint-mid: #5f5a55;
-  --model-paint-deep: #22201f;
-  --model-glass: #15191b;
-  --model-accent: #b9aaa0;
-}
-
 .vehicle-model-range-rover-sport-svr {
   --model-paint: #2f2d2b;
   --model-paint-mid: #1b1918;
@@ -852,6 +860,42 @@ select {
   --model-paint-deep: #0e0d0d;
   --model-glass: #111719;
   --model-accent: #8d827b;
+}
+
+.vehicle-model-lamborghini-urus {
+  --model-paint: #f28b2e;
+  --model-paint-mid: #cf651f;
+  --model-paint-deep: #6d2811;
+  --model-glass: #151719;
+  --model-accent: #f0a05a;
+}
+
+.vehicle-model-badges {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  left: 18px;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  pointer-events: none;
+}
+
+.vehicle-model-badges span {
+  border: 1px solid rgba(248, 242, 236, 0.13);
+  border-radius: 999px;
+  background: rgba(5, 5, 5, 0.5);
+  color: rgba(248, 242, 236, 0.72);
+  padding: 6px 9px;
+  font-size: 0.68rem;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.vehicle-model-badges span:first-child {
+  color: var(--rose-3);
 }
 
 .vehicle-photo img {
@@ -991,6 +1035,15 @@ select {
 .text-button:hover,
 .text-button:focus-visible {
   color: var(--rose-2);
+}
+
+.favourite-button {
+  color: var(--muted-dark);
+}
+
+.favourite-button.is-saved {
+  color: var(--rose-2);
+  font-weight: 900;
 }
 
 .card-link {

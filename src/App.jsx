@@ -1,225 +1,7 @@
 import { useState } from "react";
+import { conciergeFleetKnowledge, conciergePromptChips, fleet } from "./data/fleet.js";
 
-const fleetImageSources = {
-  "tesla-model-3-performance": {
-    src: "/cars/hero-tesla.png",
-    alt: "White Tesla Model 3 Performance 2020 with white interior",
-    swapWith: "/cars/tesla-model-3-performance-2020-white.jpg",
-    sourceType: "Owned or repository fleet photo",
-  },
-  "mercedes-g63-amg": {
-    src: "/cars/g63-amg-grey-2020.jpg",
-    alt: "Mercedes-AMG G 63 2020 grey full vehicle",
-    swapWith: "/cars/mercedes-g63-amg-grey-2020.jpg",
-    sourceType: "Owned or repository fleet photo",
-  },
-  "range-rover-sport-svr": {
-    src: "/cars/range-rover-svr.png",
-    alt: "Land Rover Range Rover Sport SVR performance SUV full vehicle",
-    swapWith: "/cars/range-rover-sport-svr-2021.jpg",
-    sourceType: "Owned or repository fleet photo",
-  },
-  "bmw-m440i-convertible": {
-    src: "https://commons.wikimedia.org/wiki/Special:Redirect/file/BMW_G23_M440i_IMG_6571.jpg?width=1400",
-    alt: "BMW M440i Convertible 2022 blue full vehicle",
-    swapWith: "/cars/bmw-m440i-convertible-2022-sky-blue-wrap.jpg",
-    sourceType: "Temporary best-match photo until sky blue wrap photography is uploaded",
-  },
-  "bmw-m140i-shadow-edition": {
-    src: "/cars/bmw-m140i-black-2019.jpg",
-    alt: "BMW M140i Shadow Edition 2019 full vehicle",
-    swapWith: "/cars/bmw-m140i-shadow-edition-2019.jpg",
-    sourceType: "Owned or repository fleet photo",
-  },
-};
-
-const fleet = [
-  {
-    slug: "tesla-model-3-performance",
-    name: "Tesla Model 3 Performance",
-    year: "2020",
-    finish: "White exterior, white interior",
-    category: "Electric performance",
-    rate: 195,
-    deposit: 500,
-    visualClass: "tesla-model-3-performance",
-    modelType: "saloon",
-    image: fleetImageSources["tesla-model-3-performance"],
-    paint: "Pearl white",
-    interior: "White interior",
-    specs: ["Dual Motor AWD", "Performance trim", "White cabin", "5 seats"],
-    bestFor: "Quiet executive travel, city movement and clean all-weather performance.",
-    summary:
-      "A white-on-white electric performance saloon with instant torque, a minimalist cabin and understated executive presence.",
-  },
-  {
-    slug: "mercedes-g63-amg",
-    name: "Mercedes-AMG G 63",
-    year: "2020",
-    finish: "Grey exterior",
-    category: "Luxury SUV",
-    rate: 695,
-    deposit: 2000,
-    visualClass: "mercedes-g63-amg",
-    modelType: "suv",
-    image: fleetImageSources["mercedes-g63-amg"],
-    paint: "Grey exterior",
-    interior: "AMG luxury cabin",
-    specs: ["4.0L twin-turbo V8", "AMG 4MATIC", "Iconic G-Class shape", "5 seats"],
-    bestFor: "VIP arrivals, airport transfers, luxury city movement and high-command SUV presence.",
-    summary:
-      "A grey Mercedes-AMG G 63 with unmistakable status, V8 performance and a commanding luxury cabin for premium arrivals.",
-  },
-  {
-    slug: "range-rover-sport-svr",
-    name: "Range Rover Sport SVR",
-    year: "2021",
-    finish: "Performance SUV",
-    category: "Luxury SUV",
-    rate: 495,
-    deposit: 1500,
-    visualClass: "range-rover-sport-svr",
-    modelType: "suv",
-    image: fleetImageSources["range-rover-sport-svr"],
-    paint: "SVR performance finish",
-    interior: "Command seating",
-    specs: ["5.0L supercharged V8", "SVR exhaust", "Command seating", "5 seats"],
-    bestFor: "Airport delivery, family luxury, rural escapes and confident daily use.",
-    summary:
-      "A performance Range Rover with supercharged V8 character, elevated comfort and the confidence expected from a premium SUV handover.",
-  },
-  {
-    slug: "bmw-m440i-convertible",
-    name: "BMW M440i Convertible",
-    year: "2022",
-    finish: "Sky blue wrap",
-    category: "Convertible GT",
-    rate: 295,
-    deposit: 900,
-    visualClass: "bmw-m440i-convertible",
-    modelType: "convertible",
-    image: fleetImageSources["bmw-m440i-convertible"],
-    paint: "Sky blue wrap",
-    interior: "Convertible cabin",
-    specs: ["M Performance", "Open-top roof", "Sky blue wrap", "4 seats"],
-    bestFor: "Summer weekends, coastal drives, weddings and expressive arrivals.",
-    summary:
-      "A sky-blue open-top grand tourer with M Performance pace, polished daily usability and a clean summer-event look.",
-  },
-  {
-    slug: "bmw-m140i-shadow-edition",
-    name: "BMW M140i Shadow Edition",
-    year: "2019",
-    finish: "Shadow Edition",
-    category: "Hot hatch",
-    rate: 175,
-    deposit: 600,
-    visualClass: "bmw-m140i-shadow-edition",
-    modelType: "hatch",
-    image: fleetImageSources["bmw-m140i-shadow-edition"],
-    paint: "Shadow Edition finish",
-    interior: "Compact performance cabin",
-    specs: ["B58 3.0 turbo", "Shadow Edition trim", "Driver-focused", "5 seats"],
-    bestFor: "Driver-focused weekends, city bookings and accessible performance.",
-    summary:
-      "A compact performance favourite with B58 power, understated Shadow Edition styling and a focused premium cabin.",
-  },
-];
-
-const conciergeFleetKnowledge = [
-  {
-    slug: "tesla-model-3-performance",
-    name: "Tesla Model 3 Performance",
-    year: "2020",
-    bodyType: "Electric performance saloon",
-    colour: "White exterior",
-    interior: "White interior",
-    fuelDrivetrain: "Electric dual-motor all-wheel drive",
-    personality: "Refined, clean, quiet and modern with instant electric pace.",
-    bestUseCases: ["business travel", "city driving", "quiet luxury", "airport runs", "electric performance"],
-    idealCustomer:
-      "A client who wants premium movement without shouting, especially for executive journeys and clean city arrivals.",
-    keySellingPoints: ["white-on-white specification", "instant torque", "minimal cabin", "low-key executive feel"],
-    priceReference: 195,
-    upsellAngle:
-      "If the client wants more theatre or status, guide them toward the Lamborghini Urus or Range Rover SVR.",
-  },
-  {
-    slug: "lamborghini-urus",
-    name: "Lamborghini Urus",
-    year: "2021",
-    bodyType: "Super SUV",
-    colour: "Orange",
-    interior: "Luxury sport cabin",
-    fuelDrivetrain: "Twin-turbo V8 all-wheel drive",
-    personality: "The loudest statement in the fleet: dramatic, exclusive, fast and unmistakably high-impact.",
-    bestUseCases: ["biggest impact", "luxury flex", "content", "events", "VIP arrivals", "launches"],
-    idealCustomer:
-      "A client who wants maximum presence, attention and an arrival that feels like a moment.",
-    keySellingPoints: ["orange exterior", "supercar drama", "SUV usability", "flagship road presence"],
-    priceReference: 895,
-    upsellAngle:
-      "Position it as the definitive upgrade when the customer wants more presence than a normal luxury SUV.",
-  },
-  {
-    slug: "range-rover-sport-svr",
-    name: "Land Rover Range Rover Sport SVR",
-    year: "2021",
-    bodyType: "Performance luxury SUV",
-    colour: "SVR performance finish",
-    interior: "Command seating",
-    fuelDrivetrain: "Supercharged V8 four-wheel drive",
-    personality: "Powerful, composed and premium with the confidence of a serious performance SUV.",
-    bestUseCases: ["performance SUV", "family use", "airport runs", "luggage", "weekends", "all-weather luxury"],
-    idealCustomer:
-      "A client who wants comfort, luggage space and authority without going as extroverted as the Urus.",
-    keySellingPoints: ["supercharged V8", "Range Rover comfort", "command seating", "practical premium presence"],
-    priceReference: 495,
-    upsellAngle:
-      "Upsell from standard SUV needs into SVR performance and from Tesla practicality into luxury SUV confidence.",
-  },
-  {
-    slug: "bmw-m440i-convertible",
-    name: "BMW M440i Convertible",
-    year: "2022",
-    bodyType: "Open-top grand tourer",
-    colour: "Sky blue wrap",
-    interior: "Convertible cabin",
-    fuelDrivetrain: "M Performance petrol drivetrain",
-    personality: "Elegant, expressive and relaxed with open-top theatre and polished daily usability.",
-    bestUseCases: ["weddings", "summer weekends", "open-top grand touring", "coastal drives", "date nights"],
-    idealCustomer:
-      "A client who wants style, fresh-air driving and a softer form of attention than a super SUV.",
-    keySellingPoints: ["sky blue wrap", "convertible roof", "M Performance pace", "event-friendly look"],
-    priceReference: 295,
-    upsellAngle:
-      "Upsell from compact fun into a more polished convertible experience for occasions and weekends.",
-  },
-  {
-    slug: "bmw-m140i-shadow-edition",
-    name: "BMW M140i Shadow Edition",
-    year: "2019",
-    bodyType: "Compact performance hatch",
-    colour: "Shadow Edition finish",
-    interior: "Compact performance cabin",
-    fuelDrivetrain: "B58 turbocharged petrol rear-wheel drive character",
-    personality: "Small, sharp, quick and driver-focused while staying understated.",
-    bestUseCases: ["compact fun", "sporty but subtle", "driver car", "city weekends", "value performance"],
-    idealCustomer:
-      "A client who cares about the drive and wants something quick, discreet and easy to use.",
-    keySellingPoints: ["B58 engine", "Shadow Edition styling", "compact size", "accessible performance"],
-    priceReference: 175,
-    upsellAngle:
-      "If the client wants more polish or occasion value, move them toward the M440i Convertible or Tesla.",
-  },
-];
-
-const conciergePromptChips = [
-  "Recommend a car for a wedding",
-  "Compare Urus vs SVR",
-  "Best car for a weekend in London",
-  "I want something sporty but subtle",
-];
+const favouriteStorageKey = "velaireFavouriteCars";
 
 const trustItems = [
   { value: "5", label: "Curated vehicles" },
@@ -250,7 +32,7 @@ const serviceCards = [
 const reviews = [
   {
     quote:
-      "The G63 was immaculate and the delivery felt like a private showroom experience. Exactly the level we needed for a launch weekend.",
+      "The Urus was immaculate and the delivery felt like a private showroom experience. Exactly the level we needed for a launch weekend.",
     name: "Ari K.",
     role: "Creative director",
   },
@@ -405,6 +187,31 @@ function buildConciergeResponse(question) {
   )}/day. If you want an alternative, ${conciergeVehicleLabel(second)} gives you ${second.personality.toLowerCase()} ${pick.upsellAngle} Start a reservation and the concierge can confirm availability, handover and deposit terms.`;
 }
 
+function loadFavouriteCars() {
+  try {
+    return JSON.parse(window.localStorage.getItem(favouriteStorageKey)) || [];
+  } catch {
+    return [];
+  }
+}
+
+function saveFavouriteCars(slugs) {
+  window.localStorage.setItem(favouriteStorageKey, JSON.stringify(slugs));
+}
+
+async function syncFavouriteCars(slugs) {
+  try {
+    await fetch("/api/account", {
+      method: "PATCH",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ favourites: slugs }),
+    });
+  } catch {
+    // Favourites remain local until the visitor signs in or the API is available.
+  }
+}
+
 function VehicleModelParts() {
   return (
     <div className="vehicle-model-scene" aria-hidden="true">
@@ -434,14 +241,58 @@ function VehicleModelParts() {
   );
 }
 
+function VehicleGlbViewer({ car }) {
+  return (
+    <model-viewer
+      className="vehicle-glb-viewer"
+      src={car.asset.modelPath}
+      poster={car.asset.fallbackImagePath || ""}
+      alt={car.asset.alt}
+      camera-controls
+      interaction-prompt="none"
+      shadow-intensity="0.82"
+      exposure="0.92"
+      environment-image="neutral"
+      loading="lazy"
+      reveal="auto"
+    >
+      <VehicleModelParts />
+    </model-viewer>
+  );
+}
+
 function VehiclePhoto({ car, size = "card" }) {
+  const assetStatus = car.asset.modelAvailable ? "GLB model active" : "Studio 3D preview";
+
+  function handlePointerMove(event) {
+    const rect = event.currentTarget.getBoundingClientRect();
+    const x = (event.clientX - rect.left) / rect.width - 0.5;
+    const y = (event.clientY - rect.top) / rect.height - 0.5;
+    event.currentTarget.style.setProperty("--model-rotate-z", `${-5 + x * 7}deg`);
+    event.currentTarget.style.setProperty("--model-lift", `${3 - y * 10}px`);
+  }
+
+  function handlePointerLeave(event) {
+    event.currentTarget.style.removeProperty("--model-rotate-z");
+    event.currentTarget.style.removeProperty("--model-lift");
+  }
+
   return (
     <figure
       className={`vehicle-photo vehicle-photo-${size} vehicle-model vehicle-model-${car.visualClass} vehicle-model-${car.modelType}`}
       role="img"
-      aria-label={`3D studio mockup of ${car.image.alt}`}
+      aria-label={`3D studio presentation of ${car.asset.alt}`}
+      data-model-path={car.asset.modelPath}
+      data-fallback-image={car.asset.fallbackImagePath}
+      data-model-status={car.asset.viewerMode}
+      onPointerMove={handlePointerMove}
+      onPointerLeave={handlePointerLeave}
     >
-      <VehicleModelParts />
+      {car.asset.modelAvailable ? <VehicleGlbViewer car={car} /> : <VehicleModelParts />}
+      <div className="vehicle-model-badges" aria-hidden="true">
+        <span>{assetStatus}</span>
+        <span>{car.category}</span>
+      </div>
       <figcaption className="vehicle-photo-meta">
         <span>{car.paint}</span>
         <strong>{car.year}</strong>
@@ -454,6 +305,7 @@ function App() {
   const [selectedCar, setSelectedCar] = useState(fleet[0]);
   const [isConciergeOpen, setIsConciergeOpen] = useState(false);
   const [conciergeInput, setConciergeInput] = useState("");
+  const [favouriteCars, setFavouriteCars] = useState(loadFavouriteCars);
   const [conciergeMessages, setConciergeMessages] = useState([
     {
       role: "assistant",
@@ -462,16 +314,42 @@ function App() {
     },
   ]);
 
-  function askConcierge(question) {
+  async function askConcierge(question) {
     const clean = question.trim();
     if (!clean) return;
+    const fallbackResponse = buildConciergeResponse(clean);
     setIsConciergeOpen(true);
     setConciergeMessages((messages) => [
       ...messages,
       { role: "user", text: clean },
-      { role: "assistant", text: buildConciergeResponse(clean) },
+      { role: "assistant", text: "Preparing a Velaire fleet recommendation..." },
     ]);
     setConciergeInput("");
+
+    try {
+      const response = await fetch("/api/concierge", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt: clean }),
+      });
+      if (!response.ok) throw new Error("Concierge endpoint unavailable");
+      const result = await response.json();
+      setConciergeMessages((messages) => [
+        ...messages.slice(0, -1),
+        { role: "assistant", text: result.response || fallbackResponse },
+      ]);
+    } catch {
+      setConciergeMessages((messages) => [...messages.slice(0, -1), { role: "assistant", text: fallbackResponse }]);
+    }
+  }
+
+  function toggleFavourite(slug) {
+    setFavouriteCars((current) => {
+      const next = current.includes(slug) ? current.filter((item) => item !== slug) : [...current, slug];
+      saveFavouriteCars(next);
+      syncFavouriteCars(next);
+      return next;
+    });
   }
 
   return (
@@ -595,6 +473,14 @@ function App() {
                   <div className="card-actions">
                     <button className="text-button" type="button" onClick={() => setSelectedCar(car)}>
                       View details
+                    </button>
+                    <button
+                      className={`text-button favourite-button ${favouriteCars.includes(car.slug) ? "is-saved" : ""}`}
+                      type="button"
+                      onClick={() => toggleFavourite(car.slug)}
+                      aria-pressed={favouriteCars.includes(car.slug)}
+                    >
+                      {favouriteCars.includes(car.slug) ? "Saved" : "Save"}
                     </button>
                     <a className="card-link" href={reserveLink(car)}>
                       Reserve
