@@ -84,50 +84,48 @@
             <div class="choice-grid" aria-label="Available Velaire vehicles">
               <label class="choice-card" data-vehicle-card>
                 <input type="radio" name="vehicle" value="tesla-model-3-performance" />
-                <span
-                  class="choice-visual vehicle-art vehicle-art-mini vehicle-art-tesla-model-3-performance"
-                  aria-hidden="true"
-                ></span>
+                <span class="choice-visual flow-choice-photo">
+                  <img src="/cars/hero-tesla.png" alt="White Tesla Model 3 Performance 2020" />
+                </span>
                 <span class="choice-name">Tesla Model 3 Performance</span>
                 <small>White exterior / white interior</small>
                 <strong>£195/day</strong>
               </label>
               <label class="choice-card" data-vehicle-card>
-                <input type="radio" name="vehicle" value="lamborghini-urus" checked />
-                <span
-                  class="choice-visual vehicle-art vehicle-art-mini vehicle-art-lamborghini-urus"
-                  aria-hidden="true"
-                ></span>
-                <span class="choice-name">Lamborghini Urus</span>
-                <small>Orange super SUV</small>
-                <strong>£895/day</strong>
+                <input type="radio" name="vehicle" value="mercedes-g63-amg" checked />
+                <span class="choice-visual flow-choice-photo">
+                  <img src="/cars/g63-amg-grey-2020.jpg" alt="Mercedes-AMG G 63 2020 grey" />
+                </span>
+                <span class="choice-name">Mercedes-AMG G 63</span>
+                <small>Grey exterior / AMG luxury cabin</small>
+                <strong>£695/day</strong>
               </label>
               <label class="choice-card" data-vehicle-card>
                 <input type="radio" name="vehicle" value="range-rover-sport-svr" />
-                <span
-                  class="choice-visual vehicle-art vehicle-art-mini vehicle-art-range-rover-sport-svr"
-                  aria-hidden="true"
-                ></span>
+                <span class="choice-visual flow-choice-photo">
+                  <img src="/cars/range-rover-svr.png" alt="Range Rover Sport SVR 2021" />
+                </span>
                 <span class="choice-name">Range Rover Sport SVR</span>
                 <small>Supercharged performance SUV</small>
                 <strong>£495/day</strong>
               </label>
               <label class="choice-card" data-vehicle-card>
                 <input type="radio" name="vehicle" value="bmw-m440i-convertible" />
-                <span
-                  class="choice-visual vehicle-art vehicle-art-mini vehicle-art-bmw-m440i-convertible"
-                  aria-hidden="true"
-                ></span>
+                <span class="choice-visual flow-choice-photo">
+                  <img
+                    src="https://commons.wikimedia.org/wiki/Special:Redirect/file/BMW_G23_M440i_IMG_6571.jpg?width=900"
+                    alt="BMW M440i Convertible 2022 blue"
+                  />
+                </span>
                 <span class="choice-name">BMW M440i Convertible</span>
                 <small>Sky blue wrap / open-top GT</small>
                 <strong>£295/day</strong>
               </label>
               <label class="choice-card" data-vehicle-card>
                 <input type="radio" name="vehicle" value="bmw-m140i-shadow-edition" />
-                <span
-                  class="choice-visual vehicle-art vehicle-art-mini vehicle-art-bmw-m140i-shadow-edition"
-                  aria-hidden="true"
-                ></span>
+                <span class="choice-visual flow-choice-photo">
+                  <img src="/cars/bmw-m140i-black-2019.jpg" alt="BMW M140i Shadow Edition 2019 black" />
+                </span>
                 <span class="choice-name">BMW M140i Shadow Edition</span>
                 <small>Shadow Edition compact performance</small>
                 <strong>£175/day</strong>
@@ -268,27 +266,22 @@
 
           <aside class="flow-panel vehicle-summary" aria-label="Vehicle reservation summary">
             <div class="summary-media">
-              <div
-                class="vehicle-art vehicle-art-large vehicle-art-lamborghini-urus"
-                data-bind-vehicle-art
-                role="img"
-                aria-label="Lamborghini Urus 2021, orange exterior"
-              >
-                <div class="vehicle-art-glow" aria-hidden="true"></div>
-                <div class="vehicle-art-roof" aria-hidden="true"></div>
-                <div class="vehicle-art-body" aria-hidden="true"></div>
-                <div class="vehicle-art-wheel vehicle-art-wheel-front" aria-hidden="true"></div>
-                <div class="vehicle-art-wheel vehicle-art-wheel-rear" aria-hidden="true"></div>
-              </div>
+              <figure class="flow-vehicle-photo flow-vehicle-photo-mercedes-g63-amg" data-bind-vehicle-media>
+                <img
+                  src="/cars/g63-amg-grey-2020.jpg"
+                  alt="Mercedes-AMG G 63 2020 grey full vehicle"
+                  data-bind-vehicle-image
+                />
+              </figure>
             </div>
             <div class="panel-heading compact-heading">
               <p class="eyebrow">Selected vehicle</p>
-              <h2 data-bind="vehicleName">Lamborghini Urus 2021</h2>
-              <span data-bind="vehicleCategory">Super SUV</span>
+              <h2 data-bind="vehicleName">Mercedes-AMG G 63 2020</h2>
+              <span data-bind="vehicleCategory">Luxury SUV</span>
             </div>
 
             <p class="summary-copy" data-bind="vehicleDescription">
-              A statement SUV with supercar drama, luxury cabin comfort and serious presence.
+              A grey Mercedes-AMG G 63 with unmistakable status, V8 performance and a commanding luxury cabin.
             </p>
 
             <div class="summary-card">

@@ -45,23 +45,18 @@
         <div class="flow-workspace payment-workspace">
           <aside class="flow-panel order-review" aria-label="Reservation order review">
             <div class="summary-media compact-media">
-              <div
-                class="vehicle-art vehicle-art-large vehicle-art-lamborghini-urus"
-                data-bind-vehicle-art
-                role="img"
-                aria-label="Lamborghini Urus 2021, orange exterior"
-              >
-                <div class="vehicle-art-glow" aria-hidden="true"></div>
-                <div class="vehicle-art-roof" aria-hidden="true"></div>
-                <div class="vehicle-art-body" aria-hidden="true"></div>
-                <div class="vehicle-art-wheel vehicle-art-wheel-front" aria-hidden="true"></div>
-                <div class="vehicle-art-wheel vehicle-art-wheel-rear" aria-hidden="true"></div>
-              </div>
+              <figure class="flow-vehicle-photo flow-vehicle-photo-mercedes-g63-amg" data-bind-vehicle-media>
+                <img
+                  src="/cars/g63-amg-grey-2020.jpg"
+                  alt="Mercedes-AMG G 63 2020 grey full vehicle"
+                  data-bind-vehicle-image
+                />
+              </figure>
             </div>
             <div class="panel-heading compact-heading">
               <p class="eyebrow">Order review</p>
-              <h2 data-bind="vehicleName">Lamborghini Urus 2021</h2>
-              <span data-bind="vehicleFinish">Orange exterior</span>
+              <h2 data-bind="vehicleName">Mercedes-AMG G 63 2020</h2>
+              <span data-bind="vehicleFinish">Grey exterior</span>
             </div>
 
             <div class="summary-card">

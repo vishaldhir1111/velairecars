@@ -10,22 +10,26 @@ const vehicles = {
     deposit: 500,
     visualClass: "tesla-model-3-performance",
     visualLabel: "Tesla Model 3 Performance 2020, white exterior and white interior",
+    image: "/cars/hero-tesla.png",
+    imageAlt: "White Tesla Model 3 Performance 2020 with white interior",
     description:
       "A white-on-white electric performance saloon with instant torque, a minimalist cabin and understated executive presence.",
   },
-  "lamborghini-urus": {
-    name: "Lamborghini Urus 2021",
-    shortName: "Lamborghini Urus",
-    category: "Super SUV",
-    finish: "Orange exterior",
-    paint: "Orange exterior",
-    interior: "Luxury sport cabin",
-    rate: 895,
-    deposit: 2500,
-    visualClass: "lamborghini-urus",
-    visualLabel: "Lamborghini Urus 2021, orange exterior",
+  "mercedes-g63-amg": {
+    name: "Mercedes-AMG G 63 2020",
+    shortName: "Mercedes-AMG G 63",
+    category: "Luxury SUV",
+    finish: "Grey exterior",
+    paint: "Grey exterior",
+    interior: "AMG luxury cabin",
+    rate: 695,
+    deposit: 2000,
+    visualClass: "mercedes-g63-amg",
+    visualLabel: "Mercedes-AMG G 63 2020, grey exterior",
+    image: "/cars/g63-amg-grey-2020.jpg",
+    imageAlt: "Mercedes-AMG G 63 2020 grey full vehicle",
     description:
-      "An orange super SUV with dramatic road presence, a luxury sport cabin and the theatre clients expect from a flagship arrival.",
+      "A grey Mercedes-AMG G 63 with unmistakable status, V8 performance and a commanding luxury cabin for premium arrivals.",
   },
   "range-rover-sport-svr": {
     name: "Range Rover Sport SVR 2021",
@@ -38,6 +42,8 @@ const vehicles = {
     deposit: 1500,
     visualClass: "range-rover-sport-svr",
     visualLabel: "Range Rover Sport SVR 2021, performance SUV",
+    image: "/cars/range-rover-svr.png",
+    imageAlt: "Land Rover Range Rover Sport SVR full vehicle",
     description:
       "A performance Range Rover with supercharged V8 character, elevated comfort and the confidence expected from a premium SUV handover.",
   },
@@ -52,6 +58,8 @@ const vehicles = {
     deposit: 900,
     visualClass: "bmw-m440i-convertible",
     visualLabel: "BMW M440i Convertible 2022, sky blue wrap",
+    image: "https://commons.wikimedia.org/wiki/Special:Redirect/file/BMW_G23_M440i_IMG_6571.jpg?width=1400",
+    imageAlt: "BMW M440i Convertible 2022 blue full vehicle",
     description:
       "A sky-blue open-top grand tourer with M Performance pace, polished daily usability and a clean summer-event look.",
   },
@@ -66,6 +74,8 @@ const vehicles = {
     deposit: 600,
     visualClass: "bmw-m140i-shadow-edition",
     visualLabel: "BMW M140i Shadow Edition 2019",
+    image: "/cars/bmw-m140i-black-2019.jpg",
+    imageAlt: "BMW M140i Shadow Edition 2019 black full vehicle",
     description:
       "A compact performance favourite with B58 power, understated Shadow Edition styling and a focused premium cabin.",
   },
@@ -73,7 +83,7 @@ const vehicles = {
 
 const storageKey = "velaireReservation";
 const accountStorageKey = "velaireAccount";
-const defaultVehicle = "lamborghini-urus";
+const defaultVehicle = "mercedes-g63-amg";
 const MAPBOX_TOKEN = "pk.eyJ1IjoidmlzaGFsZGhpcjExMTEiLCJhIjoiY21vampwYm54MGQzejJwczFzMHcwN3h2dSJ9.M-zV1ypGN1rPPTgEk0iWgg";
 const MAPBOX_GL_VERSION = "v3.10.0";
 const MAPBOX_GL_JS = `https://api.mapbox.com/mapbox-gl-js/${MAPBOX_GL_VERSION}/mapbox-gl.js`;
@@ -88,23 +98,108 @@ const UK_BOUNDS = {
 const LONDON_CENTER = { lat: 51.5074, lng: -0.1278 };
 let mapboxLoaderPromise;
 
-const fleetKnowledgeBase = Object.entries(vehicles).map(([slug, vehicle]) => ({
-  slug,
-  name: vehicle.name,
-  category: vehicle.category,
-  finish: vehicle.finish,
-  dailyRate: vehicle.rate,
-  deposit: vehicle.deposit,
-  description: vehicle.description,
-  bestFor:
-    {
-      "tesla-model-3-performance": "quiet executive travel, electric performance and understated city movement",
-      "lamborghini-urus": "high-impact arrivals, VIP events, launches and dramatic road presence",
-      "range-rover-sport-svr": "airport transfers, luggage, family trips, rural escapes and all-weather luxury",
-      "bmw-m440i-convertible": "summer weekends, weddings, coastal drives and open-top occasions",
-      "bmw-m140i-shadow-edition": "driver-focused weekends, compact performance and accessible luxury",
-    }[slug] || vehicle.category,
-}));
+const fleetKnowledgeBase = [
+  {
+    slug: "tesla-model-3-performance",
+    name: "Tesla Model 3 Performance 2020",
+    category: "Electric performance saloon",
+    bodyType: "Electric performance saloon",
+    colour: "White exterior",
+    interior: "White interior",
+    finish: "White exterior, white interior",
+    drivetrain: "Electric dual-motor all-wheel drive",
+    dailyRate: 195,
+    deposit: 500,
+    personality: "Refined, clean, quiet and modern with instant electric pace.",
+    description: "Refined, clean, quiet and modern with instant electric pace.",
+    bestUseCases: ["business travel", "city driving", "quiet luxury", "airport runs", "electric performance"],
+    bestFor: "business travel, city driving, quiet luxury, airport runs and electric performance",
+    idealCustomer:
+      "A client who wants premium movement without shouting, especially for executive journeys and clean city arrivals.",
+    keySellingPoints: ["white-on-white specification", "instant torque", "minimal cabin", "low-key executive feel"],
+    upsell: "If the client wants more theatre or status, guide them toward the Lamborghini Urus or Range Rover SVR.",
+  },
+  {
+    slug: "lamborghini-urus",
+    name: "Lamborghini Urus 2021",
+    category: "Super SUV",
+    bodyType: "Super SUV",
+    colour: "Orange",
+    interior: "Luxury sport cabin",
+    finish: "Orange exterior",
+    drivetrain: "Twin-turbo V8 all-wheel drive",
+    dailyRate: 895,
+    deposit: 2500,
+    personality: "The loudest statement in the fleet: dramatic, exclusive, fast and unmistakably high-impact.",
+    description: "The loudest statement in the fleet: dramatic, exclusive, fast and unmistakably high-impact.",
+    bestUseCases: ["biggest impact", "luxury flex", "content", "events", "VIP arrivals", "launches"],
+    bestFor: "biggest impact, luxury flex, content, events, VIP arrivals and launches",
+    idealCustomer:
+      "A client who wants maximum presence, attention and an arrival that feels like a moment.",
+    keySellingPoints: ["orange exterior", "supercar drama", "SUV usability", "flagship road presence"],
+    upsell: "Position it as the definitive upgrade when the customer wants more presence than a normal luxury SUV.",
+  },
+  {
+    slug: "range-rover-sport-svr",
+    name: "Land Rover Range Rover Sport SVR 2021",
+    category: "Performance luxury SUV",
+    bodyType: "Performance luxury SUV",
+    colour: "SVR performance finish",
+    interior: "Command seating",
+    finish: "SVR performance finish",
+    drivetrain: "Supercharged V8 four-wheel drive",
+    dailyRate: 495,
+    deposit: 1500,
+    personality: "Powerful, composed and premium with the confidence of a serious performance SUV.",
+    description: "Powerful, composed and premium with the confidence of a serious performance SUV.",
+    bestUseCases: ["performance SUV", "family use", "airport runs", "luggage", "weekends", "all-weather luxury"],
+    bestFor: "performance SUV needs, family use, airport runs, luggage, weekends and all-weather luxury",
+    idealCustomer:
+      "A client who wants comfort, luggage space and authority without going as extroverted as the Urus.",
+    keySellingPoints: ["supercharged V8", "Range Rover comfort", "command seating", "practical premium presence"],
+    upsell: "Upsell from standard SUV needs into SVR performance and luxury SUV confidence.",
+  },
+  {
+    slug: "bmw-m440i-convertible",
+    name: "BMW M440i Convertible 2022",
+    category: "Open-top grand tourer",
+    bodyType: "Open-top grand tourer",
+    colour: "Sky blue wrap",
+    interior: "Convertible cabin",
+    finish: "Sky blue wrap",
+    drivetrain: "M Performance petrol drivetrain",
+    dailyRate: 295,
+    deposit: 900,
+    personality: "Elegant, expressive and relaxed with open-top theatre and polished daily usability.",
+    description: "Elegant, expressive and relaxed with open-top theatre and polished daily usability.",
+    bestUseCases: ["weddings", "summer weekends", "open-top grand touring", "coastal drives", "date nights"],
+    bestFor: "weddings, summer weekends, open-top grand touring, coastal drives and date nights",
+    idealCustomer:
+      "A client who wants style, fresh-air driving and a softer form of attention than a super SUV.",
+    keySellingPoints: ["sky blue wrap", "convertible roof", "M Performance pace", "event-friendly look"],
+    upsell: "Upsell from compact fun into a more polished convertible experience for occasions and weekends.",
+  },
+  {
+    slug: "bmw-m140i-shadow-edition",
+    name: "BMW M140i Shadow Edition 2019",
+    category: "Compact performance hatch",
+    bodyType: "Compact performance hatch",
+    colour: "Shadow Edition finish",
+    interior: "Compact performance cabin",
+    finish: "Shadow Edition finish",
+    drivetrain: "B58 turbocharged petrol rear-wheel drive character",
+    dailyRate: 175,
+    deposit: 600,
+    personality: "Small, sharp, quick and driver-focused while staying understated.",
+    description: "Small, sharp, quick and driver-focused while staying understated.",
+    bestUseCases: ["compact fun", "sporty but subtle", "driver car", "city weekends", "value performance"],
+    bestFor: "compact fun, sporty but subtle drives, city weekends and value performance",
+    idealCustomer:
+      "A client who cares about the drive and wants something quick, discreet and easy to use.",
+    keySellingPoints: ["B58 engine", "Shadow Edition styling", "compact size", "accessible performance"],
+    upsell: "If the client wants more polish or occasion value, move them toward the M440i Convertible or Tesla.",
+  },
+];
 
 const fileLabelDefaults = {
   displayPhoto: "Upload a polished client image",
@@ -205,14 +300,19 @@ function bindText(name, value) {
   });
 }
 
-function bindVehicleVisual(vehicle) {
-  document.querySelectorAll("[data-bind-vehicle-art]").forEach((node) => {
-    Object.keys(vehicles).forEach((slug) => {
-      node.classList.remove(`vehicle-art-${slug}`);
-    });
-    node.classList.add(`vehicle-art-${vehicle.visualClass}`);
-    node.setAttribute("aria-label", vehicle.visualLabel);
+function bindVehicleMedia(vehicle) {
+  document.querySelectorAll("[data-bind-vehicle-image]").forEach((node) => {
+    node.setAttribute("src", vehicle.image);
+    node.setAttribute("alt", vehicle.imageAlt || vehicle.visualLabel);
   });
+
+  document.querySelectorAll("[data-bind-vehicle-media]").forEach((node) => {
+    Object.keys(vehicles).forEach((slug) => {
+      node.classList.remove(`flow-vehicle-photo-${slug}`);
+    });
+    node.classList.add(`flow-vehicle-photo-${vehicle.visualClass}`);
+  });
+
 }
 
 function parseDate(value) {
@@ -244,7 +344,8 @@ function referenceFor(slug) {
 
 function updateSummary() {
   const reservation = loadReservation();
-  const slug = reservation.vehicle || selectedSlug();
+  const rawSlug = reservation.vehicle || selectedSlug();
+  const slug = vehicles[rawSlug] ? rawSlug : defaultVehicle;
   const vehicle = selectedVehicle(slug);
   const days = Math.max(Number.parseInt(reservation.days || "2", 10), 1);
   const location = reservation.formattedAddress || reservation.location || "Delivery location pending";
@@ -263,7 +364,7 @@ function updateSummary() {
   bindText("rentalDays", displayDays(days));
   bindText("handoverLocation", location);
   bindText("reference", referenceFor(slug));
-  bindVehicleVisual(vehicle);
+  bindVehicleMedia(vehicle);
   updateSelectedLocationPanel(reservation);
 }
 
@@ -1122,36 +1223,141 @@ function appendConciergeMessage(role, message) {
   chat.scrollTop = chat.scrollHeight;
 }
 
+function conciergeVehicleAliases(vehicle) {
+  const aliases = [
+    vehicle.name,
+    vehicle.slug,
+    vehicle.category,
+    vehicle.bodyType,
+    vehicle.colour,
+    vehicle.finish,
+    ...vehicle.bestUseCases,
+  ];
+
+  if (vehicle.slug === "lamborghini-urus") aliases.push("urus", "lamborghini", "super suv", "lambo");
+  if (vehicle.slug === "range-rover-sport-svr") aliases.push("svr", "range rover", "range rover svr", "land rover");
+  if (vehicle.slug === "tesla-model-3-performance") aliases.push("tesla", "model 3", "electric");
+  if (vehicle.slug === "bmw-m440i-convertible") aliases.push("m440i", "convertible", "open top", "open-top");
+  if (vehicle.slug === "bmw-m140i-shadow-edition") aliases.push("m140i", "m140", "shadow edition", "hot hatch");
+
+  return aliases;
+}
+
+function matchConciergeFleet(question) {
+  const lower = question.toLowerCase();
+  return fleetKnowledgeBase.filter((vehicle) =>
+    conciergeVehicleAliases(vehicle).some((alias) => lower.includes(alias.toLowerCase())),
+  );
+}
+
+function conciergeVehicleScore(vehicle, question) {
+  const lower = question.toLowerCase();
+  let score = 0;
+
+  if (
+    vehicle.slug === "lamborghini-urus" &&
+    /(impact|presence|flex|vip|content|event|launch|attention|impress|biggest|exclusive|upsell)/.test(lower)
+  ) {
+    score += 10;
+  }
+  if (
+    vehicle.slug === "range-rover-sport-svr" &&
+    /(performance suv|family|luggage|airport|practical|all-weather|comfort|svr|passengers|four)/.test(lower)
+  ) {
+    score += 9;
+  }
+  if (
+    vehicle.slug === "tesla-model-3-performance" &&
+    /(electric|quiet|refined|business|executive|clean|city|modern|subtle)/.test(lower)
+  ) {
+    score += 8;
+  }
+  if (
+    vehicle.slug === "bmw-m440i-convertible" &&
+    /(wedding|summer|convertible|open|coastal|date|grand touring|weekend|occasion)/.test(lower)
+  ) {
+    score += 8;
+  }
+  if (
+    vehicle.slug === "bmw-m140i-shadow-edition" &&
+    /(compact|subtle|driver|fun|sporty|budget|value|hatch|understated)/.test(lower)
+  ) {
+    score += 8;
+  }
+
+  const haystack = [
+    vehicle.name,
+    vehicle.category,
+    vehicle.bodyType,
+    vehicle.colour,
+    vehicle.personality,
+    vehicle.idealCustomer,
+    ...vehicle.bestUseCases,
+    ...vehicle.keySellingPoints,
+  ]
+    .join(" ")
+    .toLowerCase();
+
+  lower
+    .split(/[^a-z0-9]+/)
+    .filter(Boolean)
+    .forEach((token) => {
+      if (haystack.includes(token)) score += 1;
+    });
+
+  return score;
+}
+
+function compareConciergeVehicles(vehicles) {
+  const comparison = vehicles
+    .slice(0, 3)
+    .map(
+      (vehicle) =>
+        `${vehicle.name}: ${vehicle.personality} Best for ${vehicle.bestUseCases
+          .slice(0, 3)
+          .join(", ")}. Reference rate ${money(vehicle.dailyRate)}/day.`,
+    )
+    .join(" ");
+  const premiumPick = vehicles.slice(0, 3).sort((a, b) => b.dailyRate - a.dailyRate)[0];
+  return `${comparison} My premium pick is ${premiumPick.name} if the goal is the strongest impression. I would reserve it with concierge delivery and a confirmed handover window.`;
+}
+
 function conciergeRecommendation(question) {
   const lower = question.toLowerCase();
-  const bySlug = Object.fromEntries(fleetKnowledgeBase.map((vehicle) => [vehicle.slug, vehicle]));
-  let pick = bySlug["lamborghini-urus"];
-  let reason = "It creates the strongest arrival impact while keeping full SUV usability.";
+  const matchedVehicles = matchConciergeFleet(question);
 
-  if (lower.includes("airport") || lower.includes("luggage") || lower.includes("family") || lower.includes("four")) {
-    pick = bySlug["range-rover-sport-svr"];
-    reason = "It is the most practical premium choice for luggage, passengers and refined airport handover.";
-  } else if (lower.includes("electric") || lower.includes("quiet") || lower.includes("tesla") || lower.includes("city")) {
-    pick = bySlug["tesla-model-3-performance"];
-    reason = "It gives quiet electric performance, low-key executive presence and simple city usability.";
-  } else if (lower.includes("wedding") || lower.includes("summer") || lower.includes("convertible") || lower.includes("coastal")) {
-    pick = bySlug["bmw-m440i-convertible"];
-    reason = "It brings an open-top, polished GT feel without becoming too loud for elegant occasions.";
-  } else if (lower.includes("driver") || lower.includes("budget") || lower.includes("compact") || lower.includes("m140")) {
-    pick = bySlug["bmw-m140i-shadow-edition"];
-    reason = "It is the best driver-focused value in the fleet while still feeling special.";
+  if (lower.includes("compare") && matchedVehicles.length >= 2) {
+    return compareConciergeVehicles(matchedVehicles);
   }
 
-  if (lower.includes("upsell") || lower.includes("exclusive") || lower.includes("impress") || lower.includes("vip")) {
-    pick = bySlug["lamborghini-urus"];
-    reason = "For a more exclusive step up, the Urus adds theatre, colour and flagship presence.";
+  if (/(fleet|what cars|available|options|list)/.test(lower)) {
+    return `The Velaire fleet is ${fleetKnowledgeBase
+      .map((vehicle) => vehicle.name)
+      .join(", ")}. Tell me the occasion, passenger count and desired impression and I will guide you to the strongest choice.`;
   }
 
-  return `${pick.name} is my recommendation. ${reason} Daily rate is ${money(
+  if (matchedVehicles.length === 1 && /(detail|spec|about|price|cost|how much|tell)/.test(lower)) {
+    const vehicle = matchedVehicles[0];
+    return `${vehicle.name} is a ${vehicle.bodyType} in ${vehicle.colour} with ${vehicle.interior}. It is strongest for ${vehicle.bestUseCases
+      .slice(0, 4)
+      .join(", ")}. Key selling points: ${vehicle.keySellingPoints.join(", ")}. Reference rate ${money(
+      vehicle.dailyRate,
+    )}/day with deposit guidance from ${money(vehicle.deposit)}. ${vehicle.upsell}`;
+  }
+
+  const ranked = [...fleetKnowledgeBase].sort(
+    (a, b) => conciergeVehicleScore(b, question) - conciergeVehicleScore(a, question),
+  );
+  const pick = ranked[0];
+  const alternative = ranked[1];
+
+  return `${pick.name} is my recommendation. ${pick.personality} It is best for ${pick.bestUseCases
+    .slice(0, 4)
+    .join(", ")} and suits ${pick.idealCustomer.toLowerCase()} Reference rate ${money(
     pick.dailyRate,
-  )}, with deposit guidance from ${money(
+  )}/day with deposit guidance from ${money(
     pick.deposit,
-  )}. I would pair it with concierge delivery, pre-handover detailing and a confirmed arrival window for a properly Velaire experience.`;
+  )}. A strong alternative is ${alternative.name} if you want ${alternative.personality.toLowerCase()} ${pick.upsell} I would reserve with concierge delivery, pre-handover detailing and a confirmed arrival window.`;
 }
 
 function setupConciergeAssistant() {
