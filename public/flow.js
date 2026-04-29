@@ -9,6 +9,7 @@ const vehicles = {
     rate: 195,
     deposit: 500,
     visualClass: "tesla-model-3-performance",
+    modelType: "saloon",
     visualLabel: "Tesla Model 3 Performance 2020, white exterior and white interior",
     image: "/cars/hero-tesla.png",
     imageAlt: "White Tesla Model 3 Performance 2020 with white interior",
@@ -25,6 +26,7 @@ const vehicles = {
     rate: 695,
     deposit: 2000,
     visualClass: "mercedes-g63-amg",
+    modelType: "suv",
     visualLabel: "Mercedes-AMG G 63 2020, grey exterior",
     image: "/cars/g63-amg-grey-2020.jpg",
     imageAlt: "Mercedes-AMG G 63 2020 grey full vehicle",
@@ -41,6 +43,7 @@ const vehicles = {
     rate: 495,
     deposit: 1500,
     visualClass: "range-rover-sport-svr",
+    modelType: "suv",
     visualLabel: "Range Rover Sport SVR 2021, performance SUV",
     image: "/cars/range-rover-svr.png",
     imageAlt: "Land Rover Range Rover Sport SVR full vehicle",
@@ -57,6 +60,7 @@ const vehicles = {
     rate: 295,
     deposit: 900,
     visualClass: "bmw-m440i-convertible",
+    modelType: "convertible",
     visualLabel: "BMW M440i Convertible 2022, sky blue wrap",
     image: "https://commons.wikimedia.org/wiki/Special:Redirect/file/BMW_G23_M440i_IMG_6571.jpg?width=1400",
     imageAlt: "BMW M440i Convertible 2022 blue full vehicle",
@@ -73,6 +77,7 @@ const vehicles = {
     rate: 175,
     deposit: 600,
     visualClass: "bmw-m140i-shadow-edition",
+    modelType: "hatch",
     visualLabel: "BMW M140i Shadow Edition 2019",
     image: "/cars/bmw-m140i-black-2019.jpg",
     imageAlt: "BMW M140i Shadow Edition 2019 black full vehicle",
@@ -300,6 +305,39 @@ function bindText(name, value) {
   });
 }
 
+function vehicleModelMarkup() {
+  return `
+    <span class="vehicle-model-scene" aria-hidden="true">
+      <span class="vehicle-model-turntable">
+        <span class="model-ground"></span>
+        <span class="model-reflection"></span>
+        <span class="model-car">
+          <span class="model-body"></span>
+          <span class="model-body-top"></span>
+          <span class="model-cabin"></span>
+          <span class="model-glass model-glass-front"></span>
+          <span class="model-glass model-glass-rear"></span>
+          <span class="model-grille"></span>
+          <span class="model-light model-light-front"></span>
+          <span class="model-light model-light-rear"></span>
+          <span class="model-wheel model-wheel-rear"><span></span></span>
+          <span class="model-wheel model-wheel-front"><span></span></span>
+          <span class="model-door-line"></span>
+          <span class="model-highlight"></span>
+        </span>
+      </span>
+    </span>
+  `;
+}
+
+function hydrateVehicleModels(root = document) {
+  root.querySelectorAll("[data-vehicle-model]").forEach((node) => {
+    if (!node.querySelector(".vehicle-model-scene")) {
+      node.insertAdjacentHTML("afterbegin", vehicleModelMarkup());
+    }
+  });
+}
+
 function bindVehicleMedia(vehicle) {
   document.querySelectorAll("[data-bind-vehicle-image]").forEach((node) => {
     node.setAttribute("src", vehicle.image);
@@ -308,11 +346,20 @@ function bindVehicleMedia(vehicle) {
 
   document.querySelectorAll("[data-bind-vehicle-media]").forEach((node) => {
     Object.keys(vehicles).forEach((slug) => {
-      node.classList.remove(`flow-vehicle-photo-${slug}`);
+      node.classList.remove(`flow-vehicle-photo-${slug}`, `vehicle-model-${slug}`);
     });
-    node.classList.add(`flow-vehicle-photo-${vehicle.visualClass}`);
+    ["saloon", "suv", "convertible", "hatch"].forEach((type) => {
+      node.classList.remove(`vehicle-model-${type}`);
+    });
+    node.classList.add(
+      `flow-vehicle-photo-${vehicle.visualClass}`,
+      `vehicle-model-${vehicle.visualClass}`,
+      `vehicle-model-${vehicle.modelType || "saloon"}`,
+    );
+    node.setAttribute("aria-label", `3D studio mockup of ${vehicle.visualLabel}`);
   });
 
+  hydrateVehicleModels();
 }
 
 function parseDate(value) {
@@ -1537,6 +1584,7 @@ function setupPayment() {
 }
 
 const page = document.body.dataset.page;
+hydrateVehicleModels();
 if (page === "booking") setupBooking();
 if (page === "login") setupLogin();
 if (page === "payment") setupPayment();

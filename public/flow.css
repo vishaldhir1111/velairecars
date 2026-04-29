@@ -991,6 +991,376 @@ h2 {
   content: "";
 }
 
+.vehicle-model {
+  --model-paint: #f8f2ec;
+  --model-paint-mid: #ded4cc;
+  --model-paint-deep: #82746c;
+  --model-glass: #151d20;
+  --model-accent: var(--rose);
+  --model-length: 86%;
+  --model-left: 7%;
+  --model-body-h: 31%;
+  --model-body-bottom: 20%;
+  --model-cabin-w: 43%;
+  --model-cabin-left: 31%;
+  --model-cabin-h: 28%;
+  --model-cabin-bottom: 44%;
+  --model-wheel: 15%;
+  --model-front-wheel: 72%;
+  --model-rear-wheel: 20%;
+  --model-glass-front-left: 54%;
+  --model-glass-front-w: 15%;
+  --model-glass-rear-left: 38%;
+  --model-glass-rear-w: 14%;
+  --model-door-left: 50%;
+  --model-body-radius: 44px 72px 24px 26px;
+  --model-cabin-shape: polygon(5% 100%, 25% 12%, 72% 10%, 94% 100%);
+}
+
+.vehicle-model-scene {
+  position: relative;
+  z-index: 2;
+  display: block;
+  width: min(96%, 560px);
+  height: 190px;
+  perspective: 1050px;
+}
+
+.vehicle-model-mini .vehicle-model-scene {
+  width: 100%;
+  height: 96px;
+}
+
+.summary-media:not(.compact-media) .flow-vehicle-photo .vehicle-model-scene {
+  height: 220px;
+}
+
+.compact-media .flow-vehicle-photo .vehicle-model-scene {
+  height: 150px;
+}
+
+.vehicle-model-turntable {
+  position: absolute;
+  inset: 0;
+  display: block;
+  transform: rotateX(58deg) rotateZ(-5deg) translateY(3px);
+  transform-style: preserve-3d;
+  transition: transform 240ms ease, filter 240ms ease;
+}
+
+.choice-card:hover .vehicle-model-turntable,
+.choice-card:focus-within .vehicle-model-turntable,
+.choice-card.is-selected .vehicle-model-turntable,
+.flow-vehicle-photo:hover .vehicle-model-turntable,
+.vehicle-summary:hover .vehicle-model-turntable,
+.order-review:hover .vehicle-model-turntable,
+.client-proof:hover .vehicle-model-turntable,
+.success-vehicle-card:hover .vehicle-model-turntable {
+  filter: saturate(1.08) contrast(1.06);
+  transform: rotateX(58deg) rotateZ(-2deg) translateY(-4px);
+}
+
+.model-ground,
+.model-reflection {
+  position: absolute;
+  right: 5%;
+  bottom: 10%;
+  left: 5%;
+  display: block;
+  height: 34%;
+  border-radius: 50%;
+  transform: translateZ(-28px);
+}
+
+.model-ground {
+  border: 1px solid rgba(215, 161, 140, 0.18);
+  background:
+    radial-gradient(ellipse at center, rgba(240, 198, 180, 0.18), transparent 58%),
+    linear-gradient(90deg, transparent, rgba(248, 242, 236, 0.16), transparent);
+}
+
+.model-reflection {
+  right: 14%;
+  bottom: 18%;
+  left: 14%;
+  height: 16%;
+  background: radial-gradient(ellipse at center, color-mix(in srgb, var(--model-accent) 35%, transparent), transparent 70%);
+  filter: blur(9px);
+  opacity: 0.72;
+}
+
+.model-car {
+  position: absolute;
+  right: 0;
+  bottom: 18%;
+  left: 0;
+  display: block;
+  height: 62%;
+  transform: translateZ(34px);
+  transform-style: preserve-3d;
+}
+
+.model-body,
+.model-body-top,
+.model-cabin,
+.model-glass,
+.model-grille,
+.model-light,
+.model-wheel,
+.model-door-line,
+.model-highlight {
+  position: absolute;
+  display: block;
+  transform-style: preserve-3d;
+}
+
+.model-body {
+  bottom: var(--model-body-bottom);
+  left: var(--model-left);
+  width: var(--model-length);
+  height: var(--model-body-h);
+  border: 1px solid rgba(248, 242, 236, 0.28);
+  border-radius: var(--model-body-radius);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.48), rgba(255, 255, 255, 0.04) 34%, transparent 55%),
+    linear-gradient(90deg, var(--model-paint-deep), var(--model-paint-mid) 26%, var(--model-paint) 52%, var(--model-paint-deep));
+  box-shadow:
+    inset 0 -18px 24px rgba(5, 5, 5, 0.24),
+    inset 18px 0 28px rgba(255, 255, 255, 0.1),
+    0 22px 34px rgba(0, 0, 0, 0.42);
+  transform: translateZ(34px);
+}
+
+.model-body-top {
+  bottom: calc(var(--model-body-bottom) + var(--model-body-h) - 4%);
+  left: calc(var(--model-left) + 6%);
+  width: calc(var(--model-length) - 15%);
+  height: 12%;
+  border-radius: 999px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.3), transparent 55%),
+    linear-gradient(90deg, var(--model-paint-deep), var(--model-paint), var(--model-paint-mid));
+  clip-path: polygon(0 76%, 10% 18%, 88% 0, 100% 68%, 92% 100%, 6% 100%);
+  opacity: 0.9;
+  transform: translateZ(48px);
+}
+
+.model-cabin {
+  bottom: var(--model-cabin-bottom);
+  left: var(--model-cabin-left);
+  width: var(--model-cabin-w);
+  height: var(--model-cabin-h);
+  border: 1px solid rgba(248, 242, 236, 0.2);
+  border-radius: 32px 38px 12px 12px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.34), transparent 46%),
+    linear-gradient(112deg, color-mix(in srgb, var(--model-paint-deep) 76%, #050505), var(--model-paint-mid));
+  box-shadow: inset 0 -14px 18px rgba(5, 5, 5, 0.2);
+  clip-path: var(--model-cabin-shape);
+  transform: translateZ(54px);
+}
+
+.model-glass {
+  bottom: calc(var(--model-cabin-bottom) + 5%);
+  height: calc(var(--model-cabin-h) - 10%);
+  border: 1px solid rgba(240, 198, 180, 0.18);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.22), transparent 36%),
+    linear-gradient(180deg, color-mix(in srgb, var(--model-glass) 88%, #ffffff), var(--model-glass));
+  opacity: 0.94;
+  transform: translateZ(62px);
+}
+
+.model-glass-front {
+  left: var(--model-glass-front-left);
+  width: var(--model-glass-front-w);
+  clip-path: polygon(0 6%, 78% 0, 100% 100%, 10% 100%);
+}
+
+.model-glass-rear {
+  left: var(--model-glass-rear-left);
+  width: var(--model-glass-rear-w);
+  clip-path: polygon(18% 0, 100% 8%, 86% 100%, 0 100%);
+}
+
+.model-wheel {
+  bottom: calc(var(--model-body-bottom) - 6%);
+  width: var(--model-wheel);
+  aspect-ratio: 1;
+  border: clamp(6px, 1vw, 10px) solid #060606;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle, rgba(248, 242, 236, 0.78) 0 11%, transparent 12%),
+    conic-gradient(from 20deg, #2a2321, #6f5e55, #161211, #8c7f78, #2a2321);
+  box-shadow:
+    inset 0 0 0 3px rgba(215, 161, 140, 0.18),
+    0 10px 16px rgba(0, 0, 0, 0.5);
+  transform: translateZ(72px) rotateX(-58deg);
+}
+
+.model-wheel span {
+  position: absolute;
+  inset: 18%;
+  border: 1px solid rgba(240, 198, 180, 0.42);
+  border-radius: inherit;
+  background: radial-gradient(circle, #0b0909 0 28%, rgba(248, 242, 236, 0.28) 30% 33%, transparent 35%);
+}
+
+.model-wheel-front {
+  left: var(--model-front-wheel);
+}
+
+.model-wheel-rear {
+  left: var(--model-rear-wheel);
+}
+
+.model-grille {
+  right: calc(100% - var(--model-left) - var(--model-length) + 1%);
+  bottom: calc(var(--model-body-bottom) + 6%);
+  width: 7%;
+  height: 15%;
+  border: 1px solid rgba(248, 242, 236, 0.18);
+  border-radius: 10px 18px 18px 10px;
+  background:
+    repeating-linear-gradient(90deg, rgba(248, 242, 236, 0.34) 0 1px, transparent 1px 6px),
+    rgba(5, 5, 5, 0.64);
+  transform: translateZ(70px);
+}
+
+.model-light {
+  bottom: calc(var(--model-body-bottom) + 14%);
+  width: 5.5%;
+  height: 4%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.95), var(--model-accent));
+  box-shadow: 0 0 16px color-mix(in srgb, var(--model-accent) 42%, transparent);
+  transform: translateZ(82px);
+}
+
+.model-light-front {
+  right: calc(100% - var(--model-left) - var(--model-length) + 6%);
+}
+
+.model-light-rear {
+  left: calc(var(--model-left) + 5%);
+  background: linear-gradient(90deg, #7d1d18, rgba(215, 161, 140, 0.66));
+}
+
+.model-door-line {
+  bottom: calc(var(--model-body-bottom) + 4%);
+  left: var(--model-door-left);
+  width: 1px;
+  height: 27%;
+  background: rgba(5, 5, 5, 0.28);
+  transform: translateZ(86px);
+}
+
+.model-highlight {
+  bottom: calc(var(--model-body-bottom) + var(--model-body-h) - 3%);
+  left: calc(var(--model-left) + 10%);
+  width: calc(var(--model-length) - 20%);
+  height: 2px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.82), transparent);
+  opacity: 0.62;
+  transform: translateZ(90px);
+}
+
+.vehicle-model-suv {
+  --model-body-h: 36%;
+  --model-body-bottom: 18%;
+  --model-cabin-w: 56%;
+  --model-cabin-left: 24%;
+  --model-cabin-h: 34%;
+  --model-cabin-bottom: 46%;
+  --model-wheel: 16.5%;
+  --model-front-wheel: 71%;
+  --model-rear-wheel: 19%;
+  --model-glass-front-left: 56%;
+  --model-glass-front-w: 17%;
+  --model-glass-rear-left: 31%;
+  --model-glass-rear-w: 22%;
+  --model-door-left: 51%;
+  --model-body-radius: 28px 44px 18px 20px;
+  --model-cabin-shape: polygon(2% 100%, 11% 8%, 82% 8%, 98% 100%);
+}
+
+.vehicle-model-convertible {
+  --model-body-h: 28%;
+  --model-body-bottom: 21%;
+  --model-cabin-w: 38%;
+  --model-cabin-left: 39%;
+  --model-cabin-h: 18%;
+  --model-cabin-bottom: 45%;
+  --model-wheel: 15%;
+  --model-front-wheel: 72%;
+  --model-rear-wheel: 20%;
+  --model-glass-front-left: 55%;
+  --model-glass-front-w: 12%;
+  --model-glass-rear-left: 43%;
+  --model-glass-rear-w: 11%;
+  --model-door-left: 53%;
+  --model-cabin-shape: polygon(0 100%, 18% 12%, 88% 24%, 100% 100%);
+}
+
+.vehicle-model-hatch {
+  --model-length: 80%;
+  --model-left: 10%;
+  --model-body-h: 32%;
+  --model-cabin-w: 50%;
+  --model-cabin-left: 28%;
+  --model-cabin-h: 30%;
+  --model-cabin-bottom: 45%;
+  --model-front-wheel: 70%;
+  --model-rear-wheel: 21%;
+  --model-glass-front-left: 54%;
+  --model-glass-front-w: 14%;
+  --model-glass-rear-left: 36%;
+  --model-glass-rear-w: 16%;
+  --model-door-left: 49%;
+  --model-body-radius: 38px 52px 18px 22px;
+}
+
+.vehicle-model-tesla-model-3-performance {
+  --model-paint: #fbf8f3;
+  --model-paint-mid: #e8dfd8;
+  --model-paint-deep: #b9b2ad;
+  --model-glass: #dceff3;
+  --model-accent: #f8f2ec;
+}
+
+.vehicle-model-mercedes-g63-amg {
+  --model-paint: #85817a;
+  --model-paint-mid: #5f5a55;
+  --model-paint-deep: #22201f;
+  --model-glass: #15191b;
+  --model-accent: #b9aaa0;
+}
+
+.vehicle-model-range-rover-sport-svr {
+  --model-paint: #2f2d2b;
+  --model-paint-mid: #1b1918;
+  --model-paint-deep: #080707;
+  --model-glass: #13191c;
+  --model-accent: #d7a18c;
+}
+
+.vehicle-model-bmw-m440i-convertible {
+  --model-paint: #8dd7ff;
+  --model-paint-mid: #58aedd;
+  --model-paint-deep: #1f5f88;
+  --model-glass: #122532;
+  --model-accent: #8dd7ff;
+}
+
+.vehicle-model-bmw-m140i-shadow-edition {
+  --model-paint: #3a3735;
+  --model-paint-mid: #242221;
+  --model-paint-deep: #0e0d0d;
+  --model-glass: #111719;
+  --model-accent: #8d827b;
+}
+
 .flow-vehicle-photo img {
   position: relative;
   z-index: 2;
@@ -2413,6 +2783,15 @@ h2 {
 
   .choice-card {
     min-height: 236px;
+  }
+
+  .vehicle-model-mini .vehicle-model-scene {
+    height: 118px;
+  }
+
+  .summary-media:not(.compact-media) .flow-vehicle-photo .vehicle-model-scene,
+  .compact-media .flow-vehicle-photo .vehicle-model-scene {
+    height: 165px;
   }
 
   .summary-row {
