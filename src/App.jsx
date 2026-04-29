@@ -180,7 +180,7 @@ function App() {
           <a href="#fleet">Fleet</a>
           <a href="#experience">Experience</a>
           <a href="#booking">Reserve</a>
-          <a href="#reviews">Reviews</a>
+          <a href="account.html">Account</a>
         </nav>
 
         <a className="nav-cta" href="booking.html">
