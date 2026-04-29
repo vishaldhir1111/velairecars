@@ -3,127 +3,111 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Client Login | Velaire Cars</title>
-    <meta name="description" content="Enter your details for a Velaire Cars premium reservation." />
+    <meta name="description" content="Enter your Velaire Cars account details to continue a premium reservation." />
+    <title>Client Portal | Velaire Cars</title>
     <link rel="stylesheet" href="flow.css" />
   </head>
-  <body>
-    <header class="flow-nav">
-      <a class="brand" href="/">
-        <span class="brand-mark">V</span>
-        <span>
-          <strong>Velaire Cars</strong>
-          <small>Luxury rental concierge</small>
-        </span>
-      </a>
-      <nav>
-        <a href="booking.html">Booking</a>
-        <a href="/#fleet">Fleet</a>
+  <body data-page="login">
+    <main class="flow-shell">
+      <nav class="flow-nav" aria-label="Account navigation">
+        <a class="brand" href="/">
+          <span class="brand-mark">V</span>
+          <span class="brand-copy">
+            <strong>Velaire Cars</strong>
+            <small>Performance, prestige, delivered</small>
+          </span>
+        </a>
+        <div class="flow-nav-links">
+          <a href="/#fleet">Fleet</a>
+          <a href="/#experience">Experience</a>
+          <a href="booking.html">Reserve</a>
+          <a href="/#reviews">Reviews</a>
+        </div>
+        <a class="flow-back" href="booking.html">Back to booking</a>
       </nav>
-    </header>
 
-    <main class="flow-shell compact-shell">
-      <section class="flow-hero">
-        <p class="eyebrow">Client details</p>
-        <h1>Tell us where to confirm your reservation.</h1>
-        <p>
-          We use these details to prepare the booking, confirm eligibility and coordinate delivery.
-        </p>
-      </section>
-
-      <section class="flow-grid two-column">
-        <form class="flow-panel" action="payment.html">
-          <div class="step-label">Step 02 / Account entry</div>
-
-          <div class="form-pair">
-            <label>
-              First name
-              <input type="text" name="firstName" required />
-            </label>
-            <label>
-              Last name
-              <input type="text" name="lastName" required />
-            </label>
-          </div>
-
-          <label>
-            Email address
-            <input type="email" name="email" placeholder="you@example.com" required />
-          </label>
-
-          <label>
-            Phone number
-            <input type="tel" name="phone" placeholder="+44" required />
-          </label>
-
-          <label>
-            Driver age
-            <select name="age" required>
-              <option value="">Select age range</option>
-              <option>21-24</option>
-              <option>25-34</option>
-              <option>35-44</option>
-              <option>45+</option>
-            </select>
-          </label>
-
-          <label class="check-row">
-            <input type="checkbox" required />
-            <span>I confirm I hold a valid driving licence and can provide ID before handover.</span>
-          </label>
-
-          <button class="primary-button full-button" type="submit">Continue to payment</button>
-        </form>
-
-        <aside class="flow-panel concierge-panel">
-          <p class="eyebrow">Premium handling</p>
-          <h2>Concierge confirmation before handover.</h2>
+      <section class="flow-stage compact-stage">
+        <div class="flow-intro">
+          <p class="eyebrow">Step 2 of 4</p>
+          <h1>Enter the private client portal.</h1>
           <p>
-            Velaire confirms identity, delivery details, deposit and insurance requirements before
-            the vehicle is released.
+            Continue with your contact details so the Velaire concierge can prepare verification,
+            handover timing and reservation support.
           </p>
-          <ul>
-            <li>Secure reservation review</li>
-            <li>Clear deposit guidance</li>
-            <li>Flexible delivery coordination</li>
-            <li>Professional vehicle inspection</li>
-          </ul>
-        </aside>
+          <div class="step-row" aria-label="Booking progress">
+            <span class="step">Car</span>
+            <span class="step active">Account</span>
+            <span class="step">Reserve</span>
+            <span class="step">Confirm</span>
+          </div>
+        </div>
+
+        <div class="flow-workspace account-workspace">
+          <form class="flow-panel form-grid account-card" action="payment.html">
+            <div class="mini-summary">
+              <span>Reservation in progress</span>
+              <strong data-bind="vehicleName">Lamborghini Urus 2021</strong>
+            </div>
+
+            <div class="panel-heading">
+              <p class="eyebrow">Client details</p>
+              <h2>Continue securely.</h2>
+            </div>
+
+            <label class="field">
+              Email address
+              <input type="email" name="email" placeholder="you@example.com" autocomplete="email" />
+            </label>
+            <label class="field">
+              Mobile number
+              <input type="tel" name="phone" placeholder="+44" autocomplete="tel" />
+            </label>
+            <label class="field">
+              Password
+              <input type="password" name="password" placeholder="Enter password" autocomplete="current-password" />
+            </label>
+            <button class="primary-button full-width" type="submit">Continue to reservation</button>
+            <p class="secure-note">
+              New Velaire clients can continue here. Licence, ID and insurance checks are completed
+              by concierge before vehicle release.
+            </p>
+          </form>
+
+          <aside class="flow-panel client-proof" aria-label="Client portal assurances">
+            <div class="summary-media compact-media">
+              <div
+                class="vehicle-art vehicle-art-large vehicle-art-lamborghini-urus"
+                data-bind-vehicle-art
+                role="img"
+                aria-label="Lamborghini Urus 2021, orange exterior"
+              >
+                <div class="vehicle-art-glow" aria-hidden="true"></div>
+                <div class="vehicle-art-roof" aria-hidden="true"></div>
+                <div class="vehicle-art-body" aria-hidden="true"></div>
+                <div class="vehicle-art-wheel vehicle-art-wheel-front" aria-hidden="true"></div>
+                <div class="vehicle-art-wheel vehicle-art-wheel-rear" aria-hidden="true"></div>
+              </div>
+            </div>
+            <p class="eyebrow">Private-client handling</p>
+            <h2>Everything stays refined, verified and discreet.</h2>
+            <ul class="feature-list">
+              <li>
+                <strong>Identity review</strong>
+                <span>Licence and ID checks handled before handover.</span>
+              </li>
+              <li>
+                <strong>Concierge timing</strong>
+                <span>Delivery windows coordinated around your itinerary.</span>
+              </li>
+              <li>
+                <strong>Clear deposit terms</strong>
+                <span>Vehicle-specific deposit guidance before release.</span>
+              </li>
+            </ul>
+          </aside>
+        </div>
       </section>
     </main>
-
     <script type="module" src="/flow.js"></script>
   </body>
-</html>
-  cursor:pointer;
-  font-weight:bold;
-}
-
-button:hover {
-  opacity:0.9;
-}
-  </style>
-</head>
-<body>
-<div class="box">
-  <h2>Login / Create Account</h2>
-
-  <input id="email" placeholder="Email">
-  <input id="password" type="password" placeholder="Password">
-
-  <button onclick="login()">Continue</button>
-</div>
-<script>
-function login(){
-  if(!email.value || !email.value.includes("@")){
-    alert("Enter a valid email")
-    return
-  }
-
-  localStorage.setItem("user", email.value)
-
-  window.location.href = "payment.html"
-}
-</script>
-</body>
 </html>

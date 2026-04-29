@@ -3,137 +3,275 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Reserve | Velaire Cars</title>
     <meta
       name="description"
-      content="Reserve a Velaire Cars luxury vehicle with premium pickup, delivery and concierge support."
+      content="Reserve a Velaire Cars luxury rental with concierge delivery, clear pricing and premium booking support."
     />
+    <meta name="google-maps-api-key" content="" />
+    <title>Reserve | Velaire Cars</title>
     <link rel="stylesheet" href="flow.css" />
   </head>
-  <body>
-    <header class="flow-nav">
-      <a class="brand" href="/">
-        <span class="brand-mark">V</span>
-        <span>
-          <strong>Velaire Cars</strong>
-          <small>Luxury rental concierge</small>
-        </span>
-      </a>
-      <nav>
-        <a href="/">Home</a>
-        <a href="/#fleet">Fleet</a>
-        <a href="login.html">Client login</a>
-      </nav>
-    </header>
-
+  <body data-page="booking">
     <main class="flow-shell">
-      <section class="flow-hero">
-        <p class="eyebrow">Reserve your vehicle</p>
-        <h1>Luxury booking, without the rental counter.</h1>
-        <p>
-          Select your car, choose the delivery window and confirm the details. A Velaire concierge
-          will prepare the handover around your itinerary.
-        </p>
+      <nav class="flow-nav" aria-label="Booking navigation">
+        <a class="brand" href="/">
+          <span class="brand-mark">V</span>
+          <span class="brand-copy">
+            <strong>Velaire Cars</strong>
+            <small>Performance, prestige, delivered</small>
+          </span>
+        </a>
+        <div class="flow-nav-links">
+          <a href="/#fleet">Fleet</a>
+          <a href="/#experience">Experience</a>
+          <a href="booking.html">Reserve</a>
+          <a href="/#reviews">Reviews</a>
+        </div>
+        <a class="flow-back" href="/">Home</a>
+      </nav>
+
+      <section class="flow-trust-strip" aria-label="Velaire concierge promise">
+        <div>
+          <strong>5</strong>
+          <span>Curated vehicles</span>
+        </div>
+        <div>
+          <strong>24/7</strong>
+          <span>Concierge support</span>
+        </div>
+        <div>
+          <strong>£0</strong>
+          <span>Hidden fees</span>
+        </div>
+        <div>
+          <strong>4.9</strong>
+          <span>Client rating</span>
+        </div>
       </section>
 
-      <section class="flow-grid">
-        <form class="flow-panel booking-form" action="login.html">
-          <div class="step-label">Step 01 / Vehicle and schedule</div>
-
-          <label>
-            Vehicle
-            <select name="vehicle" id="vehicle-select">
-              <option value="tesla-model-3-performance">Tesla Model 3 Performance 2020</option>
-              <option value="lamborghini-urus">Lamborghini Urus 2021</option>
-              <option value="range-rover-sport-svr">Range Rover Sport SVR 2021</option>
-              <option value="bmw-m440i-convertible">BMW M440i Convertible 2022</option>
-              <option value="bmw-m140i-shadow-edition">BMW M140i Shadow Edition 2019</option>
-            </select>
-          </label>
-
-          <div class="form-pair">
-            <label>
-              Pickup date
-              <input type="date" name="pickup" id="pickup-date" required />
-            </label>
-            <label>
-              Return date
-              <input type="date" name="return" id="return-date" required />
-            </label>
+      <section class="flow-stage booking-stage">
+        <div class="flow-intro">
+          <p class="eyebrow">Step 1 of 4</p>
+          <h1>Concierge booking, tailored around the car.</h1>
+          <p>
+            Select your vehicle, handover window and delivery location. Velaire keeps the process
+            polished, transparent and private from the first click.
+          </p>
+          <div class="step-row" aria-label="Booking progress">
+            <span class="step active">Car</span>
+            <span class="step">Account</span>
+            <span class="step">Reserve</span>
+            <span class="step">Confirm</span>
           </div>
-
-          <div class="form-pair">
-            <label>
-              Delivery time
-              <input type="time" name="time" value="10:00" required />
-            </label>
-            <label>
-              Rental days
-              <input type="number" name="days" id="rental-days" min="1" value="1" />
-            </label>
-          </div>
-
-          <label>
-            Pickup or delivery location
-            <input
-              type="text"
-              name="location"
-              placeholder="Mayfair, Heathrow, Manchester, hotel or venue"
-              required
-            />
-          </label>
-
-          <label>
-            Occasion
-            <select name="occasion">
-              <option>Private hire</option>
-              <option>Business travel</option>
-              <option>Airport delivery</option>
-              <option>Wedding or event</option>
-              <option>Content or brand shoot</option>
-            </select>
-          </label>
-
-          <button class="primary-button full-button" type="submit">Continue to client details</button>
-          <p class="fine-print">No payment is taken on this step. Pricing and deposit are shown clearly first.</p>
-        </form>
-
-        <aside class="flow-panel summary-card">
-          <div class="summary-media">
-            <img id="vehicle-image" src="" alt="" />
-          </div>
-          <p class="eyebrow">Reservation summary</p>
-          <h2 id="vehicle-name">Tesla Model 3 Performance</h2>
-          <p id="vehicle-description"></p>
-
-          <dl class="price-list">
+          <div class="intro-stat-grid" aria-label="Velaire booking benefits">
             <div>
-              <dt>Daily rate</dt>
-              <dd id="daily-rate">£195</dd>
+              <strong>24/7</strong>
+              <span>Concierge support</span>
             </div>
             <div>
-              <dt>Reserve deposit</dt>
-              <dd id="deposit">£500</dd>
+              <strong>5</strong>
+              <span>Curated vehicles</span>
             </div>
-            <div>
-              <dt>Estimated total</dt>
-              <dd id="estimated-total">£195</dd>
+          </div>
+        </div>
+
+        <div class="flow-workspace booking-workspace">
+          <form class="flow-panel booking-panel form-grid" action="login.html">
+            <div class="panel-heading">
+              <p class="eyebrow">Vehicle selection</p>
+              <h2>Choose your arrival.</h2>
             </div>
-          </dl>
 
-          <div class="availability">
-            <span></span>
-            Available for concierge delivery subject to final confirmation.
-          </div>
+            <div class="choice-grid" aria-label="Available Velaire vehicles">
+              <label class="choice-card" data-vehicle-card>
+                <input type="radio" name="vehicle" value="tesla-model-3-performance" />
+                <span
+                  class="choice-visual vehicle-art vehicle-art-mini vehicle-art-tesla-model-3-performance"
+                  aria-hidden="true"
+                ></span>
+                <span class="choice-name">Tesla Model 3 Performance</span>
+                <small>White exterior / white interior</small>
+                <strong>£195/day</strong>
+              </label>
+              <label class="choice-card" data-vehicle-card>
+                <input type="radio" name="vehicle" value="lamborghini-urus" checked />
+                <span
+                  class="choice-visual vehicle-art vehicle-art-mini vehicle-art-lamborghini-urus"
+                  aria-hidden="true"
+                ></span>
+                <span class="choice-name">Lamborghini Urus</span>
+                <small>Orange super SUV</small>
+                <strong>£895/day</strong>
+              </label>
+              <label class="choice-card" data-vehicle-card>
+                <input type="radio" name="vehicle" value="range-rover-sport-svr" />
+                <span
+                  class="choice-visual vehicle-art vehicle-art-mini vehicle-art-range-rover-sport-svr"
+                  aria-hidden="true"
+                ></span>
+                <span class="choice-name">Range Rover Sport SVR</span>
+                <small>Supercharged performance SUV</small>
+                <strong>£495/day</strong>
+              </label>
+              <label class="choice-card" data-vehicle-card>
+                <input type="radio" name="vehicle" value="bmw-m440i-convertible" />
+                <span
+                  class="choice-visual vehicle-art vehicle-art-mini vehicle-art-bmw-m440i-convertible"
+                  aria-hidden="true"
+                ></span>
+                <span class="choice-name">BMW M440i Convertible</span>
+                <small>Sky blue wrap / open-top GT</small>
+                <strong>£295/day</strong>
+              </label>
+              <label class="choice-card" data-vehicle-card>
+                <input type="radio" name="vehicle" value="bmw-m140i-shadow-edition" />
+                <span
+                  class="choice-visual vehicle-art vehicle-art-mini vehicle-art-bmw-m140i-shadow-edition"
+                  aria-hidden="true"
+                ></span>
+                <span class="choice-name">BMW M140i Shadow Edition</span>
+                <small>Shadow Edition compact performance</small>
+                <strong>£175/day</strong>
+              </label>
+            </div>
 
-          <div class="map-preview">
-            <span>Delivery preview</span>
-            <strong>London, airports and event venues</strong>
-          </div>
-        </aside>
+            <div class="form-grid two-column">
+              <label class="field date-field">
+                Pickup date
+                <input type="hidden" name="pickup" data-date-value="pickup" />
+                <button
+                  class="date-trigger"
+                  type="button"
+                  data-date-trigger="pickup"
+                  aria-haspopup="dialog"
+                  aria-expanded="false"
+                >
+                  <span data-date-label="pickup">Select pickup date</span>
+                  <small>Concierge start</small>
+                </button>
+              </label>
+              <label class="field">
+                Pickup time
+                <input type="time" name="pickup-time" value="10:00" />
+              </label>
+              <label class="field date-field">
+                Return date
+                <input type="hidden" name="return" data-date-value="return" />
+                <button
+                  class="date-trigger"
+                  type="button"
+                  data-date-trigger="return"
+                  aria-haspopup="dialog"
+                  aria-expanded="false"
+                >
+                  <span data-date-label="return">Select return date</span>
+                  <small>Concierge finish</small>
+                </button>
+              </label>
+              <label class="field">
+                Return time
+                <input type="time" name="return-time" value="18:00" />
+              </label>
+            </div>
+
+            <div class="date-popover" id="date-popover" role="dialog" aria-label="Choose date" hidden></div>
+
+            <div class="location-picker">
+              <div class="panel-heading compact-heading">
+                <p class="eyebrow">Delivery location</p>
+                <h2>Pin the handover.</h2>
+              </div>
+
+              <label class="field">
+                UK postcode or full address
+                <input
+                  type="text"
+                  id="delivery-location"
+                  name="location"
+                  placeholder="Enter postcode, hotel, airport or full UK address"
+                  autocomplete="street-address"
+                  aria-describedby="delivery-map-status"
+                />
+              </label>
+
+              <input type="hidden" id="delivery-place-id" name="place-id" />
+              <input type="hidden" id="delivery-lat" name="lat" />
+              <input type="hidden" id="delivery-lng" name="lng" />
+              <input type="hidden" id="delivery-formatted-address" name="formatted-address" />
+
+              <div class="delivery-map-card">
+                <div id="delivery-map" class="delivery-map" aria-label="Google delivery map">
+                  <div class="map-fallback">
+                    <span>Google Maps delivery picker</span>
+                    <strong>Enter a postcode or drop a pin for concierge handover.</strong>
+                  </div>
+                </div>
+                <div class="map-toolbar">
+                  <span id="delivery-map-status">Enter a UK postcode or address to select a delivery point.</span>
+                  <button class="map-pin-button" type="button" id="confirm-pin">Use selected pin</button>
+                </div>
+              </div>
+            </div>
+
+            <button class="primary-button full-width" type="submit">Continue to account</button>
+          </form>
+
+          <aside class="flow-panel vehicle-summary" aria-label="Vehicle reservation summary">
+            <div class="summary-media">
+              <div
+                class="vehicle-art vehicle-art-large vehicle-art-lamborghini-urus"
+                data-bind-vehicle-art
+                role="img"
+                aria-label="Lamborghini Urus 2021, orange exterior"
+              >
+                <div class="vehicle-art-glow" aria-hidden="true"></div>
+                <div class="vehicle-art-roof" aria-hidden="true"></div>
+                <div class="vehicle-art-body" aria-hidden="true"></div>
+                <div class="vehicle-art-wheel vehicle-art-wheel-front" aria-hidden="true"></div>
+                <div class="vehicle-art-wheel vehicle-art-wheel-rear" aria-hidden="true"></div>
+              </div>
+            </div>
+            <div class="panel-heading compact-heading">
+              <p class="eyebrow">Selected vehicle</p>
+              <h2 data-bind="vehicleName">Lamborghini Urus 2021</h2>
+              <span data-bind="vehicleCategory">Super SUV</span>
+            </div>
+
+            <p class="summary-copy" data-bind="vehicleDescription">
+              A statement SUV with supercar drama, luxury cabin comfort and serious presence.
+            </p>
+
+            <div class="summary-card">
+              <div class="summary-row">
+                <span>Daily rate</span>
+                <strong data-bind="dailyRate">£895</strong>
+              </div>
+              <div class="summary-row">
+                <span>Rental length</span>
+                <strong data-bind="rentalDays">2 days</strong>
+              </div>
+              <div class="summary-row">
+                <span>Estimated hire</span>
+                <strong data-bind="hireEstimate">£1,790</strong>
+              </div>
+              <div class="summary-row">
+                <span>Reserve deposit</span>
+                <strong data-bind="deposit">From £2,500</strong>
+              </div>
+              <div class="summary-row">
+                <span>Handover</span>
+                <strong data-bind="handoverLocation">Delivery location pending</strong>
+              </div>
+            </div>
+
+            <div class="availability">
+              <span aria-hidden="true"></span>
+              Concierge availability pending final confirmation.
+            </div>
+          </aside>
+        </div>
       </section>
     </main>
-
     <script type="module" src="/flow.js"></script>
   </body>
 </html>

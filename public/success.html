@@ -3,59 +3,106 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Reservation Received | Velaire Cars</title>
-    <meta name="description" content="Your Velaire Cars reservation request has been received." />
+    <meta name="description" content="Your Velaire Cars luxury rental reservation has been received." />
+    <title>Confirmed | Velaire Cars</title>
     <link rel="stylesheet" href="flow.css" />
   </head>
-  <body>
-    <header class="flow-nav">
-      <a class="brand" href="/">
-        <span class="brand-mark">V</span>
-        <span>
-          <strong>Velaire Cars</strong>
-          <small>Luxury rental concierge</small>
-        </span>
-      </a>
-      <nav>
-        <a href="/">Home</a>
-        <a href="/#fleet">Fleet</a>
-      </nav>
-    </header>
-
-    <main class="success-shell">
-      <section class="success-card">
-        <p class="eyebrow">Reservation received</p>
-        <h1>Your Velaire experience is being prepared.</h1>
-        <p>
-          Thank you for choosing Velaire Cars. A concierge will review the details, confirm vehicle
-          availability and contact you with the final handover plan.
-        </p>
-
-        <div class="success-steps">
-          <div>
-            <span>01</span>
-            <strong>Review</strong>
-            <p>We confirm vehicle availability, dates and delivery requirements.</p>
-          </div>
-          <div>
-            <span>02</span>
-            <strong>Verification</strong>
-            <p>Licence, ID, deposit and insurance details are checked before release.</p>
-          </div>
-          <div>
-            <span>03</span>
-            <strong>Handover</strong>
-            <p>Your vehicle is prepared, inspected and delivered with premium presentation.</p>
-          </div>
+  <body data-page="success">
+    <main class="flow-shell success-shell">
+      <nav class="flow-nav" aria-label="Success navigation">
+        <a class="brand" href="/">
+          <span class="brand-mark">V</span>
+          <span class="brand-copy">
+            <strong>Velaire Cars</strong>
+            <small>Performance, prestige, delivered</small>
+          </span>
+        </a>
+        <div class="flow-nav-links">
+          <a href="/#fleet">Fleet</a>
+          <a href="/#experience">Experience</a>
+          <a href="booking.html">Reserve</a>
+          <a href="/#reviews">Reviews</a>
         </div>
+        <a class="flow-back" href="/">Return home</a>
+      </nav>
 
-        <div class="success-actions">
-          <a class="primary-button" href="/">Return home</a>
-          <a class="secondary-button" href="booking.html">Reserve another vehicle</a>
+      <section class="success-experience">
+        <div class="success-card">
+          <p class="eyebrow">Step 4 of 4</p>
+          <span class="success-mark" aria-hidden="true">V</span>
+          <h1>Your Velaire reservation is in motion.</h1>
+          <p>
+            The concierge team will confirm vehicle availability, delivery timing and final handover
+            requirements. Your confirmation has been staged for private-client review.
+          </p>
+
+          <div class="step-row success-steps" aria-label="Booking progress">
+            <span class="step">Car</span>
+            <span class="step">Account</span>
+            <span class="step">Reserve</span>
+            <span class="step active">Confirm</span>
+          </div>
+
+          <div class="confirmation-layout">
+            <div class="success-vehicle-card">
+              <div class="summary-media compact-media">
+                <div
+                  class="vehicle-art vehicle-art-large vehicle-art-lamborghini-urus"
+                  data-bind-vehicle-art
+                  role="img"
+                  aria-label="Lamborghini Urus 2021, orange exterior"
+                >
+                  <div class="vehicle-art-glow" aria-hidden="true"></div>
+                  <div class="vehicle-art-roof" aria-hidden="true"></div>
+                  <div class="vehicle-art-body" aria-hidden="true"></div>
+                  <div class="vehicle-art-wheel vehicle-art-wheel-front" aria-hidden="true"></div>
+                  <div class="vehicle-art-wheel vehicle-art-wheel-rear" aria-hidden="true"></div>
+                </div>
+              </div>
+              <p class="eyebrow">Selected vehicle</p>
+              <strong data-bind="vehicleName">Lamborghini Urus 2021</strong>
+              <span data-bind="vehicleCategory">Super SUV</span>
+            </div>
+
+            <div class="summary-card">
+              <div class="summary-row">
+                <span>Booking reference</span>
+                <strong data-bind="reference">VEL-URUS-1087</strong>
+              </div>
+              <div class="summary-row">
+                <span>Vehicle</span>
+                <strong data-bind="vehicleName">Lamborghini Urus 2021</strong>
+              </div>
+              <div class="summary-row">
+                <span>Status</span>
+                <strong>Concierge review</strong>
+              </div>
+              <div class="summary-row">
+                <span>Delivery</span>
+                <strong data-bind="handoverLocation">Delivery location pending</strong>
+              </div>
+              <div class="summary-row">
+                <span>Next step</span>
+                <strong>Handover confirmation</strong>
+              </div>
+            </div>
+
+            <div class="notice-card">
+              <strong>Premium support included</strong>
+              <p>
+                Expect a concise confirmation message with delivery timing, document checks and any
+                final route notes.
+              </p>
+            </div>
+          </div>
+
+          <div class="success-actions">
+            <a class="primary-button" href="/">Return to homepage</a>
+            <a class="secondary-button" href="/#fleet">Continue browsing</a>
+          </div>
         </div>
       </section>
     </main>
-
     <script type="module" src="/flow.js"></script>
   </body>
 </html>

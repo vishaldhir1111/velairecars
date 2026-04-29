@@ -3,98 +3,137 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Payment | Velaire Cars</title>
-    <meta name="description" content="Review and confirm your Velaire Cars reservation payment." />
+    <meta name="description" content="Secure a Velaire Cars reservation with clear deposit and premium booking details." />
+    <title>Reservation | Velaire Cars</title>
     <link rel="stylesheet" href="flow.css" />
   </head>
-  <body>
-    <header class="flow-nav">
-      <a class="brand" href="/">
-        <span class="brand-mark">V</span>
-        <span>
-          <strong>Velaire Cars</strong>
-          <small>Luxury rental concierge</small>
-        </span>
-      </a>
-      <nav>
-        <a href="booking.html">Booking</a>
-        <a href="login.html">Client details</a>
+  <body data-page="payment">
+    <main class="flow-shell">
+      <nav class="flow-nav" aria-label="Reservation navigation">
+        <a class="brand" href="/">
+          <span class="brand-mark">V</span>
+          <span class="brand-copy">
+            <strong>Velaire Cars</strong>
+            <small>Performance, prestige, delivered</small>
+          </span>
+        </a>
+        <div class="flow-nav-links">
+          <a href="/#fleet">Fleet</a>
+          <a href="/#experience">Experience</a>
+          <a href="booking.html">Reserve</a>
+          <a href="/#reviews">Reviews</a>
+        </div>
+        <a class="flow-back" href="login.html">Back to account</a>
       </nav>
-    </header>
 
-    <main class="flow-shell compact-shell">
-      <section class="flow-hero">
-        <p class="eyebrow">Secure reservation</p>
-        <h1>Confirm the booking request.</h1>
-        <p>
-          This premium payment screen is ready for Stripe or your preferred provider. The current
-          button completes the front-end confirmation flow.
-        </p>
-      </section>
-
-      <section class="flow-grid two-column">
-        <form class="flow-panel" action="success.html">
-          <div class="step-label">Step 03 / Payment details</div>
-
-          <label>
-            Name on card
-            <input type="text" name="cardName" required />
-          </label>
-
-          <label>
-            Card number
-            <input inputmode="numeric" name="cardNumber" placeholder="4242 4242 4242 4242" required />
-          </label>
-
-          <div class="form-pair">
-            <label>
-              Expiry
-              <input inputmode="numeric" name="expiry" placeholder="MM / YY" required />
-            </label>
-            <label>
-              CVC
-              <input inputmode="numeric" name="cvc" placeholder="123" required />
-            </label>
-          </div>
-
-          <label>
-            Billing postcode
-            <input type="text" name="postcode" required />
-          </label>
-
-          <div class="secure-note">
-            <strong>Reserve fee today</strong>
-            <span>Deposit and balance terms are confirmed by concierge before release.</span>
-          </div>
-
-          <button class="primary-button full-button" type="submit">Confirm reservation</button>
-        </form>
-
-        <aside class="flow-panel receipt-panel">
-          <p class="eyebrow">Booking protection</p>
-          <h2>Transparent costs. Premium support.</h2>
-          <dl class="price-list">
-            <div>
-              <dt>Reservation handling</dt>
-              <dd>Included</dd>
-            </div>
-            <div>
-              <dt>Concierge delivery quote</dt>
-              <dd>On request</dd>
-            </div>
-            <div>
-              <dt>Security deposit</dt>
-              <dd>Vehicle dependent</dd>
-            </div>
-          </dl>
+      <section class="flow-stage payment-stage">
+        <div class="flow-intro">
+          <p class="eyebrow">Step 3 of 4</p>
+          <h1>Review and secure the reservation.</h1>
           <p>
-            Your reservation is reviewed by the Velaire team before final release. This keeps the
-            experience personal, secure and aligned with premium vehicle requirements.
+            Confirm the vehicle, estimated hire and deposit guidance in a polished reservation
+            screen built for premium client confidence.
           </p>
-        </aside>
+          <div class="step-row" aria-label="Booking progress">
+            <span class="step">Car</span>
+            <span class="step">Account</span>
+            <span class="step active">Reserve</span>
+            <span class="step">Confirm</span>
+          </div>
+        </div>
+
+        <div class="flow-workspace payment-workspace">
+          <aside class="flow-panel order-review" aria-label="Reservation order review">
+            <div class="summary-media compact-media">
+              <div
+                class="vehicle-art vehicle-art-large vehicle-art-lamborghini-urus"
+                data-bind-vehicle-art
+                role="img"
+                aria-label="Lamborghini Urus 2021, orange exterior"
+              >
+                <div class="vehicle-art-glow" aria-hidden="true"></div>
+                <div class="vehicle-art-roof" aria-hidden="true"></div>
+                <div class="vehicle-art-body" aria-hidden="true"></div>
+                <div class="vehicle-art-wheel vehicle-art-wheel-front" aria-hidden="true"></div>
+                <div class="vehicle-art-wheel vehicle-art-wheel-rear" aria-hidden="true"></div>
+              </div>
+            </div>
+            <div class="panel-heading compact-heading">
+              <p class="eyebrow">Order review</p>
+              <h2 data-bind="vehicleName">Lamborghini Urus 2021</h2>
+              <span data-bind="vehicleFinish">Orange exterior</span>
+            </div>
+
+            <div class="summary-card">
+              <div class="summary-row">
+                <span>Estimated hire</span>
+                <strong data-bind="hireEstimate">£1,790</strong>
+              </div>
+              <div class="summary-row">
+                <span>Reserve deposit</span>
+                <strong data-bind="depositValue">£2,500</strong>
+              </div>
+              <div class="summary-row">
+                <span>Concierge delivery</span>
+                <strong>Quote included</strong>
+              </div>
+              <div class="summary-row">
+                <span>Handover</span>
+                <strong data-bind="handoverLocation">Delivery location pending</strong>
+              </div>
+              <div class="summary-row">
+                <span>Status</span>
+                <strong>Availability review</strong>
+              </div>
+            </div>
+
+            <div class="notice-card">
+              <strong>Availability pending final confirmation</strong>
+              <p>
+                The reservation request secures the slot while Velaire confirms driver eligibility,
+                delivery details and handover timing.
+              </p>
+            </div>
+          </aside>
+
+          <form class="flow-panel form-grid payment-card" action="success.html">
+            <div class="panel-heading">
+              <p class="eyebrow">Secure payment</p>
+              <h2>Reservation details.</h2>
+            </div>
+
+            <label class="field">
+              Card number
+              <input inputmode="numeric" name="card" placeholder="1234 1234 1234 1234" autocomplete="cc-number" />
+            </label>
+            <div class="form-grid two-column">
+              <label class="field">
+                Expiry
+                <input type="text" name="expiry" placeholder="MM / YY" autocomplete="cc-exp" />
+              </label>
+              <label class="field">
+                CVC
+                <input inputmode="numeric" name="cvc" placeholder="123" autocomplete="cc-csc" />
+              </label>
+            </div>
+            <label class="field">
+              Name on card
+              <input type="text" name="name" placeholder="Full name" autocomplete="cc-name" />
+            </label>
+
+            <div class="secure-band">
+              <strong>Secure reservation hold</strong>
+              <span>Ready for a live payment provider when connected.</span>
+            </div>
+
+            <button class="primary-button full-width" type="submit">Confirm reservation</button>
+            <p class="secure-note">
+              Deposit and balance terms are confirmed by concierge before the vehicle is released.
+            </p>
+          </form>
+        </div>
       </section>
     </main>
-
     <script type="module" src="/flow.js"></script>
   </body>
 </html>
