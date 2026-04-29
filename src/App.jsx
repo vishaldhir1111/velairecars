@@ -9,13 +9,13 @@ const fleet = [
     category: "Electric performance",
     rate: 195,
     deposit: 500,
-    image:
-      "https://images.unsplash.com/photo-1560958089-b8a1929cea89?auto=format&fit=crop&w=1400&q=84",
-    alt: "White electric performance saloon placeholder for Tesla Model 3 Performance",
-    specs: ["0-60 in 3.1s", "Dual motor AWD", "White interior", "5 seats"],
-    bestFor: "Quiet executive travel, city movement and clean performance.",
+    visualClass: "tesla-model-3-performance",
+    paint: "Pearl white",
+    interior: "White interior",
+    specs: ["Dual Motor AWD", "Performance trim", "White cabin", "5 seats"],
+    bestFor: "Quiet executive travel, city movement and clean all-weather performance.",
     summary:
-      "A sharp electric performance saloon with instant torque, a minimalist white cabin and discreet arrival energy.",
+      "A white-on-white electric performance saloon with instant torque, a minimalist cabin and understated executive presence.",
   },
   {
     slug: "lamborghini-urus",
@@ -25,13 +25,13 @@ const fleet = [
     category: "Super SUV",
     rate: 895,
     deposit: 2500,
-    image:
-      "https://images.unsplash.com/photo-1606016159991-dfe4f2746ad5?auto=format&fit=crop&w=1400&q=84",
-    alt: "Orange performance SUV placeholder for Lamborghini Urus",
-    specs: ["641 bhp", "V8 twin turbo", "Orange finish", "5 seats"],
+    visualClass: "lamborghini-urus",
+    paint: "Orange exterior",
+    interior: "Luxury sport cabin",
+    specs: ["4.0L twin-turbo V8", "Super SUV stance", "Orange finish", "5 seats"],
     bestFor: "High-impact arrivals, events, launches and weekend presence.",
     summary:
-      "A statement SUV with supercar drama, luxury cabin comfort and the road presence clients remember.",
+      "An orange super SUV with dramatic road presence, a luxury sport cabin and the theatre clients expect from a flagship arrival.",
   },
   {
     slug: "range-rover-sport-svr",
@@ -41,13 +41,13 @@ const fleet = [
     category: "Luxury SUV",
     rate: 495,
     deposit: 1500,
-    image:
-      "https://images.unsplash.com/photo-1620891549027-942fdc95d3f5?auto=format&fit=crop&w=1400&q=84",
-    alt: "Luxury SUV placeholder for Range Rover Sport SVR",
-    specs: ["Supercharged V8", "AWD", "Command seating", "5 seats"],
+    visualClass: "range-rover-sport-svr",
+    paint: "SVR performance finish",
+    interior: "Command seating",
+    specs: ["5.0L supercharged V8", "SVR exhaust", "Command seating", "5 seats"],
     bestFor: "Airport delivery, family luxury, rural escapes and confident daily use.",
     summary:
-      "A refined performance SUV with luggage space, presence and the comfort expected from a premium handover.",
+      "A performance Range Rover with supercharged V8 character, elevated comfort and the confidence expected from a premium SUV handover.",
   },
   {
     slug: "bmw-m440i-convertible",
@@ -57,13 +57,13 @@ const fleet = [
     category: "Convertible GT",
     rate: 295,
     deposit: 900,
-    image:
-      "https://images.unsplash.com/photo-1619767886558-efdc259cde1a?auto=format&fit=crop&w=1400&q=84",
-    alt: "Blue convertible grand tourer placeholder for BMW M440i Convertible",
-    specs: ["M Performance", "Convertible", "Sky blue wrap", "4 seats"],
+    visualClass: "bmw-m440i-convertible",
+    paint: "Sky blue wrap",
+    interior: "Convertible cabin",
+    specs: ["M Performance", "Open-top roof", "Sky blue wrap", "4 seats"],
     bestFor: "Summer weekends, coastal drives, weddings and expressive arrivals.",
     summary:
-      "A polished open-top grand tourer with a distinctive sky blue look and easy everyday drivability.",
+      "A sky-blue open-top grand tourer with M Performance pace, polished daily usability and a clean summer-event look.",
   },
   {
     slug: "bmw-m140i-shadow-edition",
@@ -73,13 +73,13 @@ const fleet = [
     category: "Hot hatch",
     rate: 175,
     deposit: 600,
-    image:
-      "https://images.unsplash.com/photo-1555215695-3004980ad54e?auto=format&fit=crop&w=1400&q=84",
-    alt: "Premium compact performance car placeholder for BMW M140i Shadow Edition",
-    specs: ["B58 engine", "Rear-wheel drive", "Shadow trim", "5 seats"],
+    visualClass: "bmw-m140i-shadow-edition",
+    paint: "Shadow Edition finish",
+    interior: "Compact performance cabin",
+    specs: ["B58 3.0 turbo", "Shadow Edition trim", "Driver-focused", "5 seats"],
     bestFor: "Driver-focused weekends, city bookings and accessible performance.",
     summary:
-      "A compact performance favourite with a premium cabin, strong pace and understated Shadow Edition styling.",
+      "A compact performance favourite with B58 power, understated Shadow Edition styling and a focused premium cabin.",
   },
 ];
 
@@ -140,6 +140,26 @@ function formatCurrency(value) {
 
 function reserveLink(car) {
   return `booking.html?vehicle=${car.slug}`;
+}
+
+function VehicleVisual({ car, size = "card" }) {
+  return (
+    <div
+      className={`vehicle-art vehicle-art-${size} vehicle-art-${car.visualClass}`}
+      aria-label={`${car.year} ${car.name}, ${car.finish}`}
+      role="img"
+    >
+      <div className="vehicle-art-glow" aria-hidden="true" />
+      <div className="vehicle-art-roof" aria-hidden="true" />
+      <div className="vehicle-art-body" aria-hidden="true" />
+      <div className="vehicle-art-wheel vehicle-art-wheel-front" aria-hidden="true" />
+      <div className="vehicle-art-wheel vehicle-art-wheel-rear" aria-hidden="true" />
+      <div className="vehicle-art-meta">
+        <span>{car.paint}</span>
+        <strong>{car.year}</strong>
+      </div>
+    </div>
+  );
 }
 
 function App() {
@@ -247,8 +267,8 @@ function App() {
             {fleet.map((car) => (
               <article className="fleet-card" key={car.slug}>
                 <div className="fleet-media">
-                  <img src={car.image} alt={car.alt} loading="lazy" />
-                  <span>{car.year}</span>
+                  <VehicleVisual car={car} />
+                  <span className="fleet-year">{car.year}</span>
                 </div>
                 <div className="fleet-card-body">
                   <div className="fleet-title-row">
@@ -280,7 +300,7 @@ function App() {
 
         <section className="detail-section" id="experience">
           <div className="detail-media">
-            <img src={selectedCar.image} alt={selectedCar.alt} />
+            <VehicleVisual car={selectedCar} size="large" />
           </div>
           <div className="detail-copy">
             <p className="eyebrow">Selected experience</p>
