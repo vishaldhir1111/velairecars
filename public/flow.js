@@ -228,6 +228,21 @@ function money(value) {
   }).format(value);
 }
 
+function escapeHtml(value = "") {
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function humanStatus(value = "") {
+  return String(value || "pending")
+    .replaceAll("_", " ")
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
 function loadReservation() {
   try {
     return JSON.parse(window.localStorage.getItem(storageKey)) || {};
@@ -358,6 +373,10 @@ async function optionalApiRequest(path, options = {}, fallback = null) {
   try {
     return await apiRequest(path, options);
   } catch (error) {
+    if (error.status === 409) {
+      showFlowToast(error.message || "Those dates are no longer available.", "warning");
+      throw error;
+    }
     if (error.status !== 401) {
       showFlowToast("Saved locally. Backend sync will resume once the API is available.", "warning");
     }
@@ -494,6 +513,32 @@ async function createPaymentIntent() {
   return result?.paymentIntent || null;
 }
 
+async function createPaymentCheckout() {
+  const reservation = loadReservation();
+  const booking = loadBackendBooking() || (await syncBookingToBackend("payment_review"));
+  const result = await optionalApiRequest(
+    "/api/payments/checkout",
+    {
+      method: "POST",
+      body: JSON.stringify({
+        bookingId: booking?.id || reservation.bookingId || "",
+        reservation,
+      }),
+    },
+    null,
+  );
+
+  if (result?.paymentIntent) {
+    saveReservation({
+      paymentIntentId: result.paymentIntent.id,
+      paymentStatus: result.paymentIntent.status,
+      checkoutSessionId: result.checkoutSessionId || result.paymentIntent.checkoutSessionId || "",
+    });
+  }
+
+  return result;
+}
+
 async function checkAvailability() {
   const reservation = loadReservation();
   const target = document.querySelector("[data-availability-text]");
@@ -510,6 +555,8 @@ async function checkAvailability() {
 
   if (result?.message) {
     target.innerHTML = `<span aria-hidden="true"></span>${result.message}`;
+    target.classList.toggle("is-unavailable", result.available === false);
+    target.classList.toggle("is-available", result.available === true);
   }
 
   return result;
@@ -1503,6 +1550,218 @@ async function hydrateAccountFromBackend() {
   renderBookingHistory(result.bookings || []);
 }
 
+function renderAdminMetrics(summary = {}) {
+  const counts = summary.counts || {};
+  document.querySelectorAll("[data-admin-count]").forEach((item) => {
+    item.textContent = String(counts[item.dataset.adminCount] || 0);
+  });
+  const mode = document.querySelector("[data-admin-mode]");
+  if (mode) mode.textContent = "Operations live";
+}
+
+function renderAdminBookings(bookings = []) {
+  const target = document.querySelector("[data-admin-bookings]");
+  if (!target) return;
+
+  if (!bookings.length) {
+    target.innerHTML = `
+      <tr>
+        <td colspan="7">
+          <strong>No booking requests yet</strong><br />
+          <span>New client reservations will appear here once the booking flow syncs to the API.</span>
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  target.innerHTML = bookings
+    .map((booking) => {
+      const dates = `${formatDisplayDate(booking.pickup) || "Pickup pending"} - ${
+        formatDisplayDate(booking.return) || "return pending"
+      }`;
+      const customer = booking.customerEmail || booking.customerPhone || booking.customerName || "Client details pending";
+      return `
+        <tr>
+          <td>
+            <strong>${escapeHtml(booking.reference || booking.id)}</strong>
+            <span>${escapeHtml(booking.location || "Handover pending")}</span>
+          </td>
+          <td>${escapeHtml(booking.vehicleName || "Vehicle pending")}</td>
+          <td>${escapeHtml(dates)}</td>
+          <td>${escapeHtml(customer)}</td>
+          <td><span class="status-pill">${escapeHtml(humanStatus(booking.status))}</span></td>
+          <td><span class="status-pill muted">${escapeHtml(humanStatus(booking.paymentStatus))}</span></td>
+          <td>
+            <div class="admin-action-row">
+              <button type="button" data-admin-booking-action="approve" data-booking-id="${booking.id}">Approve</button>
+              <button type="button" data-admin-booking-action="reject" data-booking-id="${booking.id}">Reject</button>
+            </div>
+          </td>
+        </tr>
+      `;
+    })
+    .join("");
+}
+
+function renderAdminVehicles(vehiclesList = []) {
+  const target = document.querySelector("[data-admin-vehicles]");
+  if (!target) return;
+
+  target.innerHTML = vehiclesList
+    .map((vehicle) => {
+      const blocks = vehicle.availability?.blockedRanges || [];
+      const pendingCount = vehicle.availability?.pendingBookings?.length || 0;
+      const confirmedCount = vehicle.availability?.confirmedBookings?.length || 0;
+      return `
+        <article class="admin-vehicle-card">
+          <div>
+            <span class="status-pill">${escapeHtml(vehicle.category)}</span>
+            <h3>${escapeHtml(vehicle.name)} ${escapeHtml(vehicle.year)}</h3>
+            <p>${escapeHtml(vehicle.finish)} · ${pendingCount} pending · ${confirmedCount} confirmed</p>
+          </div>
+
+          <form class="admin-inline-form" data-admin-vehicle-form data-slug="${vehicle.slug}">
+            <label>
+              Daily rate
+              <input type="number" name="rate" min="0" value="${vehicle.rate}" />
+            </label>
+            <label>
+              Deposit
+              <input type="number" name="deposit" min="0" value="${vehicle.deposit}" />
+            </label>
+            <label>
+              Status
+              <select name="availabilityStatus">
+                <option value="active" ${vehicle.availability?.status === "active" ? "selected" : ""}>Active</option>
+                <option value="offline" ${vehicle.availability?.status === "offline" ? "selected" : ""}>Offline</option>
+              </select>
+            </label>
+            <button type="submit">Save</button>
+          </form>
+
+          <form class="admin-inline-form block-form" data-admin-block-form data-slug="${vehicle.slug}">
+            <label>
+              Block from
+              <input type="date" name="start" required />
+            </label>
+            <label>
+              Block until
+              <input type="date" name="end" required />
+            </label>
+            <label>
+              Reason
+              <input type="text" name="reason" placeholder="Service, detailing or private hold" />
+            </label>
+            <button type="submit">Block dates</button>
+          </form>
+
+          <div class="admin-block-list">
+            ${
+              blocks.length
+                ? blocks
+                    .map(
+                      (block) => `
+                        <span>
+                          ${escapeHtml(formatDisplayDate(block.start) || block.start)} - ${escapeHtml(
+                            formatDisplayDate(block.end) || block.end,
+                          )}
+                          <small>${escapeHtml(block.reason || "Operations block")}</small>
+                        </span>
+                      `,
+                    )
+                    .join("")
+                : "<span>No blocked dates</span>"
+            }
+          </div>
+        </article>
+      `;
+    })
+    .join("");
+}
+
+async function refreshAdmin() {
+  const [summary, bookings, vehiclesResponse] = await Promise.all([
+    apiRequest("/api/admin/summary"),
+    apiRequest("/api/admin/bookings"),
+    apiRequest("/api/admin/vehicles"),
+  ]);
+  renderAdminMetrics(summary.summary || {});
+  renderAdminBookings(bookings.bookings || []);
+  renderAdminVehicles(vehiclesResponse.vehicles || summary.summary?.vehicles || []);
+}
+
+function setupAdmin() {
+  refreshAdmin().catch((error) => {
+    showFlowToast(error.message || "Operations dashboard could not load.", "warning");
+  });
+
+  document.addEventListener("click", async (event) => {
+    const button = event.target.closest("[data-admin-booking-action]");
+    if (!button) return;
+    button.disabled = true;
+    try {
+      await apiRequest("/api/admin/bookings", {
+        method: "PATCH",
+        body: JSON.stringify({
+          id: button.dataset.bookingId,
+          action: button.dataset.adminBookingAction,
+        }),
+      });
+      showFlowToast(`Booking ${button.dataset.adminBookingAction}d.`);
+      await refreshAdmin();
+    } catch (error) {
+      showFlowToast(error.message || "Booking action failed.", "warning");
+    } finally {
+      button.disabled = false;
+    }
+  });
+
+  document.addEventListener("submit", async (event) => {
+    const vehicleForm = event.target.closest("[data-admin-vehicle-form]");
+    const blockForm = event.target.closest("[data-admin-block-form]");
+    if (!vehicleForm && !blockForm) return;
+    event.preventDefault();
+
+    const form = vehicleForm || blockForm;
+    const data = new FormData(form);
+    const slug = form.dataset.slug;
+    try {
+      if (vehicleForm) {
+        await apiRequest("/api/admin/vehicles", {
+          method: "PATCH",
+          body: JSON.stringify({
+            slug,
+            patch: {
+              rate: data.get("rate"),
+              deposit: data.get("deposit"),
+              availabilityStatus: data.get("availabilityStatus"),
+            },
+          }),
+        });
+        showFlowToast("Vehicle pricing and availability saved.");
+      } else {
+        await apiRequest("/api/admin/vehicles", {
+          method: "POST",
+          body: JSON.stringify({
+            slug,
+            block: {
+              start: data.get("start"),
+              end: data.get("end"),
+              reason: data.get("reason"),
+            },
+          }),
+        });
+        form.reset();
+        showFlowToast("Vehicle dates blocked.");
+      }
+      await refreshAdmin();
+    } catch (error) {
+      showFlowToast(error.message || "Operations update failed.", "warning");
+    }
+  });
+}
+
 function fillAccountForm(form, account = loadAccount()) {
   [...form.elements].forEach((field) => {
     if (!field.name || field.type === "file" || field.name === "cardNumber") return;
@@ -1874,8 +2133,14 @@ function setupBooking() {
   form?.addEventListener("submit", async (event) => {
     event.preventDefault();
     saveReservation(readBookingForm(form));
-    await syncBookingToBackend("draft");
-    navigateTo(form.getAttribute("action") || "login.html");
+    try {
+      const availability = await checkAvailability();
+      if (availability && availability.available === false) return;
+      await syncBookingToBackend("draft");
+      navigateTo(form.getAttribute("action") || "login.html");
+    } catch {
+      // Conflict messaging is handled by the API helper toast.
+    }
   });
 
   refreshCards();
@@ -1916,13 +2181,27 @@ function setupPayment() {
   const form = document.querySelector("form");
   form?.addEventListener("submit", async (event) => {
     event.preventDefault();
-    await syncBookingToBackend("payment_review");
-    await createPaymentIntent();
-    saveReservation({
-      status: "Concierge review",
-      confirmedAt: new Date().toISOString(),
-    });
-    navigateTo(form.getAttribute("action") || "success.html");
+    const providerStatus = document.querySelector("[data-payment-provider-status]");
+    try {
+      await syncBookingToBackend("payment_review");
+      const checkout = await createPaymentCheckout();
+      if (checkout?.providerReady && checkout.checkoutUrl) {
+        if (providerStatus) providerStatus.textContent = "Redirecting to secure Stripe Checkout.";
+        window.location.href = checkout.checkoutUrl;
+        return;
+      }
+      saveReservation({
+        status: "Concierge review",
+        paymentStatus: checkout?.paymentIntent?.status || "requires_provider",
+        confirmedAt: new Date().toISOString(),
+      });
+      if (providerStatus) {
+        providerStatus.textContent = "Stripe is not connected yet. Reservation moved to concierge payment review.";
+      }
+      navigateTo(form.getAttribute("action") || "success.html");
+    } catch {
+      if (providerStatus) providerStatus.textContent = "Payment setup needs review. Your reservation details remain saved.";
+    }
   });
 }
 
@@ -1933,4 +2212,5 @@ if (page === "login") setupLogin();
 if (page === "payment") setupPayment();
 if (page === "account") setupAccount();
 if (page === "ai") setupConciergeAssistant();
+if (page === "admin") setupAdmin();
 updateSummary();

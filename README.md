@@ -9,8 +9,9 @@ visual system.
 - `src/main.jsx` renders `src/App.jsx`.
 - `src/App.jsx` imports `src/styles.css`.
 - `public/booking.html`, `public/login.html`, `public/account.html`, `public/ai.html`,
-  `public/payment.html` and `public/success.html` are static flow pages served at `/booking.html`,
-  `/login.html`, `/account.html`, `/ai.html`, `/payment.html` and `/success.html`.
+  `public/admin.html`, `public/payment.html` and `public/success.html` are static flow pages served at
+  `/booking.html`, `/login.html`, `/account.html`, `/ai.html`, `/admin.html`, `/payment.html` and
+  `/success.html`.
 - `public/flow.css` styles the static booking flow pages.
 - `public/flow.js` keeps the booking flow working locally with `localStorage` and syncs to `/api/*`
   when deployed on Vercel.
@@ -41,12 +42,23 @@ The `api/` folder contains Vercel-ready serverless endpoints:
 - `GET/POST/PATCH /api/bookings`
 - `GET/POST /api/availability`
 - `POST /api/payments/intent`
+- `POST /api/payments/checkout`
+- `POST /api/payments/webhook`
 - `POST /api/concierge`
 - `GET /api/admin/summary`
+- `GET/PATCH /api/admin/bookings`
+- `GET/PATCH/POST/DELETE /api/admin/vehicles`
 
 The current backend uses an in-memory store scaffold so the flow is API-shaped without adding a
 database dependency. For production, replace `api/_lib/store.js` with a durable database adapter and
-connect `api/payments/intent.js` to Stripe or another payment provider. No raw card data is stored.
+connect the Stripe-ready checkout/webhook endpoints with Vercel environment variables. No raw card
+data is stored.
+
+Set these environment variables in production:
+
+- `VELAIRE_ADMIN_TOKEN` protects the admin operations APIs.
+- `STRIPE_SECRET_KEY` enables Stripe Checkout session creation.
+- `STRIPE_WEBHOOK_SECRET` verifies Stripe webhook events.
 
 ## Run
 

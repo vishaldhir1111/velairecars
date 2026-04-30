@@ -18,10 +18,16 @@ export const fleetData = fleet.map((vehicle) => ({
   fallbackImagePath: vehicle.asset.fallbackImagePath,
   modelAvailable: vehicle.asset.modelAvailable,
   availability: {
-    status: "request-to-confirm",
+    status: "active",
+    mode: "request-to-confirm",
     leadTimeHours: vehicle.slug === "lamborghini-urus" ? 24 : 12,
     minimumAge: vehicle.rate >= 495 ? 25 : 23,
     deposit: vehicle.deposit,
+    blockedRanges: [],
+    pendingBookings: [],
+    confirmedBookings: [],
+    preventDoubleBooking: true,
+    availabilityWindowDays: 180,
   },
 }));
 

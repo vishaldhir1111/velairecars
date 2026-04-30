@@ -1,5 +1,5 @@
 import crypto from "node:crypto";
-import { calculateBookingTotals, findVehicle } from "./fleet-data.js";
+import { calculateBookingTotals, findVehicle, fleetData } from "./fleet-data.js";
 import { parseCookies } from "./http.js";
 
 const initialState = {
@@ -7,9 +7,35 @@ const initialState = {
   sessions: [],
   bookings: [],
   payments: [],
+  vehicleOperations: [],
 };
 
 const db = (globalThis.__VELAIRE_STORE__ ||= structuredClone(initialState));
+
+if (!Array.isArray(db.vehicleOperations) || !db.vehicleOperations.length) {
+  db.vehicleOperations = fleetData.map((vehicle) => ({
+    slug: vehicle.slug,
+    rate: vehicle.rate,
+    deposit: vehicle.deposit,
+    availabilityStatus: "active",
+    blockedRanges: seedBlockedRanges(vehicle.slug),
+    updatedAt: now(),
+  }));
+}
+
+const blockingBookingStatuses = new Set([
+  "client_details_saved",
+  "payment_review",
+  "payment_intent_created",
+  "checkout_created",
+  "pending_approval",
+  "pending_payment",
+  "approved",
+  "confirmed",
+]);
+
+const confirmedBookingStatuses = new Set(["approved", "confirmed"]);
+const releasedBookingStatuses = new Set(["draft", "rejected", "cancelled", "completed"]);
 
 function now() {
   return new Date().toISOString();
@@ -17,6 +43,141 @@ function now() {
 
 function id(prefix) {
   return `${prefix}_${crypto.randomBytes(8).toString("hex")}`;
+}
+
+function seedBlockedRanges(slug) {
+  const seededBlocks = {
+    "lamborghini-urus": [
+      {
+        id: "blk_urus_detailing",
+        start: "2026-06-08",
+        end: "2026-06-10",
+        reason: "Scheduled detailing and inspection",
+      },
+    ],
+    "range-rover-sport-svr": [
+      {
+        id: "blk_svr_service",
+        start: "2026-05-20",
+        end: "2026-05-21",
+        reason: "SVR service window",
+      },
+    ],
+  };
+  return seededBlocks[slug] || [];
+}
+
+function addDays(date, days) {
+  const next = new Date(date);
+  next.setUTCDate(next.getUTCDate() + days);
+  return next;
+}
+
+function dateOnly(value) {
+  if (!value) return null;
+  const parsed = new Date(`${String(value).slice(0, 10)}T00:00:00Z`);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function normaliseRange(startValue, endValue) {
+  const start = dateOnly(startValue);
+  let end = dateOnly(endValue);
+  if (!start) return null;
+  if (!end || end <= start) end = addDays(start, 1);
+  return {
+    start,
+    end,
+    startDate: start.toISOString().slice(0, 10),
+    endDate: end.toISOString().slice(0, 10),
+  };
+}
+
+function rangesOverlap(first, second) {
+  if (!first || !second) return false;
+  return first.start < second.end && second.start < first.end;
+}
+
+function publicBooking(booking) {
+  return {
+    id: booking.id,
+    reference: booking.reference,
+    userId: booking.userId,
+    customerName: booking.customerName || "",
+    customerEmail: booking.customerEmail || "",
+    customerPhone: booking.customerPhone || "",
+    vehicleSlug: booking.vehicleSlug,
+    vehicleName: booking.vehicleName,
+    status: booking.status,
+    paymentStatus: booking.paymentStatus || "not_started",
+    pickup: booking.pickup,
+    pickupTime: booking.pickupTime,
+    return: booking.return,
+    returnTime: booking.returnTime,
+    location: booking.location,
+    lat: booking.lat,
+    lng: booking.lng,
+    handoverNotes: booking.handoverNotes,
+    totals: booking.totals,
+    timeline: booking.timeline || [],
+    createdAt: booking.createdAt,
+    updatedAt: booking.updatedAt,
+  };
+}
+
+function getVehicleOperations(slug) {
+  let record = db.vehicleOperations.find((item) => item.slug === slug);
+  const vehicle = findVehicle(slug);
+  if (!record) {
+    record = {
+      slug: vehicle.slug,
+      rate: vehicle.rate,
+      deposit: vehicle.deposit,
+      availabilityStatus: "active",
+      blockedRanges: [],
+      updatedAt: now(),
+    };
+    db.vehicleOperations.push(record);
+  }
+  return record;
+}
+
+function operationalVehicle(slug) {
+  const vehicle = findVehicle(slug);
+  const operations = getVehicleOperations(vehicle.slug);
+  return {
+    ...vehicle,
+    rate: Number(operations.rate || vehicle.rate),
+    deposit: Number(operations.deposit || vehicle.deposit),
+    availability: {
+      ...vehicle.availability,
+      status: operations.availabilityStatus || vehicle.availability?.status || "active",
+      blockedRanges: operations.blockedRanges || [],
+      preventDoubleBooking: true,
+    },
+  };
+}
+
+function calculateOperationalTotals({ vehicleSlug, pickup, returnDate, days }) {
+  const baseTotals = calculateBookingTotals({ vehicleSlug, pickup, returnDate, days });
+  const vehicle = operationalVehicle(vehicleSlug || baseTotals.vehicle.slug);
+  return {
+    ...baseTotals,
+    vehicle,
+    hireEstimate: vehicle.rate * baseTotals.days,
+    deposit: vehicle.deposit,
+  };
+}
+
+function bookingRangeFromReservation(reservation = {}) {
+  return normaliseRange(reservation.pickup, reservation.return);
+}
+
+function bookingRange(booking) {
+  return normaliseRange(booking.pickup, booking.return);
+}
+
+function isBlockingBookingStatus(status) {
+  return blockingBookingStatuses.has(status) && !releasedBookingStatuses.has(status);
 }
 
 function normaliseEmail(email = "") {
@@ -173,21 +334,141 @@ export function updateAccount(userId, patch = {}) {
   return publicUser(user);
 }
 
+export function listOperationalVehicles() {
+  return fleetData.map((vehicle) => {
+    const operations = getVehicleOperations(vehicle.slug);
+    const relatedBookings = db.bookings
+      .filter((booking) => booking.vehicleSlug === vehicle.slug && isBlockingBookingStatus(booking.status))
+      .map(publicBooking);
+
+    return {
+      ...vehicle,
+      rate: Number(operations.rate || vehicle.rate),
+      deposit: Number(operations.deposit || vehicle.deposit),
+      availability: {
+        ...vehicle.availability,
+        status: operations.availabilityStatus || "active",
+        blockedRanges: operations.blockedRanges || [],
+        pendingBookings: relatedBookings.filter((booking) => !confirmedBookingStatuses.has(booking.status)),
+        confirmedBookings: relatedBookings.filter((booking) => confirmedBookingStatuses.has(booking.status)),
+        preventDoubleBooking: true,
+      },
+      operations: {
+        rate: Number(operations.rate || vehicle.rate),
+        deposit: Number(operations.deposit || vehicle.deposit),
+        availabilityStatus: operations.availabilityStatus || "active",
+        blockedRanges: operations.blockedRanges || [],
+        updatedAt: operations.updatedAt,
+      },
+    };
+  });
+}
+
+export function checkVehicleAvailability({
+  vehicleSlug,
+  pickup,
+  returnDate,
+  excludeBookingId = null,
+  includeDrafts = false,
+} = {}) {
+  const vehicle = operationalVehicle(vehicleSlug);
+  const requestedRange = normaliseRange(pickup, returnDate);
+  const operations = getVehicleOperations(vehicle.slug);
+  const conflicts = [];
+
+  if (!requestedRange) {
+    return {
+      vehicle,
+      available: true,
+      status: "dates_required",
+      conflicts,
+      message: "Choose pickup and return dates to run a live availability check.",
+    };
+  }
+
+  for (const block of operations.blockedRanges || []) {
+    const blockRange = normaliseRange(block.start, block.end);
+    if (rangesOverlap(requestedRange, blockRange)) {
+      conflicts.push({
+        type: "blocked_date",
+        id: block.id,
+        start: block.start,
+        end: block.end,
+        reason: block.reason || "Vehicle blocked by operations",
+      });
+    }
+  }
+
+  for (const booking of db.bookings) {
+    if (booking.id === excludeBookingId || booking.vehicleSlug !== vehicle.slug) continue;
+    if (!includeDrafts && !isBlockingBookingStatus(booking.status)) continue;
+    if (rangesOverlap(requestedRange, bookingRange(booking))) {
+      conflicts.push({
+        type: confirmedBookingStatuses.has(booking.status) ? "confirmed_booking" : "pending_booking",
+        id: booking.id,
+        reference: booking.reference,
+        status: booking.status,
+        start: booking.pickup,
+        end: booking.return,
+        customerEmail: booking.customerEmail || "",
+      });
+    }
+  }
+
+  const available = conflicts.length === 0 && operations.availabilityStatus !== "offline";
+  return {
+    vehicle,
+    available,
+    status: available ? "available_request_to_confirm" : "unavailable",
+    requestedRange: {
+      start: requestedRange.startDate,
+      end: requestedRange.endDate,
+    },
+    conflicts,
+    message: available
+      ? `${vehicle.name} is clear for those dates. Velaire will still confirm driver checks and handover timing.`
+      : `${vehicle.name} is already blocked or reserved for those dates. Choose another vehicle or adjust the handover window.`,
+  };
+}
+
+function assertAvailabilityForBooking({ vehicleSlug, pickup, returnDate, excludeBookingId = null }) {
+  const availability = checkVehicleAvailability({ vehicleSlug, pickup, returnDate, excludeBookingId });
+  if (!availability.available) {
+    const error = new Error(availability.message);
+    error.status = 409;
+    error.publicMessage = availability.message;
+    error.availability = availability;
+    throw error;
+  }
+  return availability;
+}
+
 export function createBooking({ userId = null, reservation = {}, status = "draft" }) {
-  const totals = calculateBookingTotals({
+  const totals = calculateOperationalTotals({
     vehicleSlug: reservation.vehicle,
     pickup: reservation.pickup,
     returnDate: reservation.return,
     days: Number.parseInt(reservation.days || "0", 10),
   });
-  const vehicle = findVehicle(reservation.vehicle);
+  const vehicle = totals.vehicle;
+  if (isBlockingBookingStatus(status)) {
+    assertAvailabilityForBooking({
+      vehicleSlug: vehicle.slug,
+      pickup: reservation.pickup,
+      returnDate: reservation.return,
+    });
+  }
   const booking = {
     id: id("bok"),
     reference: referenceFor(vehicle.slug),
     userId,
+    customerName: reservation.name || reservation.fullName || "",
+    customerEmail: reservation.email || "",
+    customerPhone: reservation.phone || "",
     vehicleSlug: vehicle.slug,
     vehicleName: `${vehicle.name} ${vehicle.year}`,
     status,
+    paymentStatus: "not_started",
     pickup: reservation.pickup || "",
     pickupTime: reservation.pickupTime || "",
     return: reservation.return || "",
@@ -208,7 +489,7 @@ export function createBooking({ userId = null, reservation = {}, status = "draft
     updatedAt: now(),
   };
   db.bookings.push(booking);
-  return booking;
+  return publicBooking(booking);
 }
 
 export function updateBooking(idValue, patch = {}) {
@@ -216,14 +497,26 @@ export function updateBooking(idValue, patch = {}) {
   if (!booking) return null;
 
   const { reservation, ...bookingPatch } = patch;
+  const nextStatus = bookingPatch.status || booking.status;
   if (reservation) {
-    const totals = calculateBookingTotals({
+    const totals = calculateOperationalTotals({
       vehicleSlug: reservation.vehicle || booking.vehicleSlug,
       pickup: reservation.pickup || booking.pickup,
       returnDate: reservation.return || booking.return,
       days: Number.parseInt(reservation.days || String(booking.totals?.days || 0), 10),
     });
+    if (isBlockingBookingStatus(nextStatus)) {
+      assertAvailabilityForBooking({
+        vehicleSlug: totals.vehicle.slug,
+        pickup: reservation.pickup || booking.pickup,
+        returnDate: reservation.return || booking.return,
+        excludeBookingId: booking.id,
+      });
+    }
     Object.assign(booking, {
+      customerName: reservation.name || reservation.fullName || booking.customerName || "",
+      customerEmail: reservation.email || booking.customerEmail || "",
+      customerPhone: reservation.phone || booking.customerPhone || "",
       vehicleSlug: totals.vehicle.slug,
       vehicleName: `${totals.vehicle.name} ${totals.vehicle.year}`,
       pickup: reservation.pickup ?? booking.pickup,
@@ -239,24 +532,33 @@ export function updateBooking(idValue, patch = {}) {
     });
   }
 
+  if (!reservation && bookingPatch.status && isBlockingBookingStatus(bookingPatch.status)) {
+    assertAvailabilityForBooking({
+      vehicleSlug: booking.vehicleSlug,
+      pickup: booking.pickup,
+      returnDate: booking.return,
+      excludeBookingId: booking.id,
+    });
+  }
+
   Object.assign(booking, { ...bookingPatch, updatedAt: now() });
   booking.timeline.push({
     label: patch.status ? `Status changed to ${patch.status}` : "Booking updated",
     at: now(),
   });
-  return booking;
+  return publicBooking(booking);
 }
 
 export function listBookings(userId) {
   if (!userId) return [];
-  return db.bookings.filter((booking) => booking.userId === userId);
+  return db.bookings.filter((booking) => booking.userId === userId).map(publicBooking);
 }
 
 export function createPaymentIntent({ bookingId, reservation = {} }) {
   const booking = db.bookings.find((item) => item.id === bookingId);
   const totals =
     booking?.totals ||
-    calculateBookingTotals({
+    calculateOperationalTotals({
       vehicleSlug: reservation.vehicle,
       pickup: reservation.pickup,
       returnDate: reservation.return,
@@ -267,29 +569,158 @@ export function createPaymentIntent({ bookingId, reservation = {} }) {
     bookingId: booking?.id || null,
     amount: totals.deposit,
     currency: totals.currency || "GBP",
-    status: "requires_provider",
-    provider: "future-stripe",
+    status: process.env.STRIPE_SECRET_KEY ? "requires_checkout" : "requires_provider",
+    provider: "stripe_checkout_ready",
     createdAt: now(),
-    note: "Deposit intent scaffold only. No card data is stored by Velaire.",
+    note: "Deposit intent created for secure checkout. No card data is stored by Velaire.",
   };
   db.payments.push(payment);
-  if (booking) updateBooking(booking.id, { status: "payment_intent_created", paymentIntentId: payment.id });
+  if (booking) {
+    updateBooking(booking.id, {
+      status: "payment_intent_created",
+      paymentStatus: payment.status,
+      paymentIntentId: payment.id,
+    });
+  }
   return payment;
 }
 
+export function attachCheckoutToPayment(paymentId, checkout = {}) {
+  const payment = db.payments.find((item) => item.id === paymentId);
+  if (!payment) return null;
+  Object.assign(payment, {
+    checkoutSessionId: checkout.sessionId || payment.checkoutSessionId || null,
+    checkoutUrl: checkout.url || payment.checkoutUrl || null,
+    status: checkout.status || payment.status,
+    updatedAt: now(),
+  });
+
+  if (payment.bookingId) {
+    updateBooking(payment.bookingId, {
+      status: "checkout_created",
+      paymentStatus: payment.status,
+      checkoutSessionId: payment.checkoutSessionId,
+    });
+  }
+  return payment;
+}
+
+export function markPaymentStatus({ paymentId, bookingId, status, providerReference = "" }) {
+  const payment =
+    db.payments.find((item) => item.id === paymentId) ||
+    db.payments.find((item) => item.bookingId === bookingId) ||
+    null;
+  if (payment) {
+    payment.status = status;
+    payment.providerReference = providerReference || payment.providerReference || "";
+    payment.updatedAt = now();
+  }
+
+  const booking = db.bookings.find((item) => item.id === (bookingId || payment?.bookingId));
+  if (booking) {
+    updateBooking(booking.id, {
+      status: status === "paid" ? "pending_approval" : booking.status,
+      paymentStatus: status,
+    });
+  }
+
+  return { payment, booking: booking ? publicBooking(booking) : null };
+}
+
+export function listAllBookings() {
+  return db.bookings.slice().reverse().map(publicBooking);
+}
+
+export function listPayments() {
+  return db.payments.slice().reverse();
+}
+
+export function adminUpdateBooking(idValue, action, patch = {}) {
+  const statusByAction = {
+    approve: "confirmed",
+    reject: "rejected",
+    cancel: "cancelled",
+    complete: "completed",
+    pending: "pending_approval",
+  };
+  const status = statusByAction[action] || patch.status;
+  return updateBooking(idValue, {
+    ...patch,
+    status,
+    operationsNote: patch.operationsNote || "",
+  });
+}
+
+export function updateVehicleOperations(slug, patch = {}) {
+  const operations = getVehicleOperations(slug);
+  const vehicle = findVehicle(slug);
+  operations.rate = Number.isFinite(Number(patch.rate)) ? Math.max(Number(patch.rate), 0) : operations.rate;
+  operations.deposit = Number.isFinite(Number(patch.deposit))
+    ? Math.max(Number(patch.deposit), 0)
+    : operations.deposit;
+  operations.availabilityStatus = patch.availabilityStatus || operations.availabilityStatus || "active";
+  operations.updatedAt = now();
+
+  return {
+    ...vehicle,
+    rate: operations.rate,
+    deposit: operations.deposit,
+    operations,
+  };
+}
+
+export function blockVehicleDates(slug, { start, end, reason = "Operations block" } = {}) {
+  const range = normaliseRange(start, end);
+  if (!range) {
+    const error = new Error("Choose a valid start date for the vehicle block.");
+    error.status = 400;
+    error.publicMessage = "Choose a valid start date for the vehicle block.";
+    throw error;
+  }
+
+  const operations = getVehicleOperations(slug);
+  const block = {
+    id: id("blk"),
+    start: range.startDate,
+    end: range.endDate,
+    reason,
+    createdAt: now(),
+  };
+  operations.blockedRanges.push(block);
+  operations.updatedAt = now();
+  return block;
+}
+
+export function removeVehicleBlock(slug, blockId) {
+  const operations = getVehicleOperations(slug);
+  const before = operations.blockedRanges.length;
+  operations.blockedRanges = operations.blockedRanges.filter((block) => block.id !== blockId);
+  operations.updatedAt = now();
+  return before !== operations.blockedRanges.length;
+}
+
 export function adminSummary() {
+  const bookings = listAllBookings();
+  const payments = listPayments();
   return {
     counts: {
       users: db.users.length,
       bookings: db.bookings.length,
       payments: db.payments.length,
       activeSessions: db.sessions.length,
+      pendingBookings: db.bookings.filter((booking) => !releasedBookingStatuses.has(booking.status)).length,
+      confirmedBookings: db.bookings.filter((booking) => confirmedBookingStatuses.has(booking.status)).length,
     },
     bookingsByStatus: db.bookings.reduce((result, booking) => {
       result[booking.status] = (result[booking.status] || 0) + 1;
       return result;
     }, {}),
-    latestBookings: db.bookings.slice(-10).reverse(),
+    paymentStatus: payments.reduce((result, payment) => {
+      result[payment.status] = (result[payment.status] || 0) + 1;
+      return result;
+    }, {}),
+    latestBookings: bookings.slice(0, 10),
+    vehicles: listOperationalVehicles(),
   };
 }
 

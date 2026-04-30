@@ -1,11 +1,5 @@
-import { calculateBookingTotals } from "./_lib/fleet-data.js";
 import { allowMethods, readJson, sendJson } from "./_lib/http.js";
-
-function leadTimeMessage(vehicle, pickup) {
-  if (!pickup) return "Choose dates to prepare an availability review.";
-  const leadTime = vehicle.availability?.leadTimeHours || 12;
-  return `Request-to-confirm availability. Concierge lead time is typically ${leadTime} hours for this vehicle.`;
-}
+import { checkVehicleAvailability } from "./_lib/store.js";
 
 export default async function handler(req, res) {
   if (!allowMethods(req, res, ["GET", "POST"])) return;
@@ -15,17 +9,16 @@ export default async function handler(req, res) {
   const vehicle = body.vehicle || query.vehicle || "lamborghini-urus";
   const pickup = body.pickup || query.pickup || "";
   const returnDate = body.return || query.return || "";
-  const days = Number.parseInt(body.days || query.days || "0", 10);
-  const totals = calculateBookingTotals({ vehicleSlug: vehicle, pickup, returnDate, days });
+  const availability = checkVehicleAvailability({ vehicleSlug: vehicle, pickup, returnDate });
 
   sendJson(res, 200, {
-    vehicle: totals.vehicle.slug,
-    status: "request_to_confirm",
-    available: true,
-    message: leadTimeMessage(totals.vehicle, pickup),
-    deposit: totals.deposit,
-    hireEstimate: totals.hireEstimate,
-    days: totals.days,
-    currency: totals.currency,
+    vehicle: availability.vehicle.slug,
+    status: availability.status,
+    available: availability.available,
+    message: availability.message,
+    conflicts: availability.conflicts,
+    deposit: availability.vehicle.deposit,
+    dailyRate: availability.vehicle.rate,
+    currency: "GBP",
   });
 }
