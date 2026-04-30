@@ -2814,20 +2814,79 @@ h2 {
 
 @media (min-width: 1321px) {
   .booking-stage {
-    grid-template-columns: minmax(260px, 0.42fr) minmax(0, 1.58fr);
-    gap: 36px;
+    grid-template-columns: 1fr;
+    gap: 34px;
     align-items: start;
+    width: min(1280px, 100%);
+    min-height: auto;
+  }
+
+  .booking-stage .flow-intro {
+    position: static;
+    justify-self: center;
+    max-width: 940px;
+    padding-bottom: 0;
+    text-align: center;
+  }
+
+  .booking-stage .flow-intro h1 {
+    max-width: 900px;
+    margin-inline: auto;
+    font-size: clamp(3.5rem, 4.45vw, 5.35rem);
+    line-height: 0.96;
+  }
+
+  .booking-stage .flow-intro p:not(.eyebrow) {
+    max-width: 720px;
+    margin-inline: auto;
+  }
+
+  .booking-stage .step-row {
+    width: min(680px, 100%);
+    margin-inline: auto;
+  }
+
+  .booking-stage .intro-stat-grid {
+    width: min(520px, 100%);
+    margin-inline: auto;
   }
 
   .booking-workspace {
-    grid-template-columns: minmax(0, 1fr) minmax(340px, 0.68fr);
-    gap: 22px;
+    grid-template-columns: minmax(760px, 1fr) minmax(360px, 400px);
+    gap: 32px;
+    width: 100%;
+  }
+
+  .booking-stage .booking-panel {
+    padding: 34px;
+  }
+
+  .booking-stage .booking-panel > .panel-heading {
+    max-width: 640px;
+  }
+
+  .booking-stage .choice-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+  }
+
+  .booking-stage .choice-card {
+    min-height: 258px;
+  }
+
+  .booking-stage .choice-visual {
+    min-height: 144px;
+  }
+
+  .booking-stage .vehicle-model-mini .vehicle-model-scene {
+    height: 140px;
   }
 
   .booking-stage .vehicle-summary {
     position: sticky;
     top: 112px;
     align-self: start;
+    max-width: 400px;
   }
 
   .booking-stage .summary-media {
@@ -2853,6 +2912,22 @@ h2 {
   .booking-stage .summary-copy {
     margin: 20px 0;
     line-height: 1.72;
+  }
+}
+
+@media (min-width: 1321px) and (max-width: 1420px) {
+  .booking-stage {
+    width: min(1180px, 100%);
+  }
+
+  .booking-workspace {
+    grid-template-columns: minmax(700px, 1fr) minmax(340px, 380px);
+    gap: 28px;
+  }
+
+  .booking-stage .booking-panel,
+  .booking-stage .vehicle-summary {
+    padding: 30px;
   }
 }
 
