@@ -12,9 +12,10 @@ visual system.
   `public/admin.html`, `public/payment.html` and `public/success.html` are static flow pages served at
   `/booking.html`, `/login.html`, `/account.html`, `/ai.html`, `/admin.html`, `/payment.html` and
   `/success.html`.
-- `public/terms.html`, `public/privacy.html`, `public/cancellation.html`, `public/insurance.html`
-  and `public/requirements.html` are the legal and trust pages served at `/terms.html`,
-  `/privacy.html`, `/cancellation.html`, `/insurance.html` and `/requirements.html`.
+- `public/terms.html`, `public/privacy.html`, `public/cancellation.html`, `public/insurance.html`,
+  `public/requirements.html` and `public/deposit.html` are the legal and trust pages served at
+  `/terms.html`, `/privacy.html`, `/cancellation.html`, `/insurance.html`, `/requirements.html`
+  and `/deposit.html`.
 - `public/flow.css` styles the static booking flow pages.
 - `public/flow.js` keeps the booking flow working locally with `localStorage` and syncs to `/api/*`
   when deployed on Vercel.
@@ -65,8 +66,8 @@ data is stored.
 - `public/admin.html` is the premium operations dashboard for bookings, customers, vehicles,
   concierge leads, deposits and payment status.
 - Availability is stored in `api/_lib/store.js` as blocked dates plus pending and confirmed booking
-  holds per vehicle. Booking creation and admin updates check this state to reduce double-booking
-  risk.
+  holds per vehicle. The admin vehicle cards include a 42-day availability calendar, and booking
+  creation plus admin updates check this state to reduce double-booking risk.
 - Legal and trust pages are in `public/` and share the same Nexa, black and rose-gold flow design
   system as the booking and account experience. Have a solicitor review the policy copy before using
   it as binding production legal wording.

@@ -15,6 +15,7 @@ const flowPages = [
   "public/cancellation.html",
   "public/insurance.html",
   "public/requirements.html",
+  "public/deposit.html",
 ];
 const requiredFiles = [
   "index.html",
@@ -91,6 +92,7 @@ for (const page of [
   "cancellation.html",
   "insurance.html",
   "requirements.html",
+  "deposit.html",
 ]) {
   if (vite.includes(`./${page}`)) {
     throw new Error(`vite.config.js should not reference root ${page}; static flow pages live in public/`);
@@ -141,6 +143,7 @@ for (const staleRootFile of [
   "cancellation.html",
   "insurance.html",
   "requirements.html",
+  "deposit.html",
   "flow.css",
   "flow.js",
 ]) {

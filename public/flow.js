@@ -755,6 +755,20 @@ function addMonths(date, amount) {
   return new Date(date.getFullYear(), date.getMonth() + amount, 1);
 }
 
+function addDays(date, amount) {
+  const next = new Date(date);
+  next.setDate(next.getDate() + amount);
+  return next;
+}
+
+function rangeCoversIso(range = {}, isoDate = "") {
+  const day = parseDate(isoDate);
+  const start = parseDate(range.start || range.pickup);
+  const end = parseDate(range.end || range.return);
+  if (!day || !start || !end) return false;
+  return day >= start && day < end;
+}
+
 function setupElegantDatePicker(form) {
   const popover = document.getElementById("date-popover");
   const triggers = [...document.querySelectorAll("[data-date-trigger]")];
@@ -1759,6 +1773,94 @@ function renderAdminLeads(leads = []) {
     .join("");
 }
 
+function adminCalendarStatus(vehicle, isoDate) {
+  const availability = vehicle.availability || {};
+  const confirmed = (availability.confirmedBookings || []).find((booking) =>
+    rangeCoversIso({ start: booking.pickup, end: booking.return }, isoDate),
+  );
+  if (confirmed) {
+    return {
+      className: "is-confirmed",
+      label: "Confirmed",
+      detail: `${confirmed.reference || "Confirmed booking"} blocks this vehicle`,
+    };
+  }
+
+  const pending = (availability.pendingBookings || []).find((booking) =>
+    rangeCoversIso({ start: booking.pickup, end: booking.return }, isoDate),
+  );
+  if (pending) {
+    return {
+      className: "is-pending",
+      label: "Pending",
+      detail: `${pending.reference || "Pending hold"} is awaiting approval`,
+    };
+  }
+
+  const blocked = (availability.blockedRanges || []).find((block) => rangeCoversIso(block, isoDate));
+  if (blocked) {
+    return {
+      className: "is-blocked",
+      label: "Blocked",
+      detail: blocked.reason || "Operations block",
+    };
+  }
+
+  if (availability.status === "offline") {
+    return {
+      className: "is-offline",
+      label: "Offline",
+      detail: "Vehicle marked unavailable by operations",
+    };
+  }
+
+  return {
+    className: "is-clear",
+    label: "Clear",
+    detail: "No block or booking hold currently recorded",
+  };
+}
+
+function renderAdminAvailabilityCalendar(vehicle) {
+  const start = new Date();
+  start.setHours(0, 0, 0, 0);
+  const weekday = new Intl.DateTimeFormat("en-GB", { weekday: "short" });
+  const month = new Intl.DateTimeFormat("en-GB", { month: "short", day: "numeric" });
+  const days = Array.from({ length: 42 }, (_, index) => {
+    const date = addDays(start, index);
+    const iso = formatIsoDate(date);
+    const status = adminCalendarStatus(vehicle, iso);
+    return `
+      <span
+        class="admin-calendar-day ${status.className}"
+        title="${escapeHtml(`${status.label}: ${status.detail}`)}"
+        aria-label="${escapeHtml(`${month.format(date)} ${status.label}`)}"
+      >
+        <small>${escapeHtml(weekday.format(date))}</small>
+        <strong>${date.getDate()}</strong>
+      </span>
+    `;
+  }).join("");
+
+  return `
+    <div class="admin-calendar" aria-label="${escapeHtml(vehicle.name)} availability calendar">
+      <div class="admin-calendar-top">
+        <div>
+          <span>42 day view</span>
+          <strong>Availability calendar</strong>
+        </div>
+        <div class="admin-calendar-legend" aria-label="Availability legend">
+          <span class="is-clear">Clear</span>
+          <span class="is-pending">Pending</span>
+          <span class="is-confirmed">Confirmed</span>
+          <span class="is-blocked">Blocked</span>
+        </div>
+      </div>
+      <div class="admin-calendar-grid">${days}</div>
+    </div>
+  `;
+}
+
 function renderAdminVehicles(vehiclesList = []) {
   const target = document.querySelector("[data-admin-vehicles]");
   if (!target) return;
@@ -1775,6 +1877,8 @@ function renderAdminVehicles(vehiclesList = []) {
             <h3>${escapeHtml(vehicle.name)} ${escapeHtml(vehicle.year)}</h3>
             <p>${escapeHtml(vehicle.finish)} · ${pendingCount} pending · ${confirmedCount} confirmed</p>
           </div>
+
+          ${renderAdminAvailabilityCalendar(vehicle)}
 
           <form class="admin-inline-form" data-admin-vehicle-form data-slug="${vehicle.slug}">
             <label>

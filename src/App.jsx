@@ -623,6 +623,7 @@ function App() {
           <a href="cancellation.html">Cancellation</a>
           <a href="insurance.html">Insurance</a>
           <a href="requirements.html">Rental requirements</a>
+          <a href="deposit.html">Deposit policy</a>
         </div>
       </footer>
 
