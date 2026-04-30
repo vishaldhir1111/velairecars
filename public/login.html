@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Enter your Velaire Cars account details to continue a premium reservation." />
+    <title>Client Portal | Velaire Cars</title>
+    <link rel="stylesheet" href="flow.css" />
+  </head>
+  <body data-page="login">
+    <main class="flow-shell">
+      <nav class="flow-nav" aria-label="Account navigation">
+        <a class="brand" href="/">
+          <span class="brand-mark">V</span>
+          <span class="brand-copy">
+            <strong>Velaire Cars</strong>
+            <small>Performance, prestige, delivered</small>
+          </span>
+        </a>
+        <div class="flow-nav-links">
+          <a href="/#fleet">Fleet</a>
+          <a href="/#experience">Experience</a>
+          <a href="booking.html">Reserve</a>
+          <a href="ai.html">AI concierge</a>
+          <a href="account.html">Account</a>
+        </div>
+        <a class="flow-back" href="booking.html">Back to booking</a>
+      </nav>
+
+      <section class="flow-stage compact-stage">
+        <div class="flow-intro">
+          <p class="eyebrow">Step 2 of 4</p>
+          <h1>Enter the private client portal.</h1>
+          <p>
+            Continue with your contact details so the Velaire concierge can prepare verification,
+            handover timing and reservation support.
+          </p>
+          <div class="step-row" aria-label="Booking progress">
+            <span class="step">Car</span>
+            <span class="step active">Account</span>
+            <span class="step">Reserve</span>
+            <span class="step">Confirm</span>
+          </div>
+        </div>
+
+        <div class="flow-workspace account-workspace">
+          <form class="flow-panel form-grid account-card" action="payment.html">
+            <div class="mini-summary">
+              <span>Reservation in progress</span>
+              <strong data-bind="vehicleName">Lamborghini Urus 2021</strong>
+            </div>
+
+            <div class="panel-heading">
+              <p class="eyebrow">Client details</p>
+              <h2>Continue securely.</h2>
+            </div>
+
+            <label class="field">
+              Email address
+              <input type="email" name="email" placeholder="you@example.com" autocomplete="email" />
+            </label>
+            <label class="field">
+              Mobile number
+              <input type="tel" name="phone" placeholder="+44" autocomplete="tel" />
+            </label>
+            <label class="field">
+              Password
+              <input type="password" name="password" placeholder="Enter password" autocomplete="current-password" />
+            </label>
+            <button class="primary-button full-width" type="submit">Continue to reservation</button>
+            <a class="secondary-button full-width" href="account.html">Open client lounge</a>
+            <p class="secure-note">
+              New Velaire clients can continue here. Licence, ID and insurance checks are completed
+              by concierge before vehicle release.
+            </p>
+          </form>
+
+          <aside class="flow-panel client-proof" aria-label="Client portal assurances">
+            <div class="summary-media compact-media">
+              <figure
+                class="flow-vehicle-photo vehicle-model vehicle-model-lamborghini-urus vehicle-model-suv"
+                data-bind-vehicle-media
+                data-vehicle-model
+                role="img"
+                aria-label="3D studio mockup of Lamborghini Urus 2021, orange exterior"
+              ></figure>
+            </div>
+            <p class="eyebrow">Private-client handling</p>
+            <h2>Everything stays refined, verified and discreet.</h2>
+            <ul class="feature-list">
+              <li>
+                <strong>Identity review</strong>
+                <span>Licence and ID checks handled before handover.</span>
+              </li>
+              <li>
+                <strong>Concierge timing</strong>
+                <span>Delivery windows coordinated around your itinerary.</span>
+              </li>
+              <li>
+                <strong>Clear deposit terms</strong>
+                <span>Vehicle-specific deposit guidance before release.</span>
+              </li>
+            </ul>
+          </aside>
+        </div>
+      </section>
+    </main>
+    <script type="module" src="/flow.js"></script>
+  </body>
+</html>
