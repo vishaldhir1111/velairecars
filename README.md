@@ -47,6 +47,7 @@ The `api/` folder contains Vercel-ready serverless endpoints:
 - `POST /api/concierge`
 - `GET /api/admin/summary`
 - `GET/PATCH /api/admin/bookings`
+- `GET /api/admin/customers`
 - `GET/PATCH/POST/DELETE /api/admin/vehicles`
 
 The current backend uses an in-memory store scaffold so the flow is API-shaped without adding a

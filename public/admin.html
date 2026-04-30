@@ -51,6 +51,10 @@
           <strong data-admin-count="bookings">0</strong>
         </article>
         <article>
+          <span>Customers</span>
+          <strong data-admin-count="customers">0</strong>
+        </article>
+        <article>
           <span>Pending</span>
           <strong data-admin-count="pendingBookings">0</strong>
         </article>
@@ -103,6 +107,33 @@
             <article class="admin-empty">Loading vehicle operations...</article>
           </div>
         </aside>
+      </section>
+
+      <section class="flow-panel admin-panel admin-customer-panel">
+        <div class="panel-heading">
+          <p class="eyebrow">Customer operations</p>
+          <h2>Customers.</h2>
+          <span>Review client contact details, account status, booking value and last enquiry activity.</span>
+        </div>
+        <div class="admin-table-shell">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>Client</th>
+                <th>Contact</th>
+                <th>Verification</th>
+                <th>Bookings</th>
+                <th>Last request</th>
+                <th>Estimated value</th>
+              </tr>
+            </thead>
+            <tbody data-admin-customers>
+              <tr>
+                <td colspan="6">Loading customers...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </section>
     </main>
     <script type="module" src="/flow.js"></script>

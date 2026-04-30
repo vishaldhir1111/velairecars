@@ -492,7 +492,7 @@ async function syncBookingToBackend(status = "draft") {
 
 async function createPaymentIntent() {
   const reservation = loadReservation();
-  const booking = loadBackendBooking() || (await syncBookingToBackend("payment_review"));
+  const booking = loadBackendBooking() || (await syncBookingToBackend("pending"));
   const result = await optionalApiRequest(
     "/api/payments/intent",
     {
@@ -515,7 +515,7 @@ async function createPaymentIntent() {
 
 async function createPaymentCheckout() {
   const reservation = loadReservation();
-  const booking = loadBackendBooking() || (await syncBookingToBackend("payment_review"));
+  const booking = loadBackendBooking() || (await syncBookingToBackend("pending"));
   const result = await optionalApiRequest(
     "/api/payments/checkout",
     {
@@ -1594,8 +1594,10 @@ function renderAdminBookings(bookings = []) {
           <td><span class="status-pill muted">${escapeHtml(humanStatus(booking.paymentStatus))}</span></td>
           <td>
             <div class="admin-action-row">
-              <button type="button" data-admin-booking-action="approve" data-booking-id="${booking.id}">Approve</button>
-              <button type="button" data-admin-booking-action="reject" data-booking-id="${booking.id}">Reject</button>
+              <button type="button" data-admin-booking-action="pending" data-booking-id="${booking.id}">Pending</button>
+              <button type="button" data-admin-booking-action="confirm" data-booking-id="${booking.id}">Confirm</button>
+              <button type="button" data-admin-booking-action="cancel" data-booking-id="${booking.id}">Cancel</button>
+              <button type="button" data-admin-booking-action="complete" data-booking-id="${booking.id}">Complete</button>
             </div>
           </td>
         </tr>
@@ -1663,10 +1665,20 @@ function renderAdminVehicles(vehiclesList = []) {
                     .map(
                       (block) => `
                         <span>
-                          ${escapeHtml(formatDisplayDate(block.start) || block.start)} - ${escapeHtml(
-                            formatDisplayDate(block.end) || block.end,
-                          )}
+                          <strong>
+                            ${escapeHtml(formatDisplayDate(block.start) || block.start)} - ${escapeHtml(
+                              formatDisplayDate(block.end) || block.end,
+                            )}
+                          </strong>
                           <small>${escapeHtml(block.reason || "Operations block")}</small>
+                          <button
+                            type="button"
+                            data-admin-remove-block
+                            data-slug="${vehicle.slug}"
+                            data-block-id="${block.id}"
+                          >
+                            Remove
+                          </button>
                         </span>
                       `,
                     )
@@ -1680,15 +1692,61 @@ function renderAdminVehicles(vehiclesList = []) {
     .join("");
 }
 
+function renderAdminCustomers(customers = []) {
+  const target = document.querySelector("[data-admin-customers]");
+  if (!target) return;
+
+  if (!customers.length) {
+    target.innerHTML = `
+      <tr>
+        <td colspan="6">
+          <strong>No customers yet</strong><br />
+          <span>Client accounts and booking enquiries will appear here once customers use the flow.</span>
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  target.innerHTML = customers
+    .map(
+      (customer) => `
+        <tr>
+          <td>
+            <strong>${escapeHtml(customer.fullName || "Velaire Client")}</strong>
+            <span>${escapeHtml(customer.source === "account" ? "Registered account" : "Booking enquiry")}</span>
+          </td>
+          <td>
+            ${escapeHtml(customer.email || "Email pending")}
+            <span>${escapeHtml(customer.phone || "Phone pending")}</span>
+          </td>
+          <td><span class="status-pill muted">${escapeHtml(humanStatus(customer.verificationStatus))}</span></td>
+          <td>
+            <strong>${Number(customer.totalBookings || 0)}</strong>
+            <span>${Number(customer.upcomingBookings || 0)} active · ${Number(customer.completedBookings || 0)} completed</span>
+          </td>
+          <td>
+            ${escapeHtml(customer.lastBookingReference || "No booking yet")}
+            <span>${escapeHtml(customer.lastVehicle || customer.lastStatus || "No enquiry activity")}</span>
+          </td>
+          <td>${money(Number(customer.hireValue || 0))}</td>
+        </tr>
+      `,
+    )
+    .join("");
+}
+
 async function refreshAdmin() {
-  const [summary, bookings, vehiclesResponse] = await Promise.all([
+  const [summary, bookings, vehiclesResponse, customers] = await Promise.all([
     apiRequest("/api/admin/summary"),
     apiRequest("/api/admin/bookings"),
     apiRequest("/api/admin/vehicles"),
+    apiRequest("/api/admin/customers"),
   ]);
   renderAdminMetrics(summary.summary || {});
   renderAdminBookings(bookings.bookings || []);
   renderAdminVehicles(vehiclesResponse.vehicles || summary.summary?.vehicles || []);
+  renderAdminCustomers(customers.customers || summary.summary?.latestCustomers || []);
 }
 
 function setupAdmin() {
@@ -1697,6 +1755,27 @@ function setupAdmin() {
   });
 
   document.addEventListener("click", async (event) => {
+    const removeBlock = event.target.closest("[data-admin-remove-block]");
+    if (removeBlock) {
+      removeBlock.disabled = true;
+      try {
+        await apiRequest("/api/admin/vehicles", {
+          method: "DELETE",
+          body: JSON.stringify({
+            slug: removeBlock.dataset.slug,
+            blockId: removeBlock.dataset.blockId,
+          }),
+        });
+        showFlowToast("Vehicle block removed.");
+        await refreshAdmin();
+      } catch (error) {
+        showFlowToast(error.message || "Block removal failed.", "warning");
+      } finally {
+        removeBlock.disabled = false;
+      }
+      return;
+    }
+
     const button = event.target.closest("[data-admin-booking-action]");
     if (!button) return;
     button.disabled = true;
@@ -2172,7 +2251,7 @@ function setupLogin() {
     });
     await ensureBackendAccount({ email, phone, password });
     await syncAccountToBackend(loadAccount());
-    await syncBookingToBackend("client_details_saved");
+    await syncBookingToBackend("pending");
     navigateTo(form.getAttribute("action") || "payment.html");
   });
 }
@@ -2183,7 +2262,7 @@ function setupPayment() {
     event.preventDefault();
     const providerStatus = document.querySelector("[data-payment-provider-status]");
     try {
-      await syncBookingToBackend("payment_review");
+      await syncBookingToBackend("pending");
       const checkout = await createPaymentCheckout();
       if (checkout?.providerReady && checkout.checkoutUrl) {
         if (providerStatus) providerStatus.textContent = "Redirecting to secure Stripe Checkout.";

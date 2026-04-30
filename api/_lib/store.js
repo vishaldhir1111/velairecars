@@ -23,18 +23,19 @@ if (!Array.isArray(db.vehicleOperations) || !db.vehicleOperations.length) {
   }));
 }
 
-const blockingBookingStatuses = new Set([
-  "client_details_saved",
-  "payment_review",
-  "payment_intent_created",
-  "checkout_created",
-  "pending_approval",
-  "pending_payment",
-  "approved",
-  "confirmed",
-]);
+const statusAliases = {
+  client_details_saved: "pending",
+  payment_review: "pending",
+  payment_intent_created: "pending",
+  checkout_created: "pending",
+  pending_approval: "pending",
+  pending_payment: "pending",
+  approved: "confirmed",
+  rejected: "cancelled",
+};
 
-const confirmedBookingStatuses = new Set(["approved", "confirmed"]);
+const blockingBookingStatuses = new Set(["pending", "confirmed"]);
+const confirmedBookingStatuses = new Set(["confirmed"]);
 const releasedBookingStatuses = new Set(["draft", "rejected", "cancelled", "completed"]);
 
 function now() {
@@ -177,7 +178,13 @@ function bookingRange(booking) {
 }
 
 function isBlockingBookingStatus(status) {
-  return blockingBookingStatuses.has(status) && !releasedBookingStatuses.has(status);
+  const canonicalStatus = normaliseBookingStatus(status, "draft");
+  return blockingBookingStatuses.has(canonicalStatus) && !releasedBookingStatuses.has(canonicalStatus);
+}
+
+function normaliseBookingStatus(status, fallback = "pending") {
+  const clean = String(status || fallback).trim().toLowerCase();
+  return statusAliases[clean] || clean || fallback;
 }
 
 function normaliseEmail(email = "") {
@@ -211,6 +218,21 @@ function publicUser(user) {
     favourites: user.favourites || [],
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,
+  };
+}
+
+function userBookingSummary(userId, email) {
+  const cleanEmail = normaliseEmail(email);
+  const bookings = db.bookings.filter(
+    (booking) => booking.userId === userId || (cleanEmail && booking.customerEmail === cleanEmail),
+  );
+  return {
+    bookings: bookings.map(publicBooking),
+    totalBookings: bookings.length,
+    upcomingBookings: bookings.filter((booking) => isBlockingBookingStatus(booking.status)).length,
+    completedBookings: bookings.filter((booking) => normaliseBookingStatus(booking.status) === "completed").length,
+    lastBooking: bookings.slice().sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)))[0] || null,
+    hireValue: bookings.reduce((total, booking) => total + Number(booking.totals?.hireEstimate || 0), 0),
   };
 }
 
@@ -444,6 +466,7 @@ function assertAvailabilityForBooking({ vehicleSlug, pickup, returnDate, exclude
 }
 
 export function createBooking({ userId = null, reservation = {}, status = "draft" }) {
+  const canonicalStatus = normaliseBookingStatus(status, "draft");
   const totals = calculateOperationalTotals({
     vehicleSlug: reservation.vehicle,
     pickup: reservation.pickup,
@@ -451,7 +474,7 @@ export function createBooking({ userId = null, reservation = {}, status = "draft
     days: Number.parseInt(reservation.days || "0", 10),
   });
   const vehicle = totals.vehicle;
-  if (isBlockingBookingStatus(status)) {
+  if (isBlockingBookingStatus(canonicalStatus)) {
     assertAvailabilityForBooking({
       vehicleSlug: vehicle.slug,
       pickup: reservation.pickup,
@@ -467,7 +490,7 @@ export function createBooking({ userId = null, reservation = {}, status = "draft
     customerPhone: reservation.phone || "",
     vehicleSlug: vehicle.slug,
     vehicleName: `${vehicle.name} ${vehicle.year}`,
-    status,
+    status: canonicalStatus,
     paymentStatus: "not_started",
     pickup: reservation.pickup || "",
     pickupTime: reservation.pickupTime || "",
@@ -497,7 +520,7 @@ export function updateBooking(idValue, patch = {}) {
   if (!booking) return null;
 
   const { reservation, ...bookingPatch } = patch;
-  const nextStatus = bookingPatch.status || booking.status;
+  const nextStatus = normaliseBookingStatus(bookingPatch.status || booking.status, booking.status);
   if (reservation) {
     const totals = calculateOperationalTotals({
       vehicleSlug: reservation.vehicle || booking.vehicleSlug,
@@ -541,6 +564,7 @@ export function updateBooking(idValue, patch = {}) {
     });
   }
 
+  if (bookingPatch.status) bookingPatch.status = normaliseBookingStatus(bookingPatch.status);
   Object.assign(booking, { ...bookingPatch, updatedAt: now() });
   booking.timeline.push({
     label: patch.status ? `Status changed to ${patch.status}` : "Booking updated",
@@ -619,7 +643,7 @@ export function markPaymentStatus({ paymentId, bookingId, status, providerRefere
   const booking = db.bookings.find((item) => item.id === (bookingId || payment?.bookingId));
   if (booking) {
     updateBooking(booking.id, {
-      status: status === "paid" ? "pending_approval" : booking.status,
+      status: status === "paid" ? "pending" : booking.status,
       paymentStatus: status,
     });
   }
@@ -635,13 +659,83 @@ export function listPayments() {
   return db.payments.slice().reverse();
 }
 
+export function listCustomers() {
+  const registered = db.users.map((user) => {
+    const summary = userBookingSummary(user.id, user.email);
+    const lastBooking = summary.lastBooking;
+    return {
+      id: user.id,
+      source: "account",
+      fullName: user.profile?.fullName || "Velaire Client",
+      email: user.email,
+      phone: user.phone || "",
+      preferredContact: user.profile?.preferredContact || "Email",
+      verificationStatus: user.verification?.status || "not_submitted",
+      favourites: user.favourites || [],
+      totalBookings: summary.totalBookings,
+      upcomingBookings: summary.upcomingBookings,
+      completedBookings: summary.completedBookings,
+      hireValue: summary.hireValue,
+      lastBookingReference: lastBooking?.reference || "",
+      lastVehicle: lastBooking?.vehicleName || "",
+      lastStatus: lastBooking?.status || "",
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+    };
+  });
+
+  const registeredEmails = new Set(registered.map((customer) => customer.email));
+  const guestByEmail = new Map();
+
+  for (const booking of db.bookings) {
+    const email = normaliseEmail(booking.customerEmail);
+    if (!email || registeredEmails.has(email)) continue;
+    if (!guestByEmail.has(email)) {
+      guestByEmail.set(email, {
+        id: `guest_${email}`,
+        source: "booking",
+        fullName: booking.customerName || "Guest client",
+        email,
+        phone: booking.customerPhone || "",
+        preferredContact: "Concierge follow-up",
+        verificationStatus: "not_submitted",
+        favourites: [],
+        totalBookings: 0,
+        upcomingBookings: 0,
+        completedBookings: 0,
+        hireValue: 0,
+        lastBookingReference: "",
+        lastVehicle: "",
+        lastStatus: "",
+        createdAt: booking.createdAt,
+        updatedAt: booking.updatedAt,
+      });
+    }
+
+    const guest = guestByEmail.get(email);
+    guest.totalBookings += 1;
+    guest.upcomingBookings += isBlockingBookingStatus(booking.status) ? 1 : 0;
+    guest.completedBookings += normaliseBookingStatus(booking.status) === "completed" ? 1 : 0;
+    guest.hireValue += Number(booking.totals?.hireEstimate || 0);
+    guest.lastBookingReference = booking.reference;
+    guest.lastVehicle = booking.vehicleName;
+    guest.lastStatus = booking.status;
+    guest.updatedAt = booking.updatedAt;
+  }
+
+  return [...registered, ...guestByEmail.values()].sort((a, b) =>
+    String(b.updatedAt || b.createdAt).localeCompare(String(a.updatedAt || a.createdAt)),
+  );
+}
+
 export function adminUpdateBooking(idValue, action, patch = {}) {
   const statusByAction = {
     approve: "confirmed",
-    reject: "rejected",
+    confirm: "confirmed",
+    reject: "cancelled",
     cancel: "cancelled",
     complete: "completed",
-    pending: "pending_approval",
+    pending: "pending",
   };
   const status = statusByAction[action] || patch.status;
   return updateBooking(idValue, {
@@ -702,13 +796,15 @@ export function removeVehicleBlock(slug, blockId) {
 export function adminSummary() {
   const bookings = listAllBookings();
   const payments = listPayments();
+  const customers = listCustomers();
   return {
     counts: {
       users: db.users.length,
+      customers: customers.length,
       bookings: db.bookings.length,
       payments: db.payments.length,
       activeSessions: db.sessions.length,
-      pendingBookings: db.bookings.filter((booking) => !releasedBookingStatuses.has(booking.status)).length,
+      pendingBookings: db.bookings.filter((booking) => normaliseBookingStatus(booking.status) === "pending").length,
       confirmedBookings: db.bookings.filter((booking) => confirmedBookingStatuses.has(booking.status)).length,
     },
     bookingsByStatus: db.bookings.reduce((result, booking) => {
@@ -720,6 +816,7 @@ export function adminSummary() {
       return result;
     }, {}),
     latestBookings: bookings.slice(0, 10),
+    latestCustomers: customers.slice(0, 8),
     vehicles: listOperationalVehicles(),
   };
 }

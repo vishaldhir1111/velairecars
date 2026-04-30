@@ -36,6 +36,7 @@ const requiredFiles = [
   "api/payments/webhook.js",
   "api/admin/summary.js",
   "api/admin/bookings.js",
+  "api/admin/customers.js",
   "api/admin/vehicles.js",
   "api/_lib/fleet-data.js",
   "api/_lib/http.js",

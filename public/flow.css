@@ -2928,7 +2928,7 @@ h2 {
 
 .admin-metrics {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 14px;
   margin-top: 16px;
 }
@@ -2949,6 +2949,11 @@ h2 {
   grid-template-columns: minmax(0, 1fr) minmax(360px, 0.42fr);
   gap: 18px;
   margin-top: 18px;
+}
+
+.admin-customer-panel {
+  width: min(1380px, 100%);
+  margin: 18px auto 0;
 }
 
 .admin-panel {
@@ -3014,11 +3019,13 @@ h2 {
 }
 
 .admin-action-row {
-  grid-template-columns: repeat(2, minmax(0, max-content));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  min-width: 190px;
 }
 
 .admin-action-row button,
-.admin-inline-form button {
+.admin-inline-form button,
+.admin-block-list button {
   min-height: 38px;
   border: 1px solid rgba(215, 161, 140, 0.3);
   border-radius: var(--radius);
@@ -3094,6 +3101,22 @@ h2 {
 .admin-block-list small {
   display: block;
   margin-top: 3px;
+}
+
+.admin-block-list span {
+  display: grid;
+  gap: 6px;
+}
+
+.admin-block-list span strong {
+  color: var(--ivory);
+}
+
+.admin-block-list button {
+  width: fit-content;
+  min-height: 32px;
+  padding: 0 10px;
+  font-size: 0.76rem;
 }
 
 @media (min-width: 1321px) {
