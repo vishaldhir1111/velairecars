@@ -615,6 +615,15 @@ function App() {
           <a href="login.html">Client login</a>
           <a href="payment.html">Payment</a>
         </div>
+
+        <div className="footer-column">
+          <strong>Trust</strong>
+          <a href="terms.html">Terms</a>
+          <a href="privacy.html">Privacy</a>
+          <a href="cancellation.html">Cancellation</a>
+          <a href="insurance.html">Insurance</a>
+          <a href="requirements.html">Rental requirements</a>
+        </div>
       </footer>
 
       <section className={`concierge-widget ${isConciergeOpen ? "is-open" : ""}`} aria-label="Velaire AI concierge">

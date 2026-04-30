@@ -10,6 +10,11 @@ const flowPages = [
   "public/admin.html",
   "public/payment.html",
   "public/success.html",
+  "public/terms.html",
+  "public/privacy.html",
+  "public/cancellation.html",
+  "public/insurance.html",
+  "public/requirements.html",
 ];
 const requiredFiles = [
   "index.html",
@@ -73,7 +78,20 @@ if (!app.includes('from "./data/fleet.js"')) {
 }
 
 const vite = read("vite.config.js");
-for (const page of ["booking.html", "login.html", "account.html", "ai.html", "admin.html", "payment.html", "success.html"]) {
+for (const page of [
+  "booking.html",
+  "login.html",
+  "account.html",
+  "ai.html",
+  "admin.html",
+  "payment.html",
+  "success.html",
+  "terms.html",
+  "privacy.html",
+  "cancellation.html",
+  "insurance.html",
+  "requirements.html",
+]) {
   if (vite.includes(`./${page}`)) {
     throw new Error(`vite.config.js should not reference root ${page}; static flow pages live in public/`);
   }
@@ -110,7 +128,22 @@ for (const match of read("public/flow.js").matchAll(/^  "([^"]+)": \{/gm)) {
   }
 }
 
-for (const staleRootFile of ["booking.html", "login.html", "account.html", "ai.html", "admin.html", "payment.html", "success.html", "flow.css", "flow.js"]) {
+for (const staleRootFile of [
+  "booking.html",
+  "login.html",
+  "account.html",
+  "ai.html",
+  "admin.html",
+  "payment.html",
+  "success.html",
+  "terms.html",
+  "privacy.html",
+  "cancellation.html",
+  "insurance.html",
+  "requirements.html",
+  "flow.css",
+  "flow.js",
+]) {
   if (fs.existsSync(path.join(root, staleRootFile))) {
     throw new Error(`Misplaced root-level static flow file found: ${staleRootFile}`);
   }
