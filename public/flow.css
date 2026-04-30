@@ -2094,6 +2094,36 @@ h2 {
   line-height: 1.58;
 }
 
+.payment-alert {
+  width: 100%;
+  border: 1px solid rgba(215, 161, 140, 0.32);
+  border-radius: var(--radius);
+  background:
+    linear-gradient(145deg, rgba(215, 161, 140, 0.12), rgba(248, 242, 236, 0.035)),
+    rgba(5, 5, 5, 0.28);
+  color: var(--rose-3);
+  padding: 14px 16px;
+  font-size: 0.92rem;
+  font-weight: 850;
+  line-height: 1.5;
+}
+
+.payment-alert[hidden] {
+  display: none;
+}
+
+.payment-alert.is-success {
+  border-color: rgba(151, 204, 162, 0.42);
+  background: rgba(151, 204, 162, 0.1);
+  color: #cdebd4;
+}
+
+.payment-alert.is-warning {
+  border-color: rgba(235, 118, 91, 0.42);
+  background: rgba(235, 118, 91, 0.12);
+  color: #ffbea9;
+}
+
 .notice-card,
 .mini-summary,
 .secure-band {
@@ -3031,6 +3061,7 @@ h2 {
 }
 
 .status-pill.status-confirmed,
+.status-pill.status-deposit-paid,
 .status-pill.status-paid {
   border-color: rgba(151, 204, 162, 0.42);
   background: rgba(151, 204, 162, 0.12);
@@ -3038,7 +3069,6 @@ h2 {
 }
 
 .status-pill.status-payment-pending,
-.status-pill.status-requires-provider,
 .status-pill.status-requires-checkout,
 .status-pill.status-pending {
   border-color: rgba(215, 161, 140, 0.42);
@@ -3047,6 +3077,7 @@ h2 {
 }
 
 .status-pill.status-cancelled,
+.status-pill.status-expired,
 .status-pill.status-failed {
   border-color: rgba(235, 118, 91, 0.42);
   background: rgba(235, 118, 91, 0.12);

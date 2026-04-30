@@ -297,7 +297,7 @@ function loadAccount() {
       communication: ["Concierge updates"],
       files: {},
       cardSummary: "No saved card",
-      cardName: "Add a preferred card for reservation holds.",
+      cardName: "Cards are entered only inside secure Stripe Checkout.",
       membership: "Private client status",
       ...JSON.parse(window.localStorage.getItem(accountStorageKey)),
     };
@@ -316,7 +316,7 @@ function loadAccount() {
       communication: ["Concierge updates"],
       files: {},
       cardSummary: "No saved card",
-      cardName: "Add a preferred card for reservation holds.",
+      cardName: "Cards are entered only inside secure Stripe Checkout.",
       membership: "Private client status",
     };
   }
@@ -427,15 +427,7 @@ function backendAccountPatchFromLocal(account = loadAccount()) {
       status: verificationStatus(account).toLowerCase().replace(/\s+/g, "_"),
       documents: account.files || {},
     },
-    paymentMethod:
-      account.cardSummary && account.cardSummary !== "No saved card"
-        ? {
-            label: account.cardSummary,
-            name: account.cardName || "",
-            expiry: account.cardExpiry || "",
-            provider: "manual_masked_reference",
-          }
-        : null,
+    paymentMethod: null,
     favourites: account.favourites || ["lamborghini-urus", "range-rover-sport-svr", "bmw-m440i-convertible"],
   };
 }
@@ -538,24 +530,50 @@ async function createPaymentIntent() {
 
 async function createPaymentCheckout() {
   const reservation = loadReservation();
-  const booking = loadBackendBooking() || (await syncBookingToBackend("pending"));
-  const result = await optionalApiRequest(
-    "/api/payments/checkout",
-    {
-      method: "POST",
-      body: JSON.stringify({
-        bookingId: booking?.id || reservation.bookingId || "",
-        reservation,
-      }),
-    },
-    null,
-  );
+  const booking = loadBackendBooking() || (await syncBookingToBackend("payment_pending"));
+  const result = await apiRequest("/api/payments/checkout", {
+    method: "POST",
+    body: JSON.stringify({
+      bookingId: booking?.id || reservation.bookingId || "",
+      reservation,
+    }),
+  });
 
   if (result?.paymentIntent) {
     saveReservation({
       paymentIntentId: result.paymentIntent.id,
       paymentStatus: result.paymentIntent.status,
       checkoutSessionId: result.checkoutSessionId || result.paymentIntent.checkoutSessionId || "",
+    });
+  }
+
+  return result;
+}
+
+async function verifyCheckoutSession(sessionId) {
+  if (!sessionId) return null;
+  const result = await optionalApiRequest(
+    `/api/payments/session?session_id=${encodeURIComponent(sessionId)}`,
+    { method: "GET" },
+    null,
+  );
+
+  if (result?.booking) {
+    saveBackendBooking(result.booking);
+    saveReservation({
+      bookingId: result.booking.id,
+      reference: result.booking.reference,
+      status: result.booking.status,
+      paymentStatus: result.booking.paymentStatus,
+      checkoutSessionId: result.booking.checkoutSessionId || sessionId,
+      paidAt: result.booking.paidAt || "",
+    });
+  } else if (result?.payment) {
+    saveReservation({
+      paymentIntentId: result.payment.id,
+      paymentStatus: result.payment.status,
+      checkoutSessionId: result.payment.checkoutSessionId || sessionId,
+      paidAt: result.payment.paidAt || "",
     });
   }
 
@@ -691,6 +709,7 @@ function referenceFor(slug) {
 
 function updateSummary() {
   const reservation = loadReservation();
+  const backendBooking = loadBackendBooking();
   const rawSlug = reservation.vehicle || selectedSlug();
   const slug = vehicles[rawSlug] ? rawSlug : defaultVehicle;
   const vehicle = selectedVehicle(slug);
@@ -710,7 +729,9 @@ function updateSummary() {
   bindText("hireEstimate", money(vehicle.rate * days));
   bindText("rentalDays", displayDays(days));
   bindText("handoverLocation", location);
-  bindText("reference", referenceFor(slug));
+  bindText("reference", reservation.reference || backendBooking?.reference || referenceFor(slug));
+  bindText("reservationStatus", humanStatus(reservation.status || backendBooking?.status || "payment_pending"));
+  bindText("paymentStatus", humanStatus(reservation.paymentStatus || backendBooking?.paymentStatus || "payment_pending"));
   bindVehicleMedia(vehicle);
   updateSelectedLocationPanel(reservation);
 }
@@ -1504,7 +1525,7 @@ function updateAccountDisplay(account = loadAccount()) {
   bindAccountText("upcomingCount", "1");
   bindAccountText("verificationStatus", verificationStatus(account));
   bindAccountText("cardSummary", account.cardSummary || "No saved card");
-  bindAccountText("cardName", account.cardName || "Add a preferred card for reservation holds.");
+  bindAccountText("cardName", account.cardName || "Cards are entered only inside secure Stripe Checkout.");
 
   document.querySelectorAll("[data-file-label]").forEach((label) => {
     const key = label.dataset.fileLabel;
@@ -1545,7 +1566,10 @@ function renderBookingHistory(bookings = []) {
       (booking) => `
         <li>
           <strong>${booking.vehicleName || "Velaire booking"}</strong>
-          <span>${booking.status || "draft"} · ${booking.location || "Handover pending"}</span>
+          <span>
+            ${humanStatus(booking.status || "draft")} · ${humanStatus(booking.paymentStatus || "not_started")} ·
+            ${booking.location || "Handover pending"}
+          </span>
         </li>
       `,
     )
@@ -1570,7 +1594,7 @@ function mergeBackendAccount(user) {
     favourites: user.favourites || loadAccount().favourites || [],
     files: user.verification?.documents || loadAccount().files || {},
     cardSummary: user.paymentMethod?.label || loadAccount().cardSummary || "No saved card",
-    cardName: user.paymentMethod?.name || loadAccount().cardName || "Add a preferred card for reservation holds.",
+    cardName: user.paymentMethod?.name || loadAccount().cardName || "Cards are entered only inside secure Stripe Checkout.",
     cardExpiry: user.paymentMethod?.expiry || loadAccount().cardExpiry || "",
   });
   updateAccountDisplay(next);
@@ -1718,7 +1742,7 @@ function renderAdminPayments(payments = []) {
       <tr>
         <td colspan="6">
           <strong>No deposit records yet</strong><br />
-          <span>Secure checkout and manual deposit records appear here once a reservation reaches payment.</span>
+          <span>Stripe Checkout deposit records appear here once a reservation reaches payment.</span>
         </td>
       </tr>
     `;
@@ -1731,7 +1755,9 @@ function renderAdminPayments(payments = []) {
         <tr>
           <td>
             <strong>${money(Number(payment.amount || 0))}</strong>
-            <span>${escapeHtml(payment.currency || "GBP")}</span>
+            <span>
+              ${escapeHtml(payment.currency || "GBP")} · paid ${money(Number(payment.amountPaid || 0))}
+            </span>
           </td>
           <td>
             ${escapeHtml(payment.bookingReference || payment.bookingId || "Booking pending")}
@@ -1741,15 +1767,16 @@ function renderAdminPayments(payments = []) {
             ${escapeHtml(payment.customerEmail || "Client pending")}
             <span>${escapeHtml(payment.customerPhone || "")}</span>
           </td>
-          <td><span class="status-pill">${escapeHtml(humanStatus(payment.status))}</span></td>
+          <td><span class="status-pill ${statusClass(payment.status)}">${escapeHtml(humanStatus(payment.status))}</span></td>
           <td>
-            ${escapeHtml(payment.provider || "stripe_checkout_ready")}
+            ${escapeHtml(payment.provider || "stripe_checkout")}
             <span>${escapeHtml(payment.providerReference || payment.checkoutSessionId || "Reference pending")}</span>
+            ${payment.failureReason ? `<span>${escapeHtml(payment.failureReason)}</span>` : ""}
           </td>
           <td>
             <div class="admin-action-row">
-              <button type="button" data-admin-payment-status="pending" data-payment-id="${payment.id}">Pending</button>
-              <button type="button" data-admin-payment-status="paid" data-payment-id="${payment.id}">Paid</button>
+              <button type="button" data-admin-payment-status="payment_pending" data-payment-id="${payment.id}">Pending</button>
+              <button type="button" data-admin-payment-status="cancelled" data-payment-id="${payment.id}">Cancelled</button>
               <button type="button" data-admin-payment-status="refunded" data-payment-id="${payment.id}">Refunded</button>
               <button type="button" data-admin-payment-status="failed" data-payment-id="${payment.id}">Failed</button>
             </div>
@@ -2195,7 +2222,7 @@ function setupAdmin() {
 
 function fillAccountForm(form, account = loadAccount()) {
   [...form.elements].forEach((field) => {
-    if (!field.name || field.type === "file" || field.name === "cardNumber") return;
+    if (!field.name || field.type === "file") return;
 
     const value = account[field.name];
     if (field.type === "checkbox") {
@@ -2216,7 +2243,7 @@ function readAccountForm(form) {
   const next = {};
 
   [...form.elements].forEach((field) => {
-    if (!field.name || field.type === "file" || field.name === "cardNumber") return;
+    if (!field.name || field.type === "file") return;
 
     if (field.type === "checkbox") {
       if (!Array.isArray(next[field.name])) next[field.name] = [];
@@ -2242,12 +2269,6 @@ function pulseSaved(button, label = "Saved") {
   window.setTimeout(() => {
     button.textContent = original;
   }, 1400);
-}
-
-function maskCard(value) {
-  const digits = value.replace(/\D/g, "");
-  if (digits.length < 4) return "";
-  return `Card ending ${digits.slice(-4)}`;
 }
 
 function appendConciergeMessage(role, message) {
@@ -2439,34 +2460,16 @@ function setupAccount() {
   document.querySelectorAll("[data-account-form]").forEach((form) => {
     fillAccountForm(form, account);
 
-    if (form.dataset.accountForm !== "payment") {
-      form.addEventListener("input", () => {
-        updateAccountDisplay(saveAccount(readAccountForm(form)));
-      });
-      form.addEventListener("change", () => {
-        updateAccountDisplay(saveAccount(readAccountForm(form)));
-      });
-    }
+    form.addEventListener("input", () => {
+      updateAccountDisplay(saveAccount(readAccountForm(form)));
+    });
+    form.addEventListener("change", () => {
+      updateAccountDisplay(saveAccount(readAccountForm(form)));
+    });
 
     form.addEventListener("submit", async (event) => {
       event.preventDefault();
-
-      if (form.dataset.accountForm === "payment") {
-        const cardSummary = maskCard(form.elements.cardNumber?.value || "");
-        const cardName = form.elements.cardName?.value || "Preferred card saved";
-        const cardExpiry = form.elements.cardExpiry?.value || "";
-        updateAccountDisplay(
-          saveAccount({
-            cardSummary: cardSummary || "No saved card",
-            cardName,
-            cardExpiry,
-          }),
-        );
-        if (form.elements.cardNumber) form.elements.cardNumber.value = "";
-      } else {
-        updateAccountDisplay(saveAccount(readAccountForm(form)));
-      }
-
+      updateAccountDisplay(saveAccount(readAccountForm(form)));
       await syncAccountToBackend(loadAccount());
       pulseSaved(form.querySelector('button[type="submit"]'));
     });
@@ -2491,17 +2494,6 @@ function setupAccount() {
       );
       syncAccountToBackend(loadAccount());
     });
-  });
-
-  document.getElementById("remove-card")?.addEventListener("click", () => {
-    updateAccountDisplay(
-      saveAccount({
-        cardSummary: "No saved card",
-        cardName: "Add a preferred card for reservation holds.",
-        cardExpiry: "",
-      }),
-    );
-    syncAccountToBackend(loadAccount());
   });
 
   document.querySelector("[data-logout]")?.addEventListener("click", async () => {
@@ -2610,30 +2602,105 @@ function setupLogin() {
 
 function setupPayment() {
   const form = document.querySelector("form");
+  const providerStatus = document.querySelector("[data-payment-provider-status]");
+  const paymentAlert = document.querySelector("[data-payment-alert]");
+  const submitButton = form?.querySelector('button[type="submit"]');
+  const params = new URLSearchParams(window.location.search);
+  if (params.get("payment") === "cancelled") {
+    saveReservation({ status: "payment_pending", paymentStatus: "cancelled" });
+    if (providerStatus) providerStatus.textContent = "Checkout was cancelled. No deposit has been taken.";
+    if (paymentAlert) {
+      paymentAlert.hidden = false;
+      paymentAlert.classList.add("is-warning");
+      paymentAlert.textContent = "Payment was cancelled before completion. Your booking is not confirmed yet.";
+    }
+    if (submitButton) submitButton.textContent = "Retry secure deposit checkout";
+  }
+
   form?.addEventListener("submit", async (event) => {
     event.preventDefault();
-    const providerStatus = document.querySelector("[data-payment-provider-status]");
+    if (submitButton) {
+      submitButton.disabled = true;
+      submitButton.textContent = "Preparing secure Checkout...";
+    }
+    if (providerStatus) providerStatus.textContent = "Creating a secure Stripe Checkout session.";
     try {
-      await syncBookingToBackend("pending");
+      await syncBookingToBackend("payment_pending");
       const checkout = await createPaymentCheckout();
-      if (checkout?.providerReady && checkout.checkoutUrl) {
-        if (providerStatus) providerStatus.textContent = "Redirecting to secure Stripe Checkout.";
-        window.location.href = checkout.checkoutUrl;
-        return;
+      if (!checkout?.checkoutUrl) {
+        throw new Error("Stripe Checkout did not return a payment URL.");
       }
-      saveReservation({
-        status: "Concierge review",
-        paymentStatus: checkout?.paymentIntent?.status || "requires_provider",
-        confirmedAt: new Date().toISOString(),
-      });
-      if (providerStatus) {
-        providerStatus.textContent = "Stripe is not connected yet. Reservation moved to concierge payment review.";
+      if (providerStatus) providerStatus.textContent = "Redirecting to secure Stripe Checkout.";
+      window.location.href = checkout.checkoutUrl;
+    } catch (error) {
+      if (providerStatus) providerStatus.textContent = "Secure Stripe Checkout could not be started.";
+      if (paymentAlert) {
+        paymentAlert.hidden = false;
+        paymentAlert.classList.add("is-warning");
+        paymentAlert.textContent =
+          error.message || "Stripe Checkout is unavailable. The deposit has not been paid and this booking is not confirmed.";
       }
-      navigateTo(form.getAttribute("action") || "success.html");
-    } catch {
-      if (providerStatus) providerStatus.textContent = "Payment setup needs review. Your reservation details remain saved.";
+    } finally {
+      if (submitButton) {
+        submitButton.disabled = false;
+        submitButton.textContent = "Create secure deposit session";
+      }
     }
   });
+}
+
+async function setupSuccess() {
+  const params = new URLSearchParams(window.location.search);
+  const sessionId = params.get("session_id");
+  const title = document.querySelector("[data-success-title]");
+  const message = document.querySelector("[data-success-message]");
+  const banner = document.querySelector("[data-success-payment-banner]");
+
+  if (!sessionId) {
+    saveReservation({
+      status: loadReservation().status || "payment_pending",
+      paymentStatus: loadReservation().paymentStatus || "payment_pending",
+    });
+    if (title) title.textContent = "Payment confirmation is pending.";
+    if (message) {
+      message.textContent =
+        "This confirmation screen has no Stripe session attached. Return to payment to complete the deposit securely.";
+    }
+    if (banner) {
+      banner.classList.add("is-warning");
+      banner.textContent = "No Stripe Checkout session was found for this visit.";
+    }
+    updateSummary();
+    return;
+  }
+
+  if (banner) banner.textContent = "Verifying your Stripe deposit session...";
+  const result = await verifyCheckoutSession(sessionId);
+  const status = result?.paymentStatus || result?.payment?.status || "payment_pending";
+  if (status === "deposit_paid") {
+    saveReservation({ status: "confirmed", paymentStatus: "deposit_paid", confirmedAt: new Date().toISOString() });
+    if (title) title.textContent = "Deposit paid. Your Velaire reservation is confirmed.";
+    if (message) {
+      message.textContent =
+        "Stripe has confirmed the reservation deposit. The concierge team will now finalise handover timing, documents and delivery details.";
+    }
+    if (banner) {
+      banner.classList.add("is-success");
+      banner.textContent = "Deposit paid securely through Stripe Checkout.";
+    }
+  } else {
+    saveReservation({ status: "payment_pending", paymentStatus: status });
+    if (title) title.textContent = "Payment is still pending.";
+    if (message) {
+      message.textContent =
+        "Stripe has not confirmed a paid deposit yet. Your booking is held for payment review, but it is not confirmed as paid.";
+    }
+    if (banner) {
+      banner.classList.add("is-warning");
+      banner.textContent = `Stripe status: ${humanStatus(status)}.`;
+    }
+  }
+  updateSummary();
 }
 
 const page = document.body.dataset.page;
@@ -2641,6 +2708,7 @@ hydrateVehicleModels();
 if (page === "booking") setupBooking();
 if (page === "login") setupLogin();
 if (page === "payment") setupPayment();
+if (page === "success") setupSuccess();
 if (page === "account") setupAccount();
 if (page === "ai") setupConciergeAssistant();
 if (page === "admin") setupAdmin();

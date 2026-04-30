@@ -38,6 +38,19 @@ const statusAliases = {
 const blockingBookingStatuses = new Set(["pending", "payment_pending", "confirmed"]);
 const confirmedBookingStatuses = new Set(["confirmed"]);
 const releasedBookingStatuses = new Set(["draft", "rejected", "cancelled", "completed"]);
+const paymentStatusAliases = {
+  paid: "deposit_paid",
+  succeeded: "deposit_paid",
+  checkout_created: "payment_pending",
+  requires_checkout: "payment_pending",
+  requires_action: "payment_pending",
+  requires_payment_method: "payment_pending",
+  processing: "payment_pending",
+  expired: "cancelled",
+};
+const paidPaymentStatuses = new Set(["deposit_paid"]);
+const failedPaymentStatuses = new Set(["failed", "cancelled"]);
+const refundedPaymentStatuses = new Set(["refunded"]);
 
 function now() {
   return new Date().toISOString();
@@ -111,6 +124,9 @@ function publicBooking(booking) {
     vehicleName: booking.vehicleName,
     status: booking.status,
     paymentStatus: booking.paymentStatus || "not_started",
+    paymentIntentId: booking.paymentIntentId || "",
+    checkoutSessionId: booking.checkoutSessionId || "",
+    paidAt: booking.paidAt || "",
     pickup: booking.pickup,
     pickupTime: booking.pickupTime,
     return: booking.return,
@@ -138,10 +154,15 @@ function publicPayment(payment) {
     amount: payment.amount,
     currency: payment.currency || "GBP",
     status: payment.status || "not_started",
-    provider: payment.provider || "stripe_checkout_ready",
+    provider: payment.provider || "stripe_checkout",
     providerReference: payment.providerReference || "",
     checkoutSessionId: payment.checkoutSessionId || "",
     checkoutUrl: payment.checkoutUrl || "",
+    amountPaid: payment.amountPaid || 0,
+    paidAt: payment.paidAt || "",
+    failureReason: payment.failureReason || "",
+    refundedAt: payment.refundedAt || "",
+    cancelledAt: payment.cancelledAt || "",
     note: payment.note || "",
     createdAt: payment.createdAt,
     updatedAt: payment.updatedAt || payment.createdAt,
@@ -224,6 +245,11 @@ function isBlockingBookingStatus(status) {
 function normaliseBookingStatus(status, fallback = "pending") {
   const clean = String(status || fallback).trim().toLowerCase();
   return statusAliases[clean] || clean || fallback;
+}
+
+function normalisePaymentStatus(status, fallback = "payment_pending") {
+  const clean = String(status || fallback).trim().toLowerCase();
+  return paymentStatusAliases[clean] || clean || fallback;
 }
 
 function normaliseEmail(email = "") {
@@ -627,25 +653,43 @@ export function createPaymentIntent({ bookingId, reservation = {} }) {
       returnDate: reservation.return,
       days: Number.parseInt(reservation.days || "0", 10),
     });
-  const payment = {
-    id: id("pi"),
-    bookingId: booking?.id || null,
-    amount: totals.deposit,
-    currency: totals.currency || "GBP",
-    status: process.env.STRIPE_SECRET_KEY ? "requires_checkout" : "requires_provider",
-    provider: "stripe_checkout_ready",
-    createdAt: now(),
-    note: "Deposit intent created for secure checkout. No card data is stored by Velaire.",
-  };
-  db.payments.push(payment);
+  let payment = db.payments.find(
+    (item) =>
+      item.bookingId === booking?.id &&
+      !paidPaymentStatuses.has(normalisePaymentStatus(item.status)) &&
+      !refundedPaymentStatuses.has(normalisePaymentStatus(item.status)),
+  );
+  const status = "payment_pending";
+  if (payment) {
+    Object.assign(payment, {
+      amount: totals.deposit,
+      currency: totals.currency || "GBP",
+      status: normalisePaymentStatus(status, status),
+      updatedAt: now(),
+    });
+  } else {
+    payment = {
+      id: id("pi"),
+      bookingId: booking?.id || null,
+      amount: totals.deposit,
+      amountPaid: 0,
+      currency: totals.currency || "GBP",
+      status: normalisePaymentStatus(status, status),
+      provider: "stripe_checkout",
+      createdAt: now(),
+      updatedAt: now(),
+      note: "Deposit intent created for secure Stripe Checkout. No card data is stored by Velaire.",
+    };
+    db.payments.push(payment);
+  }
   if (booking) {
     updateBooking(booking.id, {
-      status: "payment_intent_created",
+      status: "payment_pending",
       paymentStatus: payment.status,
       paymentIntentId: payment.id,
     });
   }
-  return payment;
+  return publicPayment(payment);
 }
 
 export function attachCheckoutToPayment(paymentId, checkout = {}) {
@@ -654,36 +698,65 @@ export function attachCheckoutToPayment(paymentId, checkout = {}) {
   Object.assign(payment, {
     checkoutSessionId: checkout.sessionId || payment.checkoutSessionId || null,
     checkoutUrl: checkout.url || payment.checkoutUrl || null,
-    status: checkout.status || payment.status,
+    providerReference: checkout.sessionId || payment.providerReference || "",
+    status: normalisePaymentStatus(checkout.status || payment.status),
     updatedAt: now(),
   });
 
   if (payment.bookingId) {
     updateBooking(payment.bookingId, {
-      status: "checkout_created",
+      status: "payment_pending",
       paymentStatus: payment.status,
       checkoutSessionId: payment.checkoutSessionId,
     });
   }
-  return payment;
+  return publicPayment(payment);
 }
 
-export function markPaymentStatus({ paymentId, bookingId, status, providerReference = "" }) {
+export function markPaymentStatus({
+  paymentId,
+  bookingId,
+  status,
+  providerReference = "",
+  checkoutSessionId = "",
+  failureReason = "",
+} = {}) {
+  const canonicalStatus = normalisePaymentStatus(status);
   const payment =
     db.payments.find((item) => item.id === paymentId) ||
     db.payments.find((item) => item.bookingId === bookingId) ||
+    db.payments.find((item) => item.checkoutSessionId === checkoutSessionId) ||
     null;
   if (payment) {
-    payment.status = status;
+    payment.status = canonicalStatus;
     payment.providerReference = providerReference || payment.providerReference || "";
+    payment.checkoutSessionId = checkoutSessionId || payment.checkoutSessionId || "";
+    payment.failureReason = failureReason || payment.failureReason || "";
+    if (paidPaymentStatuses.has(canonicalStatus)) {
+      payment.amountPaid = payment.amount;
+      payment.paidAt = payment.paidAt || now();
+    }
+    if (failedPaymentStatuses.has(canonicalStatus)) {
+      payment.cancelledAt = payment.cancelledAt || now();
+    }
+    if (refundedPaymentStatuses.has(canonicalStatus)) {
+      payment.refundedAt = payment.refundedAt || now();
+    }
     payment.updatedAt = now();
   }
 
   const booking = db.bookings.find((item) => item.id === (bookingId || payment?.bookingId));
   if (booking) {
+    const bookingStatus = paidPaymentStatuses.has(canonicalStatus)
+      ? "confirmed"
+      : failedPaymentStatuses.has(canonicalStatus) || refundedPaymentStatuses.has(canonicalStatus)
+        ? "cancelled"
+        : "payment_pending";
     updateBooking(booking.id, {
-      status: status === "paid" ? "pending" : booking.status,
-      paymentStatus: status,
+      status: bookingStatus,
+      paymentStatus: canonicalStatus,
+      checkoutSessionId: checkoutSessionId || booking.checkoutSessionId,
+      paidAt: paidPaymentStatuses.has(canonicalStatus) ? booking.paidAt || now() : booking.paidAt,
     });
   }
 
@@ -702,14 +775,23 @@ export function adminUpdatePayment(idValue, patch = {}) {
   const payment = db.payments.find((item) => item.id === idValue);
   if (!payment) return null;
 
-  payment.status = patch.status || payment.status;
+  payment.status = normalisePaymentStatus(patch.status || payment.status);
   payment.providerReference = patch.providerReference ?? payment.providerReference ?? "";
   payment.note = patch.note ?? payment.note ?? "";
+  payment.failureReason = patch.failureReason ?? payment.failureReason ?? "";
   payment.updatedAt = now();
 
   if (payment.bookingId) {
     const bookingPatch = { paymentStatus: payment.status };
-    if (payment.status === "paid") bookingPatch.status = "pending";
+    if (paidPaymentStatuses.has(payment.status)) {
+      payment.amountPaid = payment.amount;
+      payment.paidAt = payment.paidAt || now();
+      bookingPatch.status = "confirmed";
+      bookingPatch.paidAt = now();
+    }
+    if (failedPaymentStatuses.has(payment.status) || refundedPaymentStatuses.has(payment.status)) {
+      bookingPatch.status = "cancelled";
+    }
     updateBooking(payment.bookingId, bookingPatch);
   }
 

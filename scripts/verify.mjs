@@ -39,6 +39,7 @@ const requiredFiles = [
   "api/auth/session.js",
   "api/payments/intent.js",
   "api/payments/checkout.js",
+  "api/payments/session.js",
   "api/payments/webhook.js",
   "api/admin/summary.js",
   "api/admin/bookings.js",
@@ -48,6 +49,7 @@ const requiredFiles = [
   "api/admin/vehicles.js",
   "api/_lib/fleet-data.js",
   "api/_lib/http.js",
+  "api/_lib/stripe.js",
   "api/_lib/store.js",
   "vite.config.js",
   "package.json",
@@ -130,6 +132,34 @@ if (!read("public/admin.html").includes('data-admin-count="paymentPendingBooking
 
 if (!read("public/flow.js").includes("renderAdminAvailabilityCalendar") || !read("public/flow.js").includes("payment_pending")) {
   throw new Error("public/flow.js is missing the Phase 1 admin calendar or payment-pending status logic");
+}
+
+if (!read("api/payments/checkout.js").includes("createStripeCheckoutSession")) {
+  throw new Error("api/payments/checkout.js is not wired to Stripe Checkout");
+}
+
+if (!read("api/payments/session.js").includes("retrieveStripeCheckoutSession")) {
+  throw new Error("api/payments/session.js is missing Checkout Session verification");
+}
+
+if (!read("api/payments/webhook.js").includes("verifyStripeSignature")) {
+  throw new Error("api/payments/webhook.js is missing Stripe signature verification");
+}
+
+for (const forbidden of [
+  "providerReady: false",
+  "requires_provider",
+  "stripe_checkout_ready",
+  "manual_masked_reference",
+  "cardNumber",
+  "Only masked card details",
+  "frontend prototype",
+]) {
+  for (const file of requiredFiles) {
+    if (read(file).includes(forbidden)) {
+      throw new Error(`Fake or placeholder payment flow text found in ${file}: ${forbidden}`);
+    }
+  }
 }
 
 for (const match of read("public/flow.js").matchAll(/^  "([^"]+)": \{/gm)) {

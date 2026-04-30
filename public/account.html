@@ -92,9 +92,9 @@
                 <small>Licence, address and ID checks</small>
               </article>
               <article>
-                <span>Preferred card</span>
+                <span>Payment method</span>
                 <strong data-account-bind="cardSummary">No saved card</strong>
-                <small>Only masked card details are stored</small>
+                <small>Handled only by Stripe Checkout</small>
               </article>
               <article>
                 <span>Deposit guidance</span>
@@ -257,30 +257,21 @@
 
             <div class="payment-account-grid">
               <article class="account-card premium-card-summary">
-                <span>Preferred card</span>
+                <span>Payment method</span>
                 <strong data-account-bind="cardSummary">No saved card</strong>
-                <small data-account-bind="cardName">Add a preferred card for reservation holds.</small>
-                <button class="secondary-button" type="button" id="remove-card">Remove card</button>
+                <small data-account-bind="cardName">Cards are entered only inside secure Stripe Checkout.</small>
+                <a class="secondary-button" href="payment.html">Open secure checkout</a>
               </article>
 
-              <form class="form-grid account-form" data-account-form="payment">
-                <label class="field">
-                  Card number
-                  <input inputmode="numeric" name="cardNumber" placeholder="1234 1234 1234 1234" autocomplete="cc-number" />
-                </label>
-                <div class="form-grid two-column">
-                  <label class="field">
-                    Expiry
-                    <input type="text" name="cardExpiry" placeholder="MM / YY" autocomplete="cc-exp" />
-                  </label>
-                  <label class="field">
-                    Name on card
-                    <input type="text" name="cardName" placeholder="Full name" autocomplete="cc-name" />
-                  </label>
-                </div>
-                <button class="primary-button" type="submit">Save preferred card</button>
-                <p class="secure-note">For this frontend prototype, only masked card details are saved locally.</p>
-              </form>
+              <article class="account-card">
+                <p class="eyebrow">Stripe Checkout</p>
+                <h3>Secure card handling</h3>
+                <p class="summary-copy">
+                  Velaire does not collect or store card numbers. Reservation deposits are paid
+                  through a live Stripe Checkout session linked to the booking.
+                </p>
+                <a class="primary-button" href="payment.html">Continue to deposit</a>
+              </article>
             </div>
 
             <div class="account-card-grid compact-grid">

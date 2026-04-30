@@ -1,53 +1,60 @@
-import crypto from "node:crypto";
 import { allowMethods, sendJson } from "../_lib/http.js";
 import { markPaymentStatus } from "../_lib/store.js";
+import { paymentStatusFromCheckoutSession, readRawBody, verifyStripeSignature } from "../_lib/stripe.js";
 
-async function readRawBody(req) {
-  if (typeof req.body === "string") return req.body;
-  if (Buffer.isBuffer(req.body)) return req.body.toString("utf8");
-  const chunks = [];
-  for await (const chunk of req) chunks.push(chunk);
-  return Buffer.concat(chunks).toString("utf8");
-}
-
-function verifyStripeSignature(rawBody, signatureHeader, secret) {
-  if (!secret) return true;
-  const parts = Object.fromEntries(
-    String(signatureHeader || "")
-      .split(",")
-      .map((part) => part.split("="))
-      .filter(([key, value]) => key && value),
-  );
-  const timestamp = parts.t;
-  const signature = parts.v1;
-  if (!timestamp || !signature) return false;
-
-  const expected = crypto.createHmac("sha256", secret).update(`${timestamp}.${rawBody}`).digest("hex");
-  const expectedBuffer = Buffer.from(expected, "hex");
-  const receivedBuffer = Buffer.from(signature, "hex");
-  return expectedBuffer.length === receivedBuffer.length && crypto.timingSafeEqual(expectedBuffer, receivedBuffer);
+function metadataFor(object = {}) {
+  return object.metadata || {};
 }
 
 export default async function handler(req, res) {
   if (!allowMethods(req, res, ["POST"])) return;
 
   const rawBody = await readRawBody(req);
-  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
   const signature = req.headers["stripe-signature"];
 
-  if (!verifyStripeSignature(rawBody, signature, webhookSecret)) {
+  if (!verifyStripeSignature(rawBody, signature)) {
     sendJson(res, 400, { error: "invalid_signature", message: "Stripe webhook signature could not be verified." });
     return;
   }
 
-  const event = JSON.parse(rawBody || "{}");
+  let event;
+  try {
+    event = JSON.parse(rawBody || "{}");
+  } catch {
+    sendJson(res, 400, { error: "invalid_payload", message: "Stripe webhook payload could not be parsed." });
+    return;
+  }
   if (event.type === "checkout.session.completed") {
     const session = event.data?.object || {};
     markPaymentStatus({
       paymentId: session.metadata?.payment_id,
       bookingId: session.metadata?.booking_id,
-      status: "paid",
+      status: paymentStatusFromCheckoutSession(session),
       providerReference: session.id,
+      checkoutSessionId: session.id,
+    });
+  }
+
+  if (event.type === "checkout.session.async_payment_succeeded") {
+    const session = event.data?.object || {};
+    markPaymentStatus({
+      paymentId: session.metadata?.payment_id,
+      bookingId: session.metadata?.booking_id,
+      status: "deposit_paid",
+      providerReference: session.id,
+      checkoutSessionId: session.id,
+    });
+  }
+
+  if (event.type === "checkout.session.async_payment_failed") {
+    const session = event.data?.object || {};
+    markPaymentStatus({
+      paymentId: session.metadata?.payment_id,
+      bookingId: session.metadata?.booking_id,
+      status: "failed",
+      providerReference: session.id,
+      checkoutSessionId: session.id,
+      failureReason: "Async payment failed",
     });
   }
 
@@ -56,8 +63,32 @@ export default async function handler(req, res) {
     markPaymentStatus({
       paymentId: session.metadata?.payment_id,
       bookingId: session.metadata?.booking_id,
-      status: "expired",
+      status: "cancelled",
       providerReference: session.id,
+      checkoutSessionId: session.id,
+    });
+  }
+
+  if (event.type === "payment_intent.payment_failed") {
+    const intent = event.data?.object || {};
+    const metadata = metadataFor(intent);
+    markPaymentStatus({
+      paymentId: metadata.payment_id,
+      bookingId: metadata.booking_id,
+      status: "failed",
+      providerReference: intent.id,
+      failureReason: intent.last_payment_error?.message || "Payment failed",
+    });
+  }
+
+  if (event.type === "charge.refunded") {
+    const charge = event.data?.object || {};
+    const metadata = metadataFor(charge);
+    markPaymentStatus({
+      paymentId: metadata.payment_id,
+      bookingId: metadata.booking_id,
+      status: "refunded",
+      providerReference: charge.id,
     });
   }
 

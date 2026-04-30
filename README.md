@@ -47,6 +47,7 @@ The `api/` folder contains Vercel-ready serverless endpoints:
 - `GET/POST /api/availability`
 - `POST /api/payments/intent`
 - `POST /api/payments/checkout`
+- `GET/POST /api/payments/session`
 - `POST /api/payments/webhook`
 - `POST /api/concierge`
 - `GET /api/admin/summary`
@@ -57,9 +58,9 @@ The `api/` folder contains Vercel-ready serverless endpoints:
 - `GET/PATCH/POST/DELETE /api/admin/vehicles`
 
 The current backend uses an in-memory store scaffold so the flow is API-shaped without adding a
-database dependency. For production, replace `api/_lib/store.js` with a durable database adapter and
-connect the Stripe-ready checkout/webhook endpoints with Vercel environment variables. No raw card
-data is stored.
+database dependency. For production, replace `api/_lib/store.js` with a durable database adapter.
+Stripe Checkout is required for reservation deposits, with webhook and return-page verification. No
+raw card data is collected or stored by Velaire.
 
 ## Operations And Trust
 
@@ -71,6 +72,9 @@ data is stored.
 - Phase 1 booking statuses are `pending`, `payment_pending`, `confirmed`, `cancelled` and
   `completed`. Pending, payment-pending and confirmed bookings hold vehicle availability until an
   admin cancels or completes the booking.
+- Phase 2 deposit statuses are `payment_pending`, `deposit_paid`, `failed`, `cancelled` and
+  `refunded`. A booking is only moved to paid/confirmed after Stripe returns a paid Checkout
+  Session through `/api/payments/session` or the Stripe webhook.
 - Legal and trust pages are in `public/` and share the same Nexa, black and rose-gold flow design
   system as the booking and account experience. Have a solicitor review the policy copy before using
   it as binding production legal wording.
@@ -78,8 +82,9 @@ data is stored.
 Set these environment variables in production:
 
 - `VELAIRE_ADMIN_TOKEN` protects the admin operations APIs.
-- `STRIPE_SECRET_KEY` enables Stripe Checkout session creation.
+- `STRIPE_SECRET_KEY` is required for Stripe Checkout session creation.
 - `STRIPE_WEBHOOK_SECRET` verifies Stripe webhook events.
+- `VELAIRE_SITE_URL` is optional and can force Stripe redirect URLs to `https://www.velairecars.com`.
 
 ## Run
 

@@ -79,7 +79,11 @@
               </div>
               <div class="summary-row">
                 <span>Status</span>
-                <strong>Availability review</strong>
+                <strong data-bind="reservationStatus">Payment pending</strong>
+              </div>
+              <div class="summary-row">
+                <span>Deposit status</span>
+                <strong data-bind="paymentStatus">Payment pending</strong>
               </div>
             </div>
 
@@ -97,23 +101,25 @@
               <p class="eyebrow">Secure payment</p>
               <h2>Secure the deposit.</h2>
               <span>
-                Velaire now prepares a provider-backed checkout session for the reservation deposit.
-                Card details are handled by Stripe Checkout when connected, never stored by Velaire.
+                Velaire creates a live Stripe Checkout session for the reservation deposit.
+                Card details are handled by Stripe Checkout and never stored by Velaire.
               </span>
             </div>
 
             <div class="checkout-card" aria-label="Secure payment provider">
-              <span>Stripe-ready checkout</span>
+              <span>Stripe Checkout</span>
               <strong data-bind="depositValue">£2,500</strong>
               <p>
-                A secure hosted payment session will be created for the reservation deposit once
-                Stripe keys are connected in Vercel.
+                A secure hosted Stripe Checkout session will be created for the reservation deposit.
+                Successful payment is required before the booking can be treated as paid.
               </p>
             </div>
 
+            <div class="payment-alert" data-payment-alert hidden></div>
+
             <div class="secure-band">
               <strong>Secure reservation hold</strong>
-              <span data-payment-provider-status>Ready for secure checkout configuration.</span>
+              <span data-payment-provider-status>Ready to create a secure Stripe Checkout session.</span>
             </div>
 
             <button class="primary-button full-width" type="submit">Create secure deposit session</button>
