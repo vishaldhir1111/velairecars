@@ -1932,4 +1932,5 @@ if (page === "booking") setupBooking();
 if (page === "login") setupLogin();
 if (page === "payment") setupPayment();
 if (page === "account") setupAccount();
+if (page === "ai") setupConciergeAssistant();
 updateSummary();

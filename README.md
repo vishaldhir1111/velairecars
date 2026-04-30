@@ -8,12 +8,14 @@ visual system.
 - `index.html` mounts the Vite app at `#root`.
 - `src/main.jsx` renders `src/App.jsx`.
 - `src/App.jsx` imports `src/styles.css`.
-- `public/booking.html`, `public/login.html`, `public/account.html`, `public/payment.html` and
-  `public/success.html` are static flow pages served at `/booking.html`, `/login.html`,
-  `/account.html`, `/payment.html` and `/success.html`.
+- `public/booking.html`, `public/login.html`, `public/account.html`, `public/ai.html`,
+  `public/payment.html` and `public/success.html` are static flow pages served at `/booking.html`,
+  `/login.html`, `/account.html`, `/ai.html`, `/payment.html` and `/success.html`.
 - `public/flow.css` styles the static booking flow pages.
 - `public/flow.js` keeps the booking flow working locally with `localStorage` and syncs to `/api/*`
   when deployed on Vercel.
+- Nexa typography is configured in `src/styles.css` and `public/flow.css`, with font files in
+  `public/Nexa-ExtraLight.ttf` and `public/Nexa-Heavy.ttf`.
 
 ## Fleet
 

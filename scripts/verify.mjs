@@ -6,6 +6,7 @@ const flowPages = [
   "public/booking.html",
   "public/login.html",
   "public/account.html",
+  "public/ai.html",
   "public/payment.html",
   "public/success.html",
 ];
@@ -17,6 +18,8 @@ const requiredFiles = [
   ...flowPages,
   "public/flow.css",
   "public/flow.js",
+  "public/Nexa-ExtraLight.ttf",
+  "public/Nexa-Heavy.ttf",
   "src/data/fleet.js",
   "api/fleet.js",
   "api/bookings.js",
@@ -62,7 +65,7 @@ if (!app.includes('from "./data/fleet.js"')) {
 }
 
 const vite = read("vite.config.js");
-for (const page of ["booking.html", "login.html", "account.html", "payment.html", "success.html"]) {
+for (const page of ["booking.html", "login.html", "account.html", "ai.html", "payment.html", "success.html"]) {
   if (vite.includes(`./${page}`)) {
     throw new Error(`vite.config.js should not reference root ${page}; static flow pages live in public/`);
   }
@@ -85,13 +88,21 @@ for (const page of flowPages) {
   }
 }
 
+if (read("public/account.html").includes('id="concierge-chat"')) {
+  throw new Error("AI concierge chat should live on public/ai.html, not public/account.html");
+}
+
+if (!read("public/ai.html").includes('id="concierge-chat"') || !read("public/ai.html").includes('id="concierge-form"')) {
+  throw new Error("public/ai.html is missing the concierge chat or form");
+}
+
 for (const match of read("public/flow.js").matchAll(/^  "([^"]+)": \{/gm)) {
   if (!read("public/booking.html").includes(`value="${match[1]}"`)) {
     throw new Error(`flow.js vehicle ${match[1]} is not present in booking.html`);
   }
 }
 
-for (const staleRootFile of ["booking.html", "login.html", "account.html", "payment.html", "success.html", "flow.css", "flow.js"]) {
+for (const staleRootFile of ["booking.html", "login.html", "account.html", "ai.html", "payment.html", "success.html", "flow.css", "flow.js"]) {
   if (fs.existsSync(path.join(root, staleRootFile))) {
     throw new Error(`Misplaced root-level static flow file found: ${staleRootFile}`);
   }

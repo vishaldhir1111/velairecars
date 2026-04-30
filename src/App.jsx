@@ -367,6 +367,7 @@ function App() {
           <a href="#fleet">Fleet</a>
           <a href="#experience">Experience</a>
           <a href="#booking">Reserve</a>
+          <a href="ai.html">AI concierge</a>
           <a href="account.html">Account</a>
         </nav>
 
@@ -679,8 +680,8 @@ function App() {
             <a className="primary-button" href="booking.html">
               Start reservation
             </a>
-            <a className="secondary-button" href="account.html#concierge">
-              Client lounge
+            <a className="secondary-button" href="ai.html">
+              AI concierge
             </a>
           </div>
         </div>

@@ -24,6 +24,7 @@
           <a href="/#fleet">Fleet</a>
           <a href="/#experience">Experience</a>
           <a href="booking.html">Reserve</a>
+          <a href="ai.html">AI concierge</a>
           <a href="account.html">Account</a>
         </div>
         <a class="flow-back" href="booking.html">Reserve</a>
@@ -67,7 +68,7 @@
           <a href="#verification">Verification</a>
           <a href="#payments">Payments</a>
           <a href="#preferences">Preferences</a>
-          <a href="#concierge">AI concierge</a>
+          <a href="ai.html">AI concierge</a>
         </aside>
 
         <div class="account-content">
@@ -347,56 +348,6 @@
             </form>
           </section>
 
-          <section class="flow-panel account-section concierge-section" id="concierge">
-            <div class="panel-heading">
-              <p class="eyebrow">AI concierge</p>
-              <h2>Ask Velaire.</h2>
-              <span>
-                A private reservations assistant for recommendations, comparisons and premium
-                booking guidance across the Velaire fleet.
-              </span>
-            </div>
-
-            <div class="concierge-layout">
-              <div class="concierge-chat" id="concierge-chat" aria-live="polite">
-                <div class="concierge-message assistant">
-                  <strong>Velaire Concierge</strong>
-                  <p>
-                    Tell me the occasion, passenger count, destination and desired impression. I can
-                    recommend a vehicle from the current Velaire fleet and suggest premium add-ons.
-                  </p>
-                </div>
-              </div>
-
-              <aside class="concierge-prompts" aria-label="Concierge prompt suggestions">
-                <button type="button" data-concierge-prompt="Recommend a car for a wedding.">
-                  Wedding choice
-                </button>
-                <button type="button" data-concierge-prompt="Compare Urus vs SVR.">
-                  Urus vs SVR
-                </button>
-                <button type="button" data-concierge-prompt="Best car for a weekend in London.">
-                  London weekend
-                </button>
-                <button type="button" data-concierge-prompt="I want something sporty but subtle.">
-                  Sporty but subtle
-                </button>
-              </aside>
-            </div>
-
-            <form class="concierge-input-row" id="concierge-form">
-              <label class="field">
-                Ask the Velaire concierge
-                <input
-                  type="text"
-                  name="conciergeQuestion"
-                  placeholder="Example: I need a car for Mayfair, 3 guests, strong arrival impact"
-                  autocomplete="off"
-                />
-              </label>
-              <button class="primary-button" type="submit">Ask concierge</button>
-            </form>
-          </section>
         </div>
       </section>
     </main>
