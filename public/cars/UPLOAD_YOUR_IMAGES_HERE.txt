@@ -1,0 +1,13 @@
+Optional Velaire Cars image slots
+
+The active fleet presentation uses premium CSS studio fallbacks until exact GLB/GLTF models are
+added in public/models. If you want photographic fallback images, upload legally usable files with
+these exact names:
+
+- hero-tesla.png
+- lamborghini-urus-2021-orange.png
+- range-rover-svr.png
+- bmw-m440i-convertible-2022-sky-blue.png
+- bmw-m140i-black-2019.jpg
+
+The active image and model paths are defined in src/data/fleet.js and mirrored in flow.js.
