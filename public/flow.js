@@ -95,6 +95,7 @@ const storageKey = "velaireReservation";
 const accountStorageKey = "velaireAccount";
 const backendBookingKey = "velaireBackendBooking";
 const favouriteStorageKey = "velaireFavouriteCars";
+const adminTokenStorageKey = "velaireAdminToken";
 const defaultVehicle = "lamborghini-urus";
 const MAPBOX_TOKEN = "pk.eyJ1IjoidmlzaGFsZGhpcjExMTEiLCJhIjoiY21vampwYm54MGQzejJwczFzMHcwN3h2dSJ9.M-zV1ypGN1rPPTgEk0iWgg";
 const MAPBOX_GL_VERSION = "v3.10.0";
@@ -357,6 +358,24 @@ function loadBackendBooking() {
   }
 }
 
+function loadAdminToken() {
+  try {
+    return window.localStorage.getItem(adminTokenStorageKey) || "";
+  } catch {
+    return "";
+  }
+}
+
+function saveAdminToken(token) {
+  const cleanToken = String(token || "").trim();
+  if (!cleanToken) {
+    window.localStorage.removeItem(adminTokenStorageKey);
+    return "";
+  }
+  window.localStorage.setItem(adminTokenStorageKey, cleanToken);
+  return cleanToken;
+}
+
 function showFlowToast(message, tone = "default") {
   let toast = document.querySelector(".flow-toast");
   if (!toast) {
@@ -374,13 +393,17 @@ function showFlowToast(message, tone = "default") {
 }
 
 async function apiRequest(path, options = {}) {
+  const headers = {
+    "Content-Type": "application/json",
+    ...(options.headers || {}),
+  };
+  const adminToken = path.startsWith("/api/admin") ? loadAdminToken() : "";
+  if (adminToken) headers["x-velaire-admin-token"] = adminToken;
+
   const response = await fetch(path, {
     credentials: "include",
     ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...(options.headers || {}),
-    },
+    headers,
   });
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
@@ -1620,6 +1643,18 @@ function renderAdminMetrics(summary = {}) {
   if (mode) mode.textContent = "Operations live";
 }
 
+function updateAdminAccessState({ message = "", tone = "default", mode = "" } = {}) {
+  const status = document.querySelector("[data-admin-access-status]");
+  const modeNode = document.querySelector("[data-admin-mode]");
+  const input = document.querySelector("[data-admin-token-input]");
+  if (status) {
+    status.textContent = message || (loadAdminToken() ? "Admin token saved in this browser." : "Enter the admin token if this dashboard is protected.");
+    status.classList.toggle("is-warning", tone === "warning");
+  }
+  if (modeNode && mode) modeNode.textContent = mode;
+  if (input && loadAdminToken()) input.value = loadAdminToken();
+}
+
 function renderAdminBookings(bookings = []) {
   const target = document.querySelector("[data-admin-bookings]");
   if (!target) return;
@@ -1911,6 +1946,11 @@ function renderAdminVehicles(vehiclesList = []) {
   const target = document.querySelector("[data-admin-vehicles]");
   if (!target) return;
 
+  if (!vehiclesList.length) {
+    target.innerHTML = `<article class="admin-empty">Vehicle operations are unavailable until the dashboard connects to the admin API.</article>`;
+    return;
+  }
+
   target.innerHTML = vehiclesList
     .map((vehicle) => {
       const blocks = vehicle.availability?.blockedRanges || [];
@@ -2000,6 +2040,31 @@ function renderAdminVehicles(vehiclesList = []) {
     .join("");
 }
 
+function renderAdminFailure(error) {
+  const needsToken = error?.status === 401;
+  updateAdminAccessState({
+    tone: "warning",
+    mode: needsToken ? "Token required" : "API unavailable",
+    message: needsToken
+      ? "This Operations dashboard is protected. Paste the VELAIRE_ADMIN_TOKEN value below to load bookings, customers and payments."
+      : error?.message || "Operations data could not be loaded. The dashboard is showing safe empty states.",
+  });
+  renderAdminMetrics({ counts: {} });
+  renderAdminBookings([]);
+  renderAdminVehicles([]);
+  renderAdminCustomers([]);
+  renderAdminPayments([]);
+  renderAdminLeads([]);
+}
+
+async function safeAdminRequest(path) {
+  try {
+    return { ok: true, data: await apiRequest(path) };
+  } catch (error) {
+    return { ok: false, error };
+  }
+}
+
 function renderAdminCustomers(customers = []) {
   const target = document.querySelector("[data-admin-customers]");
   if (!target) return;
@@ -2045,14 +2110,35 @@ function renderAdminCustomers(customers = []) {
 }
 
 async function refreshAdmin() {
-  const [summary, bookings, vehiclesResponse, customers, payments, leads] = await Promise.all([
-    apiRequest("/api/admin/summary"),
-    apiRequest("/api/admin/bookings"),
-    apiRequest("/api/admin/vehicles"),
-    apiRequest("/api/admin/customers"),
-    apiRequest("/api/admin/payments"),
-    apiRequest("/api/admin/leads"),
-  ]);
+  updateAdminAccessState({ mode: "Loading operations", message: "Loading live bookings, customers and Stripe deposits..." });
+  const entries = await Promise.all(
+    Object.entries({
+      summary: "/api/admin/summary",
+      bookings: "/api/admin/bookings",
+      vehiclesResponse: "/api/admin/vehicles",
+      customers: "/api/admin/customers",
+      payments: "/api/admin/payments",
+      leads: "/api/admin/leads",
+    }).map(async ([key, path]) => [key, await safeAdminRequest(path)]),
+  );
+  const results = Object.fromEntries(entries);
+  const unauthorised = Object.values(results).find((result) => !result.ok && result.error?.status === 401);
+  if (unauthorised) {
+    renderAdminFailure(unauthorised.error);
+    return;
+  }
+
+  const failures = Object.values(results).filter((result) => !result.ok);
+  if (failures.length) {
+    showFlowToast("Some operations data could not be loaded. Available records are shown.", "warning");
+  }
+
+  const summary = results.summary.data || { summary: {} };
+  const bookings = results.bookings.data || { bookings: [] };
+  const vehiclesResponse = results.vehiclesResponse.data || { vehicles: [] };
+  const customers = results.customers.data || { customers: [] };
+  const payments = results.payments.data || { payments: [] };
+  const leads = results.leads.data || { leads: [] };
   adminState = {
     bookings: bookings.bookings || [],
     customers: customers.customers || [],
@@ -2066,10 +2152,33 @@ async function refreshAdmin() {
   renderAdminCustomers(adminState.customers);
   renderAdminPayments(adminState.payments);
   renderAdminLeads(adminState.leads);
+  updateAdminAccessState({
+    mode: "Operations live",
+    message:
+      summary.summary?.stripeOperations?.available === false
+        ? "Admin API loaded. Stripe payment ledger is unavailable until STRIPE_SECRET_KEY is configured."
+        : "Admin API loaded with Stripe Checkout deposit records.",
+  });
 }
 
 function setupAdmin() {
+  const tokenForm = document.querySelector("[data-admin-token-form]");
+  tokenForm?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const token = new FormData(tokenForm).get("adminToken");
+    saveAdminToken(token);
+    await refreshAdmin();
+  });
+
+  document.querySelector("[data-admin-token-clear]")?.addEventListener("click", async () => {
+    saveAdminToken("");
+    const input = document.querySelector("[data-admin-token-input]");
+    if (input) input.value = "";
+    await refreshAdmin();
+  });
+
   refreshAdmin().catch((error) => {
+    renderAdminFailure(error);
     showFlowToast(error.message || "Operations dashboard could not load.", "warning");
   });
 

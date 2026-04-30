@@ -41,7 +41,23 @@
         <div class="admin-status-card">
           <span>Mode</span>
           <strong data-admin-mode>Operations scaffold</strong>
-          <small>Set VELAIRE_ADMIN_TOKEN in production to protect this dashboard.</small>
+          <small data-admin-access-status>Set VELAIRE_ADMIN_TOKEN in production to protect this dashboard.</small>
+          <form class="admin-token-form" data-admin-token-form>
+            <label>
+              Admin token
+              <input
+                type="password"
+                name="adminToken"
+                data-admin-token-input
+                placeholder="Paste VELAIRE_ADMIN_TOKEN"
+                autocomplete="off"
+              />
+            </label>
+            <div class="admin-token-actions">
+              <button type="submit">Unlock operations</button>
+              <button type="button" data-admin-token-clear>Clear</button>
+            </div>
+          </form>
         </div>
       </section>
 

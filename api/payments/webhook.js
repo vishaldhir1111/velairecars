@@ -1,5 +1,5 @@
 import { allowMethods, sendJson } from "../_lib/http.js";
-import { markPaymentStatus } from "../_lib/store.js";
+import { markPaymentStatus, upsertStripeCheckoutSession } from "../_lib/store.js";
 import { paymentStatusFromCheckoutSession, readRawBody, verifyStripeSignature } from "../_lib/stripe.js";
 
 function metadataFor(object = {}) {
@@ -26,10 +26,12 @@ export default async function handler(req, res) {
   }
   if (event.type === "checkout.session.completed") {
     const session = event.data?.object || {};
+    const status = paymentStatusFromCheckoutSession(session);
+    upsertStripeCheckoutSession(session, status);
     markPaymentStatus({
       paymentId: session.metadata?.payment_id,
       bookingId: session.metadata?.booking_id,
-      status: paymentStatusFromCheckoutSession(session),
+      status,
       providerReference: session.id,
       checkoutSessionId: session.id,
     });
@@ -37,6 +39,7 @@ export default async function handler(req, res) {
 
   if (event.type === "checkout.session.async_payment_succeeded") {
     const session = event.data?.object || {};
+    upsertStripeCheckoutSession(session, "deposit_paid");
     markPaymentStatus({
       paymentId: session.metadata?.payment_id,
       bookingId: session.metadata?.booking_id,
@@ -48,6 +51,7 @@ export default async function handler(req, res) {
 
   if (event.type === "checkout.session.async_payment_failed") {
     const session = event.data?.object || {};
+    upsertStripeCheckoutSession(session, "failed");
     markPaymentStatus({
       paymentId: session.metadata?.payment_id,
       bookingId: session.metadata?.booking_id,
@@ -60,6 +64,7 @@ export default async function handler(req, res) {
 
   if (event.type === "checkout.session.expired") {
     const session = event.data?.object || {};
+    upsertStripeCheckoutSession(session, "cancelled");
     markPaymentStatus({
       paymentId: session.metadata?.payment_id,
       bookingId: session.metadata?.booking_id,

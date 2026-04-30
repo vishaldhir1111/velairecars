@@ -1,5 +1,6 @@
 import { allowMethods, sendJson } from "../_lib/http.js";
 import { listCustomers } from "../_lib/store.js";
+import { listStripeOperations, mergeCustomers } from "../_lib/stripe-operations.js";
 
 function adminAllowed(req) {
   const expected = process.env.VELAIRE_ADMIN_TOKEN;
@@ -15,8 +16,10 @@ export default async function handler(req, res) {
     return;
   }
 
+  const stripeOperations = await listStripeOperations();
   sendJson(res, 200, {
-    customers: listCustomers(),
+    customers: mergeCustomers(listCustomers(), stripeOperations.customers),
+    stripeOperations,
     mode: process.env.VELAIRE_ADMIN_TOKEN ? "protected" : "scaffold_open",
   });
 }

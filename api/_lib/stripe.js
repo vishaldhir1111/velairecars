@@ -57,6 +57,24 @@ export async function createStripeCheckoutSession(req, payment, reservation = {}
   }
 
   const vehicleName = booking?.vehicleName || payment.vehicleName || reservation.vehicleName || "Velaire Cars reservation";
+  const metadata = {
+    velaire: "true",
+    payment_id: payment.id,
+    booking_id: payment.bookingId || booking?.id || reservation.bookingId || "",
+    booking_reference: payment.bookingReference || booking?.reference || reservation.reference || "",
+    vehicle_slug: reservation.vehicle || booking?.vehicleSlug || "",
+    vehicle_name: vehicleName,
+    customer_name: reservation.name || reservation.fullName || booking?.customerName || "",
+    customer_email: reservation.email || payment.customerEmail || booking?.customerEmail || "",
+    customer_phone: reservation.phone || payment.customerPhone || booking?.customerPhone || "",
+    pickup: reservation.pickup || booking?.pickup || "",
+    pickup_time: reservation.pickupTime || booking?.pickupTime || "",
+    return_date: reservation.return || booking?.return || "",
+    return_time: reservation.returnTime || booking?.returnTime || "",
+    location: reservation.formattedAddress || reservation.location || booking?.location || "",
+    hire_estimate: String(reservation.hireEstimate || booking?.totals?.hireEstimate || ""),
+    deposit_amount: String(payment.amount || booking?.totals?.deposit || ""),
+  };
   const params = new URLSearchParams();
   params.set("mode", "payment");
   params.set("payment_method_types[0]", "card");
@@ -68,11 +86,14 @@ export async function createStripeCheckoutSession(req, payment, reservation = {}
   params.set("line_items[0][quantity]", "1");
   params.set("success_url", `${origin}/success.html?session_id={CHECKOUT_SESSION_ID}`);
   params.set("cancel_url", `${origin}/payment.html?payment=cancelled`);
-  params.set("metadata[payment_id]", payment.id);
-  if (payment.bookingId) params.set("metadata[booking_id]", payment.bookingId);
-  if (reservation.vehicle) params.set("metadata[vehicle]", reservation.vehicle);
+  Object.entries(metadata).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && String(value).trim()) {
+      params.set(`metadata[${key}]`, String(value).slice(0, 500));
+    }
+  });
   params.set("payment_intent_data[metadata][payment_id]", payment.id);
-  if (payment.bookingId) params.set("payment_intent_data[metadata][booking_id]", payment.bookingId);
+  if (metadata.booking_id) params.set("payment_intent_data[metadata][booking_id]", metadata.booking_id);
+  params.set("payment_intent_data[metadata][velaire]", "true");
   if (reservation.email) params.set("customer_email", reservation.email);
 
   return stripeRequest("/checkout/sessions", { method: "POST", body: params });

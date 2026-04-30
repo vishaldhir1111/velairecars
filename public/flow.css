@@ -2957,6 +2957,63 @@ h2 {
   font-size: 1.8rem;
 }
 
+.admin-status-card small.is-warning {
+  color: #f3b49f;
+}
+
+.admin-token-form {
+  display: grid;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.admin-token-form label {
+  color: rgba(248, 242, 236, 0.64);
+  display: grid;
+  font-size: 0.72rem;
+  gap: 6px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.admin-token-form input {
+  background: rgba(0, 0, 0, 0.34);
+  border: 1px solid rgba(215, 161, 140, 0.22);
+  border-radius: 10px;
+  color: var(--ivory);
+  font: inherit;
+  min-height: 42px;
+  outline: none;
+  padding: 10px 12px;
+}
+
+.admin-token-form input:focus {
+  border-color: rgba(215, 161, 140, 0.62);
+  box-shadow: 0 0 0 3px rgba(215, 161, 140, 0.12);
+}
+
+.admin-token-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.admin-token-actions button {
+  background: rgba(248, 242, 236, 0.08);
+  border: 1px solid rgba(248, 242, 236, 0.12);
+  border-radius: 999px;
+  color: var(--ivory);
+  cursor: pointer;
+  font: inherit;
+  padding: 9px 13px;
+}
+
+.admin-token-actions button[type="submit"] {
+  background: linear-gradient(135deg, var(--rose), #f1c2ae);
+  border-color: transparent;
+  color: #110b09;
+}
+
 .admin-metrics {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));

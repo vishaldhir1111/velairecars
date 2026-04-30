@@ -252,6 +252,13 @@ function normalisePaymentStatus(status, fallback = "payment_pending") {
   return paymentStatusAliases[clean] || clean || fallback;
 }
 
+function bookingStatusForPaymentStatus(status) {
+  const canonical = normalisePaymentStatus(status);
+  if (paidPaymentStatuses.has(canonical)) return "confirmed";
+  if (failedPaymentStatuses.has(canonical) || refundedPaymentStatuses.has(canonical)) return "cancelled";
+  return "payment_pending";
+}
+
 function normaliseEmail(email = "") {
   return String(email).trim().toLowerCase();
 }
@@ -756,6 +763,109 @@ export function markPaymentStatus({
       status: bookingStatus,
       paymentStatus: canonicalStatus,
       checkoutSessionId: checkoutSessionId || booking.checkoutSessionId,
+      paidAt: paidPaymentStatuses.has(canonicalStatus) ? booking.paidAt || now() : booking.paidAt,
+    });
+  }
+
+  return { payment: payment ? publicPayment(payment) : null, booking: booking ? publicBooking(booking) : null };
+}
+
+export function upsertStripeCheckoutSession(session = {}, status = "payment_pending") {
+  const metadata = session.metadata || {};
+  const canonicalStatus = normalisePaymentStatus(status);
+  const bookingId = metadata.booking_id || session.client_reference_id || "";
+  const paymentId = metadata.payment_id || "";
+  const vehicleSlug = metadata.vehicle_slug || metadata.vehicle || "";
+  if (!bookingId && !paymentId) return { payment: null, booking: null };
+
+  let booking = db.bookings.find((item) => item.id === bookingId);
+  if (!booking && bookingId) {
+    const vehicle = findVehicle(vehicleSlug);
+    const totals = calculateOperationalTotals({
+      vehicleSlug: vehicle.slug,
+      pickup: metadata.pickup,
+      returnDate: metadata.return_date,
+      days: 0,
+    });
+    booking = {
+      id: bookingId,
+      reference: metadata.booking_reference || referenceFor(vehicle.slug),
+      userId: null,
+      customerName: metadata.customer_name || session.customer_details?.name || "",
+      customerEmail: metadata.customer_email || session.customer_details?.email || session.customer_email || "",
+      customerPhone: metadata.customer_phone || session.customer_details?.phone || "",
+      vehicleSlug: vehicle.slug,
+      vehicleName: metadata.vehicle_name || `${vehicle.name} ${vehicle.year}`,
+      status: bookingStatusForPaymentStatus(canonicalStatus),
+      paymentStatus: canonicalStatus,
+      paymentIntentId: paymentId,
+      checkoutSessionId: session.id || "",
+      paidAt: paidPaymentStatuses.has(canonicalStatus) ? now() : "",
+      pickup: metadata.pickup || "",
+      pickupTime: metadata.pickup_time || "",
+      return: metadata.return_date || "",
+      returnTime: metadata.return_time || "",
+      location: metadata.location || "",
+      placeId: "",
+      lat: "",
+      lng: "",
+      handoverNotes: "Created from Stripe Checkout webhook/session data.",
+      totals: {
+        ...totals,
+        deposit: Number(metadata.deposit_amount || 0) || totals.deposit,
+        hireEstimate: Number(metadata.hire_estimate || 0) || totals.hireEstimate,
+      },
+      timeline: [
+        {
+          label: "Stripe Checkout session received",
+          at: now(),
+        },
+      ],
+      createdAt: now(),
+      updatedAt: now(),
+    };
+    db.bookings.push(booking);
+  }
+
+  let payment = db.payments.find((item) => item.id === paymentId) || db.payments.find((item) => item.checkoutSessionId === session.id);
+  if (!payment && paymentId) {
+    const amount = Math.round(Number(session.amount_total || 0)) / 100 || Number(metadata.deposit_amount || 0);
+    payment = {
+      id: paymentId,
+      bookingId: booking?.id || bookingId || null,
+      amount,
+      amountPaid: paidPaymentStatuses.has(canonicalStatus) ? amount : 0,
+      currency: String(session.currency || "GBP").toUpperCase(),
+      status: canonicalStatus,
+      provider: "stripe_checkout",
+      providerReference: session.payment_intent || session.id || "",
+      checkoutSessionId: session.id || "",
+      checkoutUrl: session.url || "",
+      paidAt: paidPaymentStatuses.has(canonicalStatus) ? now() : "",
+      note: "Created from Stripe Checkout webhook/session data.",
+      createdAt: now(),
+      updatedAt: now(),
+    };
+    db.payments.push(payment);
+  }
+
+  if (payment) {
+    payment.status = canonicalStatus;
+    payment.providerReference = session.payment_intent || session.id || payment.providerReference || "";
+    payment.checkoutSessionId = session.id || payment.checkoutSessionId || "";
+    payment.updatedAt = now();
+    if (paidPaymentStatuses.has(canonicalStatus)) {
+      payment.amountPaid = payment.amount;
+      payment.paidAt = payment.paidAt || now();
+    }
+  }
+
+  if (booking) {
+    updateBooking(booking.id, {
+      status: bookingStatusForPaymentStatus(canonicalStatus),
+      paymentStatus: canonicalStatus,
+      paymentIntentId: payment?.id || paymentId || booking.paymentIntentId,
+      checkoutSessionId: session.id || booking.checkoutSessionId,
       paidAt: paidPaymentStatuses.has(canonicalStatus) ? booking.paidAt || now() : booking.paidAt,
     });
   }
