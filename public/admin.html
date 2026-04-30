@@ -66,6 +66,10 @@
           <span>Payments</span>
           <strong data-admin-count="payments">0</strong>
         </article>
+        <article>
+          <span>Leads</span>
+          <strong data-admin-count="leads">0</strong>
+        </article>
       </section>
 
       <section class="admin-grid">
@@ -109,6 +113,46 @@
         </aside>
       </section>
 
+      <section class="admin-ops-grid">
+        <article class="flow-panel admin-panel">
+          <div class="panel-heading">
+            <p class="eyebrow">Deposit operations</p>
+            <h2>Payments.</h2>
+            <span>Review deposit state, Stripe session references and operational payment status.</span>
+          </div>
+          <div class="admin-table-shell">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>Deposit</th>
+                  <th>Booking</th>
+                  <th>Client</th>
+                  <th>Status</th>
+                  <th>Provider</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody data-admin-payments>
+                <tr>
+                  <td colspan="6">Loading payments...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </article>
+
+        <article class="flow-panel admin-panel">
+          <div class="panel-heading">
+            <p class="eyebrow">Concierge leads</p>
+            <h2>Enquiries.</h2>
+            <span>Track AI concierge prompts, recommended vehicles and follow-up state.</span>
+          </div>
+          <div class="admin-lead-list" data-admin-leads>
+            <article class="admin-empty">Loading concierge leads...</article>
+          </div>
+        </article>
+      </section>
+
       <section class="flow-panel admin-panel admin-customer-panel">
         <div class="panel-heading">
           <p class="eyebrow">Customer operations</p>
@@ -135,6 +179,15 @@
           </table>
         </div>
       </section>
+
+      <aside class="admin-detail-drawer" data-admin-detail hidden>
+        <div class="flow-panel admin-detail-card">
+          <button type="button" class="admin-detail-close" data-admin-detail-close aria-label="Close booking detail">
+            Close
+          </button>
+          <div data-admin-detail-content></div>
+        </div>
+      </aside>
     </main>
     <script type="module" src="/flow.js"></script>
   </body>

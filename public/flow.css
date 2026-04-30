@@ -2866,6 +2866,7 @@ h2 {
 
 .admin-hero,
 .admin-grid,
+.admin-ops-grid,
 .admin-metrics {
   width: min(1380px, 100%);
   margin-inline: auto;
@@ -2928,7 +2929,7 @@ h2 {
 
 .admin-metrics {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 14px;
   margin-top: 16px;
 }
@@ -2945,6 +2946,13 @@ h2 {
 }
 
 .admin-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(360px, 0.42fr);
+  gap: 18px;
+  margin-top: 18px;
+}
+
+.admin-ops-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(360px, 0.42fr);
   gap: 18px;
@@ -2995,6 +3003,19 @@ h2 {
   color: var(--ivory);
 }
 
+.admin-text-button {
+  border: 0;
+  background: transparent;
+  color: var(--rose-3);
+  padding: 0;
+  font: inherit;
+  font-weight: 850;
+  text-align: left;
+  text-decoration: underline;
+  text-decoration-color: rgba(215, 161, 140, 0.38);
+  text-underline-offset: 4px;
+}
+
 .status-pill {
   display: inline-flex;
   min-height: 28px;
@@ -3012,6 +3033,8 @@ h2 {
 .admin-action-row,
 .admin-vehicle-list,
 .admin-vehicle-card,
+.admin-lead-list,
+.admin-lead-card,
 .admin-inline-form,
 .admin-block-list {
   display: grid;
@@ -3039,7 +3062,8 @@ h2 {
   padding: 18px;
 }
 
-.admin-vehicle-card h3 {
+.admin-vehicle-card h3,
+.admin-lead-card h3 {
   margin: 8px 0 6px;
   color: var(--ivory);
   font-family: var(--font-display);
@@ -3047,9 +3071,24 @@ h2 {
   line-height: 1.08;
 }
 
-.admin-vehicle-card p {
+.admin-vehicle-card p,
+.admin-lead-card p {
   margin: 0;
   line-height: 1.48;
+}
+
+.admin-lead-card {
+  border: 1px solid rgba(248, 242, 236, 0.1);
+  border-radius: var(--radius);
+  background:
+    linear-gradient(145deg, rgba(215, 161, 140, 0.075), rgba(248, 242, 236, 0.018)),
+    rgba(5, 5, 5, 0.28);
+  padding: 18px;
+}
+
+.admin-lead-card small {
+  color: rgba(248, 242, 236, 0.62);
+  line-height: 1.55;
 }
 
 .admin-inline-form {
@@ -3117,6 +3156,97 @@ h2 {
   min-height: 32px;
   padding: 0 10px;
   font-size: 0.76rem;
+}
+
+.admin-detail-drawer {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: grid;
+  justify-items: end;
+  background: rgba(5, 5, 5, 0.58);
+  padding: 98px 24px 24px;
+  backdrop-filter: blur(12px);
+}
+
+.admin-detail-drawer[hidden] {
+  display: none;
+}
+
+.admin-detail-card {
+  position: relative;
+  display: grid;
+  gap: 20px;
+  width: min(620px, 100%);
+  max-height: calc(100vh - 122px);
+  overflow: auto;
+  padding: 28px;
+}
+
+.admin-detail-close {
+  justify-self: end;
+  border: 1px solid rgba(215, 161, 140, 0.3);
+  border-radius: 999px;
+  background: rgba(215, 161, 140, 0.1);
+  color: var(--rose-3);
+  padding: 8px 12px;
+  font-weight: 850;
+}
+
+.admin-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.admin-detail-grid div,
+.admin-detail-section {
+  border: 1px solid rgba(248, 242, 236, 0.1);
+  border-radius: var(--radius);
+  background: rgba(248, 242, 236, 0.04);
+  padding: 14px;
+}
+
+.admin-detail-grid span,
+.admin-detail-section span {
+  color: var(--rose);
+  font-size: 0.72rem;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.admin-detail-grid strong {
+  display: block;
+  margin-top: 6px;
+  color: var(--ivory);
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+}
+
+.admin-detail-grid small,
+.admin-detail-section small {
+  color: rgba(248, 242, 236, 0.62);
+  line-height: 1.5;
+}
+
+.admin-detail-section p {
+  margin: 8px 0 4px;
+  color: rgba(248, 242, 236, 0.78);
+  line-height: 1.58;
+}
+
+.admin-detail-section ul {
+  display: grid;
+  gap: 8px;
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.admin-detail-section li {
+  display: grid;
+  gap: 3px;
+  color: var(--ivory);
 }
 
 @media (min-width: 1321px) {
@@ -3289,6 +3419,7 @@ h2 {
   .account-layout,
   .admin-hero,
   .admin-grid,
+  .admin-ops-grid,
   .verification-layout,
   .payment-account-grid,
   .concierge-layout {
@@ -3351,6 +3482,7 @@ h2 {
   .two-column,
   .intro-stat-grid,
   .flow-trust-strip,
+  .admin-detail-grid,
   .admin-metrics,
   .admin-inline-form {
     grid-template-columns: 1fr;

@@ -1,5 +1,6 @@
 import { conciergeKnowledge } from "./_lib/fleet-data.js";
 import { allowMethods, readJson, sendJson } from "./_lib/http.js";
+import { createLead } from "./_lib/store.js";
 
 function money(value) {
   return new Intl.NumberFormat("en-GB", {
@@ -74,8 +75,17 @@ export default async function handler(req, res) {
     return;
   }
 
+  const recommendation = recommend(prompt);
+  const lead = createLead({
+    prompt,
+    recommendedVehicle: recommendation.recommendedVehicle,
+    alternatives: recommendation.alternatives,
+    response: recommendation.response,
+  });
+
   sendJson(res, 200, {
     mode: "rule-based-fleet-concierge",
-    ...recommend(prompt),
+    lead,
+    ...recommendation,
   });
 }

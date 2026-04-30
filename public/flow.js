@@ -109,6 +109,13 @@ const UK_BOUNDS = {
 };
 const LONDON_CENTER = { lat: 51.5074, lng: -0.1278 };
 let mapboxLoaderPromise;
+let adminState = {
+  bookings: [],
+  payments: [],
+  leads: [],
+  customers: [],
+  vehicles: [],
+};
 
 const fleetKnowledgeBase = [
   {
@@ -1589,7 +1596,11 @@ function renderAdminBookings(bookings = []) {
           </td>
           <td>${escapeHtml(booking.vehicleName || "Vehicle pending")}</td>
           <td>${escapeHtml(dates)}</td>
-          <td>${escapeHtml(customer)}</td>
+          <td>
+            <button type="button" class="admin-text-button" data-admin-view-booking="${booking.id}">
+              ${escapeHtml(customer)}
+            </button>
+          </td>
           <td><span class="status-pill">${escapeHtml(humanStatus(booking.status))}</span></td>
           <td><span class="status-pill muted">${escapeHtml(humanStatus(booking.paymentStatus))}</span></td>
           <td>
@@ -1601,6 +1612,148 @@ function renderAdminBookings(bookings = []) {
             </div>
           </td>
         </tr>
+      `;
+    })
+    .join("");
+}
+
+function renderAdminBookingDetail(booking) {
+  const drawer = document.querySelector("[data-admin-detail]");
+  const target = document.querySelector("[data-admin-detail-content]");
+  if (!drawer || !target || !booking) return;
+
+  const payment = adminState.payments.find((item) => item.bookingId === booking.id);
+  const timeline = booking.timeline?.length ? booking.timeline : [];
+  target.innerHTML = `
+    <div class="panel-heading">
+      <p class="eyebrow">Booking detail</p>
+      <h2>${escapeHtml(booking.reference || "Velaire booking")}</h2>
+      <span>${escapeHtml(booking.vehicleName || "Vehicle pending")}</span>
+    </div>
+
+    <div class="admin-detail-grid">
+      <div>
+        <span>Client</span>
+        <strong>${escapeHtml(booking.customerName || booking.customerEmail || "Client details pending")}</strong>
+        <small>${escapeHtml(booking.customerEmail || "Email pending")} · ${escapeHtml(booking.customerPhone || "Phone pending")}</small>
+      </div>
+      <div>
+        <span>Status</span>
+        <strong>${escapeHtml(humanStatus(booking.status))}</strong>
+        <small>Payment: ${escapeHtml(humanStatus(booking.paymentStatus))}</small>
+      </div>
+      <div>
+        <span>Dates</span>
+        <strong>${escapeHtml(formatDisplayDate(booking.pickup) || "Pickup pending")}</strong>
+        <small>Return: ${escapeHtml(formatDisplayDate(booking.return) || "Return pending")}</small>
+      </div>
+      <div>
+        <span>Deposit</span>
+        <strong>${money(Number(booking.totals?.deposit || payment?.amount || 0))}</strong>
+        <small>${escapeHtml(payment?.providerReference || payment?.checkoutSessionId || "Provider reference pending")}</small>
+      </div>
+    </div>
+
+    <div class="admin-detail-section">
+      <span>Handover</span>
+      <p>${escapeHtml(booking.location || "Handover location pending")}</p>
+      <small>${escapeHtml(booking.handoverNotes || "No concierge notes yet")}</small>
+    </div>
+
+    <div class="admin-detail-section">
+      <span>Timeline</span>
+      <ul>
+        ${
+          timeline.length
+            ? timeline
+                .map((item) => `<li><strong>${escapeHtml(item.label || "Booking update")}</strong><small>${escapeHtml(item.at || "")}</small></li>`)
+                .join("")
+            : "<li><strong>No timeline yet</strong><small>Updates will appear here.</small></li>"
+        }
+      </ul>
+    </div>
+  `;
+  drawer.hidden = false;
+}
+
+function renderAdminPayments(payments = []) {
+  const target = document.querySelector("[data-admin-payments]");
+  if (!target) return;
+
+  if (!payments.length) {
+    target.innerHTML = `
+      <tr>
+        <td colspan="6">
+          <strong>No deposit records yet</strong><br />
+          <span>Secure checkout and manual deposit records appear here once a reservation reaches payment.</span>
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  target.innerHTML = payments
+    .map(
+      (payment) => `
+        <tr>
+          <td>
+            <strong>${money(Number(payment.amount || 0))}</strong>
+            <span>${escapeHtml(payment.currency || "GBP")}</span>
+          </td>
+          <td>
+            ${escapeHtml(payment.bookingReference || payment.bookingId || "Booking pending")}
+            <span>${escapeHtml(payment.vehicleName || "Vehicle pending")}</span>
+          </td>
+          <td>
+            ${escapeHtml(payment.customerEmail || "Client pending")}
+            <span>${escapeHtml(payment.customerPhone || "")}</span>
+          </td>
+          <td><span class="status-pill">${escapeHtml(humanStatus(payment.status))}</span></td>
+          <td>
+            ${escapeHtml(payment.provider || "stripe_checkout_ready")}
+            <span>${escapeHtml(payment.providerReference || payment.checkoutSessionId || "Reference pending")}</span>
+          </td>
+          <td>
+            <div class="admin-action-row">
+              <button type="button" data-admin-payment-status="pending" data-payment-id="${payment.id}">Pending</button>
+              <button type="button" data-admin-payment-status="paid" data-payment-id="${payment.id}">Paid</button>
+              <button type="button" data-admin-payment-status="refunded" data-payment-id="${payment.id}">Refunded</button>
+              <button type="button" data-admin-payment-status="failed" data-payment-id="${payment.id}">Failed</button>
+            </div>
+          </td>
+        </tr>
+      `,
+    )
+    .join("");
+}
+
+function renderAdminLeads(leads = []) {
+  const target = document.querySelector("[data-admin-leads]");
+  if (!target) return;
+
+  if (!leads.length) {
+    target.innerHTML = `<article class="admin-empty">No concierge leads yet.</article>`;
+    return;
+  }
+
+  target.innerHTML = leads
+    .map((lead) => {
+      const vehicle = vehicles[lead.recommendedVehicle];
+      return `
+        <article class="admin-lead-card">
+          <div>
+            <span class="status-pill">${escapeHtml(humanStatus(lead.status))}</span>
+            <h3>${escapeHtml(vehicle?.shortName || lead.recommendedVehicle || "Fleet recommendation")}</h3>
+            <p>${escapeHtml(lead.prompt || "Concierge question pending")}</p>
+          </div>
+          <small>${escapeHtml(lead.response || "Lead response pending")}</small>
+          <div class="admin-action-row">
+            <button type="button" data-admin-lead-status="new" data-lead-id="${lead.id}">New</button>
+            <button type="button" data-admin-lead-status="contacted" data-lead-id="${lead.id}">Contacted</button>
+            <button type="button" data-admin-lead-status="converted" data-lead-id="${lead.id}">Converted</button>
+            <button type="button" data-admin-lead-status="closed" data-lead-id="${lead.id}">Closed</button>
+          </div>
+        </article>
       `;
     })
     .join("");
@@ -1737,16 +1890,27 @@ function renderAdminCustomers(customers = []) {
 }
 
 async function refreshAdmin() {
-  const [summary, bookings, vehiclesResponse, customers] = await Promise.all([
+  const [summary, bookings, vehiclesResponse, customers, payments, leads] = await Promise.all([
     apiRequest("/api/admin/summary"),
     apiRequest("/api/admin/bookings"),
     apiRequest("/api/admin/vehicles"),
     apiRequest("/api/admin/customers"),
+    apiRequest("/api/admin/payments"),
+    apiRequest("/api/admin/leads"),
   ]);
+  adminState = {
+    bookings: bookings.bookings || [],
+    customers: customers.customers || [],
+    vehicles: vehiclesResponse.vehicles || summary.summary?.vehicles || [],
+    payments: payments.payments || summary.summary?.latestPayments || [],
+    leads: leads.leads || summary.summary?.latestLeads || [],
+  };
   renderAdminMetrics(summary.summary || {});
-  renderAdminBookings(bookings.bookings || []);
-  renderAdminVehicles(vehiclesResponse.vehicles || summary.summary?.vehicles || []);
-  renderAdminCustomers(customers.customers || summary.summary?.latestCustomers || []);
+  renderAdminBookings(adminState.bookings);
+  renderAdminVehicles(adminState.vehicles);
+  renderAdminCustomers(adminState.customers);
+  renderAdminPayments(adminState.payments);
+  renderAdminLeads(adminState.leads);
 }
 
 function setupAdmin() {
@@ -1755,6 +1919,20 @@ function setupAdmin() {
   });
 
   document.addEventListener("click", async (event) => {
+    const closeDetail = event.target.closest("[data-admin-detail-close]");
+    if (closeDetail) {
+      const drawer = document.querySelector("[data-admin-detail]");
+      if (drawer) drawer.hidden = true;
+      return;
+    }
+
+    const viewBooking = event.target.closest("[data-admin-view-booking]");
+    if (viewBooking) {
+      const booking = adminState.bookings.find((item) => item.id === viewBooking.dataset.adminViewBooking);
+      renderAdminBookingDetail(booking);
+      return;
+    }
+
     const removeBlock = event.target.closest("[data-admin-remove-block]");
     if (removeBlock) {
       removeBlock.disabled = true;
@@ -1772,6 +1950,52 @@ function setupAdmin() {
         showFlowToast(error.message || "Block removal failed.", "warning");
       } finally {
         removeBlock.disabled = false;
+      }
+      return;
+    }
+
+    const paymentButton = event.target.closest("[data-admin-payment-status]");
+    if (paymentButton) {
+      paymentButton.disabled = true;
+      try {
+        await apiRequest("/api/admin/payments", {
+          method: "PATCH",
+          body: JSON.stringify({
+            id: paymentButton.dataset.paymentId,
+            patch: {
+              status: paymentButton.dataset.adminPaymentStatus,
+            },
+          }),
+        });
+        showFlowToast(`Deposit marked ${paymentButton.dataset.adminPaymentStatus}.`);
+        await refreshAdmin();
+      } catch (error) {
+        showFlowToast(error.message || "Payment update failed.", "warning");
+      } finally {
+        paymentButton.disabled = false;
+      }
+      return;
+    }
+
+    const leadButton = event.target.closest("[data-admin-lead-status]");
+    if (leadButton) {
+      leadButton.disabled = true;
+      try {
+        await apiRequest("/api/admin/leads", {
+          method: "PATCH",
+          body: JSON.stringify({
+            id: leadButton.dataset.leadId,
+            patch: {
+              status: leadButton.dataset.adminLeadStatus,
+            },
+          }),
+        });
+        showFlowToast(`Lead marked ${leadButton.dataset.adminLeadStatus}.`);
+        await refreshAdmin();
+      } catch (error) {
+        showFlowToast(error.message || "Lead update failed.", "warning");
+      } finally {
+        leadButton.disabled = false;
       }
       return;
     }

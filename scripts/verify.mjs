@@ -37,6 +37,8 @@ const requiredFiles = [
   "api/admin/summary.js",
   "api/admin/bookings.js",
   "api/admin/customers.js",
+  "api/admin/leads.js",
+  "api/admin/payments.js",
   "api/admin/vehicles.js",
   "api/_lib/fleet-data.js",
   "api/_lib/http.js",

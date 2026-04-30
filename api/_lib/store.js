@@ -7,6 +7,7 @@ const initialState = {
   sessions: [],
   bookings: [],
   payments: [],
+  leads: [],
   vehicleOperations: [],
 };
 
@@ -122,6 +123,44 @@ function publicBooking(booking) {
     timeline: booking.timeline || [],
     createdAt: booking.createdAt,
     updatedAt: booking.updatedAt,
+  };
+}
+
+function publicPayment(payment) {
+  const booking = db.bookings.find((item) => item.id === payment.bookingId);
+  return {
+    id: payment.id,
+    bookingId: payment.bookingId || "",
+    bookingReference: booking?.reference || "",
+    vehicleName: booking?.vehicleName || "",
+    customerEmail: booking?.customerEmail || "",
+    customerPhone: booking?.customerPhone || "",
+    amount: payment.amount,
+    currency: payment.currency || "GBP",
+    status: payment.status || "not_started",
+    provider: payment.provider || "stripe_checkout_ready",
+    providerReference: payment.providerReference || "",
+    checkoutSessionId: payment.checkoutSessionId || "",
+    checkoutUrl: payment.checkoutUrl || "",
+    note: payment.note || "",
+    createdAt: payment.createdAt,
+    updatedAt: payment.updatedAt || payment.createdAt,
+  };
+}
+
+function publicLead(lead) {
+  return {
+    id: lead.id,
+    prompt: lead.prompt || "",
+    recommendedVehicle: lead.recommendedVehicle || "",
+    alternatives: lead.alternatives || [],
+    response: lead.response || "",
+    source: lead.source || "ai_concierge",
+    status: lead.status || "new",
+    customerEmail: lead.customerEmail || "",
+    customerPhone: lead.customerPhone || "",
+    createdAt: lead.createdAt,
+    updatedAt: lead.updatedAt || lead.createdAt,
   };
 }
 
@@ -648,7 +687,7 @@ export function markPaymentStatus({ paymentId, bookingId, status, providerRefere
     });
   }
 
-  return { payment, booking: booking ? publicBooking(booking) : null };
+  return { payment: payment ? publicPayment(payment) : null, booking: booking ? publicBooking(booking) : null };
 }
 
 export function listAllBookings() {
@@ -656,7 +695,25 @@ export function listAllBookings() {
 }
 
 export function listPayments() {
-  return db.payments.slice().reverse();
+  return db.payments.slice().reverse().map(publicPayment);
+}
+
+export function adminUpdatePayment(idValue, patch = {}) {
+  const payment = db.payments.find((item) => item.id === idValue);
+  if (!payment) return null;
+
+  payment.status = patch.status || payment.status;
+  payment.providerReference = patch.providerReference ?? payment.providerReference ?? "";
+  payment.note = patch.note ?? payment.note ?? "";
+  payment.updatedAt = now();
+
+  if (payment.bookingId) {
+    const bookingPatch = { paymentStatus: payment.status };
+    if (payment.status === "paid") bookingPatch.status = "pending";
+    updateBooking(payment.bookingId, bookingPatch);
+  }
+
+  return publicPayment(payment);
 }
 
 export function listCustomers() {
@@ -728,6 +785,38 @@ export function listCustomers() {
   );
 }
 
+export function createLead({ prompt, recommendedVehicle, alternatives = [], response = "", source = "ai_concierge" }) {
+  const lead = {
+    id: id("lead"),
+    prompt,
+    recommendedVehicle,
+    alternatives,
+    response,
+    source,
+    status: "new",
+    createdAt: now(),
+    updatedAt: now(),
+  };
+  db.leads.push(lead);
+  return publicLead(lead);
+}
+
+export function listLeads() {
+  return db.leads.slice().reverse().map(publicLead);
+}
+
+export function updateLead(idValue, patch = {}) {
+  const lead = db.leads.find((item) => item.id === idValue);
+  if (!lead) return null;
+  Object.assign(lead, {
+    status: patch.status || lead.status,
+    customerEmail: patch.customerEmail ?? lead.customerEmail ?? "",
+    customerPhone: patch.customerPhone ?? lead.customerPhone ?? "",
+    updatedAt: now(),
+  });
+  return publicLead(lead);
+}
+
 export function adminUpdateBooking(idValue, action, patch = {}) {
   const statusByAction = {
     approve: "confirmed",
@@ -797,12 +886,14 @@ export function adminSummary() {
   const bookings = listAllBookings();
   const payments = listPayments();
   const customers = listCustomers();
+  const leads = listLeads();
   return {
     counts: {
       users: db.users.length,
       customers: customers.length,
       bookings: db.bookings.length,
       payments: db.payments.length,
+      leads: leads.length,
       activeSessions: db.sessions.length,
       pendingBookings: db.bookings.filter((booking) => normaliseBookingStatus(booking.status) === "pending").length,
       confirmedBookings: db.bookings.filter((booking) => confirmedBookingStatuses.has(booking.status)).length,
@@ -817,6 +908,8 @@ export function adminSummary() {
     }, {}),
     latestBookings: bookings.slice(0, 10),
     latestCustomers: customers.slice(0, 8),
+    latestPayments: payments.slice(0, 8),
+    latestLeads: leads.slice(0, 8),
     vehicles: listOperationalVehicles(),
   };
 }
