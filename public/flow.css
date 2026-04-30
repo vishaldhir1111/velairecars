@@ -2929,7 +2929,7 @@ h2 {
 
 .admin-metrics {
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: 14px;
   margin-top: 16px;
 }
@@ -3030,6 +3030,36 @@ h2 {
   color: rgba(248, 242, 236, 0.68);
 }
 
+.status-pill.status-confirmed,
+.status-pill.status-paid {
+  border-color: rgba(151, 204, 162, 0.42);
+  background: rgba(151, 204, 162, 0.12);
+  color: #cdebd4;
+}
+
+.status-pill.status-payment-pending,
+.status-pill.status-requires-provider,
+.status-pill.status-requires-checkout,
+.status-pill.status-pending {
+  border-color: rgba(215, 161, 140, 0.42);
+  background: rgba(215, 161, 140, 0.12);
+  color: var(--rose-3);
+}
+
+.status-pill.status-cancelled,
+.status-pill.status-failed {
+  border-color: rgba(235, 118, 91, 0.42);
+  background: rgba(235, 118, 91, 0.12);
+  color: #ffb29f;
+}
+
+.status-pill.status-completed,
+.status-pill.status-refunded {
+  border-color: rgba(248, 242, 236, 0.18);
+  background: rgba(248, 242, 236, 0.08);
+  color: rgba(248, 242, 236, 0.78);
+}
+
 .admin-action-row,
 .admin-vehicle-list,
 .admin-vehicle-card,
@@ -3042,7 +3072,7 @@ h2 {
 }
 
 .admin-action-row {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
   min-width: 190px;
 }
 

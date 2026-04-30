@@ -124,6 +124,14 @@ if (!read("public/ai.html").includes('id="concierge-chat"') || !read("public/ai.
   throw new Error("public/ai.html is missing the concierge chat or form");
 }
 
+if (!read("public/admin.html").includes('data-admin-count="paymentPendingBookings"')) {
+  throw new Error("public/admin.html is missing the payment-pending operations metric");
+}
+
+if (!read("public/flow.js").includes("renderAdminAvailabilityCalendar") || !read("public/flow.js").includes("payment_pending")) {
+  throw new Error("public/flow.js is missing the Phase 1 admin calendar or payment-pending status logic");
+}
+
 for (const match of read("public/flow.js").matchAll(/^  "([^"]+)": \{/gm)) {
   if (!read("public/booking.html").includes(`value="${match[1]}"`)) {
     throw new Error(`flow.js vehicle ${match[1]} is not present in booking.html`);

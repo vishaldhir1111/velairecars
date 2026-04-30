@@ -26,16 +26,16 @@ if (!Array.isArray(db.vehicleOperations) || !db.vehicleOperations.length) {
 
 const statusAliases = {
   client_details_saved: "pending",
-  payment_review: "pending",
-  payment_intent_created: "pending",
-  checkout_created: "pending",
+  payment_review: "payment_pending",
+  payment_intent_created: "payment_pending",
+  checkout_created: "payment_pending",
   pending_approval: "pending",
-  pending_payment: "pending",
+  pending_payment: "payment_pending",
   approved: "confirmed",
   rejected: "cancelled",
 };
 
-const blockingBookingStatuses = new Set(["pending", "confirmed"]);
+const blockingBookingStatuses = new Set(["pending", "payment_pending", "confirmed"]);
 const confirmedBookingStatuses = new Set(["confirmed"]);
 const releasedBookingStatuses = new Set(["draft", "rejected", "cancelled", "completed"]);
 
@@ -825,6 +825,9 @@ export function adminUpdateBooking(idValue, action, patch = {}) {
     cancel: "cancelled",
     complete: "completed",
     pending: "pending",
+    payment: "payment_pending",
+    payment_pending: "payment_pending",
+    paymentPending: "payment_pending",
   };
   const status = statusByAction[action] || patch.status;
   return updateBooking(idValue, {
@@ -896,6 +899,9 @@ export function adminSummary() {
       leads: leads.length,
       activeSessions: db.sessions.length,
       pendingBookings: db.bookings.filter((booking) => normaliseBookingStatus(booking.status) === "pending").length,
+      paymentPendingBookings: db.bookings.filter(
+        (booking) => normaliseBookingStatus(booking.status) === "payment_pending",
+      ).length,
       confirmedBookings: db.bookings.filter((booking) => confirmedBookingStatuses.has(booking.status)).length,
     },
     bookingsByStatus: db.bookings.reduce((result, booking) => {

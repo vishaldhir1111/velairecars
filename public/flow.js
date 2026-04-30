@@ -250,6 +250,22 @@ function humanStatus(value = "") {
     .replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
+function statusClass(value = "") {
+  const clean = String(value || "pending").toLowerCase().replaceAll("_", "-");
+  return `status-${clean || "pending"}`;
+}
+
+function adminActionLabel(action = "") {
+  const labels = {
+    pending: "pending",
+    payment_pending: "payment pending",
+    confirm: "confirmed",
+    cancel: "cancelled",
+    complete: "completed",
+  };
+  return labels[action] || humanStatus(action).toLowerCase();
+}
+
 function loadReservation() {
   try {
     return JSON.parse(window.localStorage.getItem(storageKey)) || {};
@@ -1615,11 +1631,14 @@ function renderAdminBookings(bookings = []) {
               ${escapeHtml(customer)}
             </button>
           </td>
-          <td><span class="status-pill">${escapeHtml(humanStatus(booking.status))}</span></td>
-          <td><span class="status-pill muted">${escapeHtml(humanStatus(booking.paymentStatus))}</span></td>
+          <td><span class="status-pill ${statusClass(booking.status)}">${escapeHtml(humanStatus(booking.status))}</span></td>
+          <td><span class="status-pill muted ${statusClass(booking.paymentStatus)}">${escapeHtml(
+            humanStatus(booking.paymentStatus),
+          )}</span></td>
           <td>
             <div class="admin-action-row">
               <button type="button" data-admin-booking-action="pending" data-booking-id="${booking.id}">Pending</button>
+              <button type="button" data-admin-booking-action="payment_pending" data-booking-id="${booking.id}">Payment pending</button>
               <button type="button" data-admin-booking-action="confirm" data-booking-id="${booking.id}">Confirm</button>
               <button type="button" data-admin-booking-action="cancel" data-booking-id="${booking.id}">Cancel</button>
               <button type="button" data-admin-booking-action="complete" data-booking-id="${booking.id}">Complete</button>
@@ -1653,7 +1672,7 @@ function renderAdminBookingDetail(booking) {
       </div>
       <div>
         <span>Status</span>
-        <strong>${escapeHtml(humanStatus(booking.status))}</strong>
+        <strong><span class="status-pill ${statusClass(booking.status)}">${escapeHtml(humanStatus(booking.status))}</span></strong>
         <small>Payment: ${escapeHtml(humanStatus(booking.paymentStatus))}</small>
       </div>
       <div>
@@ -1792,7 +1811,7 @@ function adminCalendarStatus(vehicle, isoDate) {
   if (pending) {
     return {
       className: "is-pending",
-      label: "Pending",
+      label: humanStatus(pending.status),
       detail: `${pending.reference || "Pending hold"} is awaiting approval`,
     };
   }
@@ -1869,13 +1888,18 @@ function renderAdminVehicles(vehiclesList = []) {
     .map((vehicle) => {
       const blocks = vehicle.availability?.blockedRanges || [];
       const pendingCount = vehicle.availability?.pendingBookings?.length || 0;
+      const paymentPendingCount =
+        vehicle.availability?.pendingBookings?.filter((booking) => booking.status === "payment_pending").length || 0;
       const confirmedCount = vehicle.availability?.confirmedBookings?.length || 0;
       return `
         <article class="admin-vehicle-card">
           <div>
             <span class="status-pill">${escapeHtml(vehicle.category)}</span>
             <h3>${escapeHtml(vehicle.name)} ${escapeHtml(vehicle.year)}</h3>
-            <p>${escapeHtml(vehicle.finish)} · ${pendingCount} pending · ${confirmedCount} confirmed</p>
+            <p>
+              ${escapeHtml(vehicle.finish)} · ${pendingCount} pending holds · ${paymentPendingCount} payment pending ·
+              ${confirmedCount} confirmed
+            </p>
           </div>
 
           ${renderAdminAvailabilityCalendar(vehicle)}
@@ -2115,7 +2139,7 @@ function setupAdmin() {
           action: button.dataset.adminBookingAction,
         }),
       });
-      showFlowToast(`Booking ${button.dataset.adminBookingAction}d.`);
+      showFlowToast(`Booking marked ${adminActionLabel(button.dataset.adminBookingAction)}.`);
       await refreshAdmin();
     } catch (error) {
       showFlowToast(error.message || "Booking action failed.", "warning");

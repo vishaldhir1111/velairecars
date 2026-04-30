@@ -68,6 +68,9 @@ data is stored.
 - Availability is stored in `api/_lib/store.js` as blocked dates plus pending and confirmed booking
   holds per vehicle. The admin vehicle cards include a 42-day availability calendar, and booking
   creation plus admin updates check this state to reduce double-booking risk.
+- Phase 1 booking statuses are `pending`, `payment_pending`, `confirmed`, `cancelled` and
+  `completed`. Pending, payment-pending and confirmed bookings hold vehicle availability until an
+  admin cancels or completes the booking.
 - Legal and trust pages are in `public/` and share the same Nexa, black and rose-gold flow design
   system as the booking and account experience. Have a solicitor review the policy copy before using
   it as binding production legal wording.
