@@ -109,7 +109,7 @@ function emailHtml({ type, booking = {}, payment = {}, note = "" }) {
               .join("")}
           </table>
           ${note ? `<p style="margin:0 0 20px;color:#d8d0c8;font-size:14px;line-height:1.7;">${escapeHtml(note)}</p>` : ""}
-          <a href="${siteUrl}/account.html" style="display:inline-block;background:#d7a18c;color:#130d0b;text-decoration:none;border-radius:999px;padding:13px 20px;font-weight:700;">Open client lounge</a>
+          <a href="${siteUrl}/booking.html" style="display:inline-block;background:#d7a18c;color:#130d0b;text-decoration:none;border-radius:999px;padding:13px 20px;font-weight:700;">Reserve another vehicle</a>
         </div>
       </div>
     </div>

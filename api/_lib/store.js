@@ -120,6 +120,13 @@ function publicBooking(booking) {
     customerName: booking.customerName || "",
     customerEmail: booking.customerEmail || "",
     customerPhone: booking.customerPhone || "",
+    billingAddress: booking.billingAddress || "",
+    billingAddressLine1: booking.billingAddressLine1 || "",
+    billingAddressLine2: booking.billingAddressLine2 || "",
+    billingTown: booking.billingTown || "",
+    billingCity: booking.billingCity || "",
+    billingPostcode: booking.billingPostcode || "",
+    billingCountry: booking.billingCountry || "",
     vehicleSlug: booking.vehicleSlug,
     vehicleName: booking.vehicleName,
     status: booking.status,
@@ -226,6 +233,27 @@ function calculateOperationalTotals({ vehicleSlug, pickup, returnDate, days }) {
     vehicle,
     hireEstimate: vehicle.rate * baseTotals.days,
     deposit: vehicle.deposit,
+  };
+}
+
+function billingDetailsFromReservation(reservation = {}, fallback = {}) {
+  const billingAddressLine1 = reservation.billingAddressLine1 ?? fallback.billingAddressLine1 ?? "";
+  const billingAddressLine2 = reservation.billingAddressLine2 ?? fallback.billingAddressLine2 ?? "";
+  const billingTown = reservation.billingTown ?? fallback.billingTown ?? "";
+  const billingCity = reservation.billingCity ?? fallback.billingCity ?? "";
+  const billingPostcode = reservation.billingPostcode ?? fallback.billingPostcode ?? "";
+  const billingCountry = reservation.billingCountry ?? fallback.billingCountry ?? "United Kingdom";
+  return {
+    billingAddress:
+      reservation.billingAddress ||
+      fallback.billingAddress ||
+      [billingAddressLine1, billingAddressLine2, billingTown, billingCity, billingPostcode, billingCountry].filter(Boolean).join(", "),
+    billingAddressLine1,
+    billingAddressLine2,
+    billingTown,
+    billingCity,
+    billingPostcode,
+    billingCountry,
   };
 }
 
@@ -745,6 +773,7 @@ export function createBooking({ userId = null, reservation = {}, status = "draft
     customerName: reservation.name || reservation.fullName || "",
     customerEmail: reservation.email || "",
     customerPhone: reservation.phone || "",
+    ...billingDetailsFromReservation(reservation),
     vehicleSlug: vehicle.slug,
     vehicleName: `${vehicle.name} ${vehicle.year}`,
     status: canonicalStatus,
@@ -805,6 +834,7 @@ export function updateBooking(idValue, patch = {}) {
       customerName: reservation.name || reservation.fullName || booking.customerName || "",
       customerEmail: reservation.email || booking.customerEmail || "",
       customerPhone: reservation.phone || booking.customerPhone || "",
+      ...billingDetailsFromReservation(reservation, booking),
       vehicleSlug: totals.vehicle.slug,
       vehicleName: `${totals.vehicle.name} ${totals.vehicle.year}`,
       pickup: reservation.pickup ?? booking.pickup,
@@ -1022,6 +1052,13 @@ export function upsertStripeCheckoutSession(session = {}, status = "payment_pend
       customerName: metadata.customer_name || session.customer_details?.name || "",
       customerEmail: metadata.customer_email || session.customer_details?.email || session.customer_email || "",
       customerPhone: metadata.customer_phone || session.customer_details?.phone || "",
+      billingAddress: metadata.billing_address || "",
+      billingAddressLine1: metadata.billing_address_line1 || "",
+      billingAddressLine2: metadata.billing_address_line2 || "",
+      billingTown: metadata.billing_town || "",
+      billingCity: metadata.billing_city || "",
+      billingPostcode: metadata.billing_postcode || "",
+      billingCountry: metadata.billing_country || "",
       vehicleSlug: vehicle.slug,
       vehicleName: metadata.vehicle_name || `${vehicle.name} ${vehicle.year}`,
       status: bookingStatusForPaymentStatus(canonicalStatus),
@@ -1176,6 +1213,9 @@ export function listCustomers() {
         fullName: booking.customerName || "Guest client",
         email,
         phone: booking.customerPhone || "",
+        billingAddress: booking.billingAddress || "",
+        billingPostcode: booking.billingPostcode || "",
+        billingCountry: booking.billingCountry || "",
         preferredContact: "Concierge follow-up",
         verificationStatus: "not_submitted",
         favourites: [],

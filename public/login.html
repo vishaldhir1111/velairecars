@@ -3,13 +3,13 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="Enter your Velaire Cars account details to continue a premium reservation." />
-    <title>Client Lounge | Velaire Cars</title>
+    <meta name="description" content="Velaire Cars now uses premium guest reservations without customer account passwords." />
+    <title>Guest Reservations | Velaire Cars</title>
     <link rel="stylesheet" href="flow.css" />
   </head>
-  <body data-page="login">
+  <body data-page="guest-access">
     <main class="flow-shell">
-      <nav class="flow-nav" aria-label="Account navigation">
+      <nav class="flow-nav" aria-label="Guest reservation navigation">
         <a class="brand" href="/">
           <span class="brand-mark">V</span>
           <span class="brand-copy">
@@ -22,77 +22,53 @@
           <a href="/#experience">Experience</a>
           <a href="booking.html">Reserve</a>
           <a href="ai.html">AI concierge</a>
-          <a href="account.html">Client Lounge</a>
         </div>
-        <a class="flow-back" href="booking.html">Back to booking</a>
+        <a class="flow-back" href="booking.html">Start booking</a>
       </nav>
 
       <section class="flow-stage compact-stage">
         <div class="flow-intro">
-          <p class="eyebrow" data-login-kicker>Private client access</p>
-          <h1 data-login-title>Enter the Velaire Client Lounge.</h1>
-          <p data-login-copy>
-            Continue with your contact details so the Velaire concierge can prepare verification,
-            handover timing and reservation support.
+          <p class="eyebrow">Guest reservations</p>
+          <h1>No account required.</h1>
+          <p>
+            Velaire reservations now move through a polished guest flow. Choose the car, add your
+            contact and billing details, secure the Stripe deposit and let concierge handle the rest.
           </p>
-          <div class="step-row" aria-label="Booking progress" data-login-progress>
-            <span class="step">Car</span>
-            <span class="step active">Account</span>
+          <div class="step-row" aria-label="Booking progress">
+            <span class="step active">Car</span>
+            <span class="step active">Details</span>
             <span class="step">Reserve</span>
             <span class="step">Confirm</span>
           </div>
         </div>
 
         <div class="flow-workspace account-workspace">
-          <form class="flow-panel form-grid account-card" action="payment.html">
+          <section class="flow-panel form-grid account-card">
             <div class="mini-summary">
-              <span>Reservation in progress</span>
-              <strong data-bind="vehicleName">Lamborghini Urus 2021</strong>
+              <span>Premium guest model</span>
+              <strong>Reserve without passwords</strong>
             </div>
 
             <div class="panel-heading">
-              <p class="eyebrow">Client Lounge</p>
-              <h2 data-login-panel-title>Sign in or create access.</h2>
+              <p class="eyebrow">Guest booking</p>
+              <h2>Continue straight to reservation.</h2>
+              <span>
+                The customer account step has been removed from the booking funnel. Your details are
+                collected during booking and sent to operations with the reservation and deposit state.
+              </span>
             </div>
 
-            <div class="flow-state-card" data-login-state hidden></div>
-
-            <div class="client-access-strip" aria-label="Client access options">
-              <button class="client-access-option is-active" type="button" data-auth-mode="returning">
-                <span>Returning client</span>
-                <strong>Sign in</strong>
-              </button>
-              <button class="client-access-option" type="button" data-auth-mode="new">
-                <span>New client</span>
-                <strong>Create access</strong>
-              </button>
+            <div class="guest-assurance-grid" aria-label="Guest reservation benefits">
+              <span>No login loop</span>
+              <span>No password required</span>
+              <span>Operations still receives the booking</span>
             </div>
 
-            <label class="field" data-signup-field hidden>
-              Full name
-              <input type="text" name="fullName" placeholder="Your full name" autocomplete="name" required disabled />
-            </label>
-            <label class="field">
-              Email address
-              <input type="email" name="email" placeholder="you@example.com" autocomplete="email" required />
-            </label>
-            <label class="field" data-signup-field hidden>
-              Mobile number
-              <input type="tel" name="phone" placeholder="+44" autocomplete="tel" disabled />
-            </label>
-            <label class="field">
-              Password
-              <input type="password" name="password" placeholder="Enter password" autocomplete="current-password" minlength="8" required />
-            </label>
-            <button class="primary-button full-width" type="submit" data-login-submit>Continue securely</button>
-            <a class="secondary-button full-width" href="account.html" data-signup-extra hidden>Open client lounge</a>
-            <p class="secure-note" data-signup-extra hidden>
-              Your lounge keeps reservations, verification and handover preferences together. Card details
-              are never stored here and deposits are handled through Stripe Checkout.
-            </p>
-          </form>
+            <a class="primary-button full-width" href="booking.html">Start guest reservation</a>
+            <a class="secondary-button full-width" href="/#fleet">View fleet</a>
+          </section>
 
-          <aside class="flow-panel client-proof" aria-label="Client portal assurances">
+          <aside class="flow-panel client-proof" aria-label="Guest reservation assurances">
             <div class="summary-media compact-media">
               <figure
                 class="flow-vehicle-photo vehicle-model vehicle-model-lamborghini-urus vehicle-model-suv"
@@ -102,20 +78,20 @@
                 aria-label="3D studio mockup of Lamborghini Urus 2021, orange exterior"
               ></figure>
             </div>
-            <p class="eyebrow">Private-client handling</p>
-            <h2>Everything stays refined, verified and discreet.</h2>
+            <p class="eyebrow">Concierge handling</p>
+            <h2>Guest booking, premium service.</h2>
             <ul class="feature-list">
               <li>
-                <strong>Identity review</strong>
-                <span>Licence and ID checks handled before handover.</span>
+                <strong>Contact captured once</strong>
+                <span>Name, email, phone and billing details are collected on the booking page.</span>
               </li>
               <li>
-                <strong>Concierge timing</strong>
-                <span>Delivery windows coordinated around your itinerary.</span>
+                <strong>Stripe deposit</strong>
+                <span>The secure payment step remains hosted by Stripe Checkout.</span>
               </li>
               <li>
-                <strong>Clear deposit terms</strong>
-                <span>Vehicle-specific deposit guidance before release.</span>
+                <strong>Operations-ready</strong>
+                <span>Bookings, customer details and payment state still appear in the portal.</span>
               </li>
             </ul>
           </aside>

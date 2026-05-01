@@ -192,14 +192,6 @@ if (!read("api/_lib/notifications.js").includes("RESEND_API_KEY")) {
   throw new Error("Phase 3 notifications are not wired to Resend environment variables");
 }
 
-if (!read("public/account.html").includes("data-receipt-list") || !read("public/account.html").includes("data-saved-locations")) {
-  throw new Error("Phase 3 account receipts or saved handover locations are missing");
-}
-
-if (!read("public/account.html").includes("data-client-readiness") || !read("public/flow.js").includes("renderClientReadiness")) {
-  throw new Error("Premium private client readiness panel is missing from the account portal");
-}
-
 if (
   !read("public/flow.js").includes("renderAccountPaymentState") ||
   !read("public/flow.js").includes("fetchAccountPaymentState") ||
@@ -208,8 +200,25 @@ if (
   throw new Error("Paid-deposit account/payment state handling is missing");
 }
 
-if (!read("public/login.html").includes('name="fullName"') || !read("public/flow.js").includes("matchingActiveVehicleBooking")) {
-  throw new Error("Login flow must collect customer name and detect existing active vehicle bookings");
+if (
+  !read("public/booking.html").includes('name="billingAddressLine1"') ||
+  !read("public/booking.html").includes('name="billingPostcode"') ||
+  !read("public/booking.html").includes('action="payment.html"') ||
+  !read("public/flow.js").includes("runGuestBookingCleanSlate") ||
+  !read("public/flow.js").includes("billingAddressLine1")
+) {
+  throw new Error("Guest booking flow must collect billing details, bypass login and reset stale local booking/account data");
+}
+
+for (const customerPage of ["public/booking.html", "public/payment.html", "public/success.html", "public/ai.html", "src/App.jsx"]) {
+  const contents = read(customerPage);
+  if (contents.includes("login.html") || contents.includes("Client Lounge") || contents.includes("Create access")) {
+    throw new Error(`${customerPage} should not expose customer login/account gating in the guest booking model`);
+  }
+}
+
+if (read("public/login.html").includes('name="password"') || read("public/login.html").includes("Create access")) {
+  throw new Error("public/login.html should be a guest-reservation bridge, not a customer password form");
 }
 
 if (

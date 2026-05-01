@@ -12,6 +12,9 @@ visual system.
   `public/admin.html`, `public/payment.html` and `public/success.html` are static flow pages served at
   `/booking.html`, `/login.html`, `/account.html`, `/ai.html`, `/portal`, `/payment.html` and
   `/success.html`.
+- Customer reservations now use a premium guest-booking model. Booking collects full name, email,
+  phone, billing address, handover details and dates directly, then continues to Stripe Checkout
+  without customer login or account creation.
 - `vercel.json` rewrites `/portal` to the operations page while keeping clean URLs enabled.
 - `public/terms.html`, `public/privacy.html`, `public/cancellation.html`, `public/insurance.html`,
   `public/requirements.html` and `public/deposit.html` are the legal and trust pages served at
@@ -39,10 +42,8 @@ presentation uses premium studio 3D fallbacks with GLB/GLTF model slots under `p
 The `api/` folder contains Vercel-ready serverless endpoints:
 
 - `GET /api/fleet`
-- `POST /api/auth/register`
-- `POST /api/auth/login`
-- `POST /api/auth/logout`
-- `GET /api/auth/session`
+- Legacy account/auth endpoints remain present for compatibility, but they are not part of the
+  customer booking funnel.
 - `GET/PATCH /api/account`
 - `GET/POST/PATCH /api/bookings`
 - `GET/POST /api/availability`
@@ -66,8 +67,10 @@ and return-page verification. No raw card data is collected or stored by Velaire
 
 ## Operations And Trust
 
-- `/portal` is the premium operations dashboard for bookings, customer accounts, vehicles,
+- `/portal` is the premium operations dashboard for guest bookings, customers, vehicles,
   concierge messages needing reply, deposits and payment status.
+- The durable operations store now uses a `guest-booking-v1` namespace so old account/customer test
+  records do not appear in the fresh guest-booking test state.
 - Availability is stored in `api/_lib/store.js` as blocked dates plus pending and confirmed booking
   holds per vehicle. The admin vehicle cards include a 42-day availability calendar, and booking
   creation plus admin updates check this state to reduce double-booking risk.
@@ -79,26 +82,27 @@ and return-page verification. No raw card data is collected or stored by Velaire
   Session through `/api/payments/session` or the Stripe webhook. The webhook writes booking,
   payment and customer records into the operations store when Vercel KV / Upstash REST variables are
   configured, and the Operations dashboard reads that same store.
-- Phase 3 client account features include profile/photo metadata, verification document metadata,
-  saved handover locations, richer booking history, receipt summaries and notification triggers for
-  booking requests, paid deposits, failed payments, admin approval/rejection and handover reminders.
-  Resend is used for email delivery when `RESEND_API_KEY` is configured.
+- Customer-facing account creation is disabled from the booking journey. Legacy account files and
+  endpoints remain only for compatibility while the live product uses guest reservation records.
+  Notification triggers still cover booking requests, paid deposits, failed payments, admin
+  approval/rejection and handover reminders. Resend is used for email delivery when
+  `RESEND_API_KEY` is configured.
 - Legal and trust pages are in `public/` and share the same Nexa, black and rose-gold flow design
-  system as the booking and account experience. Have a solicitor review the policy copy before using
+  system as the booking and operations experience. Have a solicitor review the policy copy before using
   it as binding production legal wording.
 
 Set these environment variables in production:
 
 - `VELAIRE_ADMIN_TOKEN` or `VELAIRE_PORTAL_PASSWORD` protects the operations portal APIs. If neither
   is set, the server-side default portal password is `AG23HS60`.
-- `VELAIRE_SESSION_SECRET` signs private client lounge sessions. Set this to a long random value in
-  Vercel so account sessions stay secure and stable across deployments.
+- `VELAIRE_SESSION_SECRET` is only needed if legacy account endpoints are re-enabled later.
 - `STRIPE_SECRET_KEY` is required for Stripe Checkout session creation.
 - `STRIPE_WEBHOOK_SECRET` verifies Stripe webhook events.
 - `VELAIRE_SITE_URL` is optional and can force Stripe redirect URLs to `https://www.velairecars.com`.
 - `KV_REST_API_URL` and `KV_REST_API_TOKEN` enable durable Operations records on Vercel KV.
 - Alternatively, `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` can be used.
-- `VELAIRE_STORE_PREFIX` is optional and defaults to `velaire:operations`.
+- `VELAIRE_STORE_PREFIX` is optional. The app appends `guest-booking-v1` so the guest model starts
+  from a clean operations namespace.
 - `RESEND_API_KEY` enables transactional emails.
 - `VELAIRE_EMAIL_FROM` sets the sender, for example `Velaire Cars <reservations@velairecars.com>`.
 - `VELAIRE_ADMIN_EMAIL` receives optional internal booking/payment notifications.

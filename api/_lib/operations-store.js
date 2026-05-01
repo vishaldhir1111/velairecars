@@ -1,12 +1,13 @@
 import { customersFromBookings, mergeCustomers, mergeOperations, recordsFromStripeSession } from "./stripe-operations.js";
 
-const defaultPrefix = "velaire:operations";
+const defaultPrefix = "velaire:operations:guest-booking-v1";
 
 function config() {
+  const configuredPrefix = process.env.VELAIRE_STORE_PREFIX || defaultPrefix;
   return {
     url: process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL || "",
     token: process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN || "",
-    prefix: process.env.VELAIRE_STORE_PREFIX || defaultPrefix,
+    prefix: configuredPrefix.includes("guest-booking-v1") ? configuredPrefix : `${configuredPrefix}:guest-booking-v1`,
   };
 }
 

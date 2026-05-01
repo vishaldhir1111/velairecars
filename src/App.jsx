@@ -1,15 +1,7 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { conciergeFleetKnowledge, conciergePromptChips, fleet } from "./data/fleet.js";
 
 const favouriteStorageKey = "velaireFavouriteCars";
-const clientStorageKeys = [
-  "velaireReservation",
-  "velaireAccount",
-  "velaireBackendBooking",
-  "velaireFavouriteCars",
-  "velaireAdminToken",
-];
-const signedOutMessageKey = "velaireSignedOutMessage";
 
 const trustItems = [
   { value: "5", label: "Curated vehicles" },
@@ -208,16 +200,7 @@ function saveFavouriteCars(slugs) {
 }
 
 async function syncFavouriteCars(slugs) {
-  try {
-    await fetch("/api/account", {
-      method: "PATCH",
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ favourites: slugs }),
-    });
-  } catch {
-    // Favourites remain local until the visitor signs in or the API is available.
-  }
+  return slugs;
 }
 
 function VehicleModelParts() {
@@ -314,7 +297,6 @@ function App() {
   const [isConciergeOpen, setIsConciergeOpen] = useState(false);
   const [conciergeInput, setConciergeInput] = useState("");
   const [favouriteCars, setFavouriteCars] = useState(loadFavouriteCars);
-  const [authState, setAuthState] = useState({ checked: false, authenticated: false, user: null });
   const [conciergeMessages, setConciergeMessages] = useState([
     {
       role: "assistant",
@@ -322,33 +304,6 @@ function App() {
         "Welcome to the Velaire concierge. Tell me the occasion, passenger count, location and the impression you want to create. I can recommend, compare and upsell from the Velaire fleet.",
     },
   ]);
-
-  useEffect(() => {
-    let active = true;
-    fetch("/api/auth/session", { credentials: "include" })
-      .then((response) => (response.ok ? response.json() : { authenticated: false, user: null }))
-      .then((session) => {
-        if (active) setAuthState({ checked: true, authenticated: Boolean(session.authenticated), user: session.user || null });
-      })
-      .catch(() => {
-        if (active) setAuthState({ checked: true, authenticated: false, user: null });
-      });
-    return () => {
-      active = false;
-    };
-  }, []);
-
-  async function logout() {
-    try {
-      await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
-    } finally {
-      clientStorageKeys.forEach((key) => window.localStorage.removeItem(key));
-      window.sessionStorage.setItem(signedOutMessageKey, "You have been signed out.");
-      setFavouriteCars([]);
-      setAuthState({ checked: true, authenticated: false, user: null });
-      window.location.href = "login.html?signedOut=1";
-    }
-  }
 
   async function askConcierge(question) {
     const clean = question.trim();
@@ -404,20 +359,12 @@ function App() {
           <a href="#experience">Experience</a>
           <a href="#booking">Reserve</a>
           <a href="ai.html">AI concierge</a>
-          <a href={authState.authenticated ? "account.html" : "login.html?mode=lounge"}>
-            {authState.authenticated ? "Accounts" : "Login"}
-          </a>
+          <a href="terms.html">Terms</a>
         </nav>
 
-        {authState.authenticated ? (
-          <button className="nav-cta nav-auth-button" type="button" onClick={logout}>
-            Log out
-          </button>
-        ) : (
-          <a className="nav-cta" href="booking.html">
-            Reserve now
-          </a>
-        )}
+        <a className="nav-cta" href="booking.html">
+          Reserve now
+        </a>
       </header>
 
       <main>
@@ -631,8 +578,8 @@ function App() {
         <div className="footer-column">
           <strong>Reserve</strong>
           <a href="booking.html">Booking</a>
-          <a href="login.html">Client login</a>
           <a href="payment.html">Payment</a>
+          <a href="deposit.html">Deposit policy</a>
         </div>
 
         <div className="footer-column">

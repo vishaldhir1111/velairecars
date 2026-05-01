@@ -25,7 +25,6 @@
           <a href="/#experience">Experience</a>
           <a href="booking.html">Reserve</a>
           <a href="ai.html">AI concierge</a>
-          <a href="account.html">Client Lounge</a>
         </div>
         <a class="flow-back" href="/">Home</a>
       </nav>
@@ -177,10 +176,50 @@
                 </label>
               </div>
 
+              <div class="guest-form-section-label">
+                <span>Billing details</span>
+                <small>Used for reservation records, deposit receipts and concierge follow-up.</small>
+              </div>
+
+              <div class="form-grid two-column guest-detail-grid">
+                <label class="field">
+                  Address first line
+                  <input type="text" name="billingAddressLine1" placeholder="Street address" autocomplete="address-line1" required />
+                </label>
+                <label class="field">
+                  Address second line
+                  <input type="text" name="billingAddressLine2" placeholder="Apartment, suite or building" autocomplete="address-line2" />
+                </label>
+                <label class="field">
+                  Town
+                  <input type="text" name="billingTown" placeholder="Town" autocomplete="address-level3" />
+                </label>
+                <label class="field">
+                  City
+                  <input type="text" name="billingCity" placeholder="City" autocomplete="address-level2" required />
+                </label>
+                <label class="field">
+                  Postcode
+                  <input type="text" name="billingPostcode" placeholder="Postcode" autocomplete="postal-code" required />
+                </label>
+                <label class="field">
+                  Country
+                  <select name="billingCountry" autocomplete="country-name" required>
+                    <option>United Kingdom</option>
+                    <option>Ireland</option>
+                    <option>France</option>
+                    <option>Germany</option>
+                    <option>Spain</option>
+                    <option>United Arab Emirates</option>
+                    <option>United States</option>
+                  </select>
+                </label>
+              </div>
+
               <div class="guest-assurance-grid" aria-label="Guest booking assurances">
                 <span>Stripe deposit follows next</span>
                 <span>Concierge team receives your details</span>
-                <span>No duplicate account step</span>
+                <span>No password step</span>
               </div>
             </section>
 

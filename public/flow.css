@@ -691,6 +691,30 @@ h2 {
   gap: 14px;
 }
 
+.guest-form-section-label {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 14px;
+  border-top: 1px solid rgba(248, 242, 236, 0.1);
+  padding-top: 16px;
+}
+
+.guest-form-section-label span {
+  color: var(--ivory);
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 850;
+}
+
+.guest-form-section-label small {
+  max-width: 420px;
+  color: rgba(248, 242, 236, 0.58);
+  font-size: 0.78rem;
+  line-height: 1.5;
+  text-align: right;
+}
+
 .guest-reservation-mode input {
   border-color: rgba(215, 161, 140, 0.3);
   background: rgba(215, 161, 140, 0.08);
@@ -4422,6 +4446,14 @@ body[data-page="admin"]:not(.is-admin-unlocked) .admin-detail-drawer {
 
   .guest-concierge-card {
     padding: 18px;
+  }
+
+  .guest-form-section-label {
+    display: grid;
+  }
+
+  .guest-form-section-label small {
+    text-align: left;
   }
 
   .summary-media {
