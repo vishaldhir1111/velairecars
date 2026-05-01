@@ -57,6 +57,7 @@ The `api/` folder contains Vercel-ready serverless endpoints:
 - `GET/PATCH /api/admin/bookings`
 - `GET /api/admin/customers`
 - `GET/PATCH /api/admin/leads`
+- `GET /api/admin/notifications`
 - `GET/PATCH /api/admin/payments`
 - `GET/PATCH/POST/DELETE /api/admin/vehicles`
 
@@ -84,9 +85,10 @@ and return-page verification. No raw card data is collected or stored by Velaire
   configured, and the Operations dashboard reads that same store.
 - Customer-facing account creation is disabled from the booking journey. Legacy account files and
   endpoints remain only for compatibility while the live product uses guest reservation records.
-  Notification triggers still cover booking requests, paid deposits, failed payments, admin
-  approval/rejection and handover reminders. Resend is used for email delivery when
-  `RESEND_API_KEY` is configured.
+  Notification triggers cover booking requests, paid deposits, failed/cancelled payments, admin
+  approval/rejection/cancellation and handover reminders. Resend is used for email delivery when
+  `RESEND_API_KEY` is configured, and `/portal` includes a communications log from the operations
+  store.
 - Legal and trust pages are in `public/` and share the same Nexa, black and rose-gold flow design
   system as the booking and operations experience. Have a solicitor review the policy copy before using
   it as binding production legal wording.
@@ -105,6 +107,7 @@ Set these environment variables in production:
   from a clean operations namespace.
 - `RESEND_API_KEY` enables transactional emails.
 - `VELAIRE_EMAIL_FROM` sets the sender, for example `Velaire Cars <reservations@velairecars.com>`.
+- `VELAIRE_EMAIL_REPLY_TO` is optional and sets the reply-to inbox for concierge replies.
 - `VELAIRE_ADMIN_EMAIL` receives optional internal booking/payment notifications.
 - `VELAIRE_REMINDER_WINDOW_HOURS` controls the handover reminder endpoint and defaults to `48`.
 

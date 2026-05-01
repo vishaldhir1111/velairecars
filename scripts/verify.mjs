@@ -46,6 +46,7 @@ const requiredFiles = [
   "api/admin/bookings.js",
   "api/admin/customers.js",
   "api/admin/leads.js",
+  "api/admin/notifications.js",
   "api/admin/payments.js",
   "api/admin/vehicles.js",
   "api/_lib/fleet-data.js",
@@ -188,7 +189,13 @@ if (!read("api/admin/payments.js").includes("listStoredOperations")) {
   throw new Error("Operations payments endpoint is not reading the durable operations store");
 }
 
-if (!read("api/_lib/notifications.js").includes("RESEND_API_KEY")) {
+if (
+  !read("api/_lib/notifications.js").includes("RESEND_API_KEY") ||
+  !read("api/_lib/notifications.js").includes("admin_payment_failed") ||
+  !read("api/_lib/notifications.js").includes("handover_reminder") ||
+  !read("api/admin/notifications.js").includes("listStoredOperations") ||
+  !read("public/admin.html").includes("data-admin-notifications")
+) {
   throw new Error("Phase 3 notifications are not wired to Resend environment variables");
 }
 

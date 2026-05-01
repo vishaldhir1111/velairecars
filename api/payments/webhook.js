@@ -38,6 +38,13 @@ export default async function handler(req, res) {
         booking: records.booking,
         payment: records.payment,
       });
+    } else if (status === "failed") {
+      await notifyClientAndAdmin({
+        clientType: "payment_failed",
+        adminType: "admin_payment_failed",
+        booking: records.booking,
+        payment: records.payment,
+      });
     }
     markPaymentStatus({
       paymentId: session.metadata?.payment_id,
@@ -73,6 +80,7 @@ export default async function handler(req, res) {
     const records = await saveStripeOperationsSession(session, "failed");
     await notifyClientAndAdmin({
       clientType: "payment_failed",
+      adminType: "admin_payment_failed",
       booking: records.booking,
       payment: records.payment,
     });
@@ -89,7 +97,13 @@ export default async function handler(req, res) {
   if (event.type === "checkout.session.expired") {
     const session = event.data?.object || {};
     upsertStripeCheckoutSession(session, "cancelled");
-    await saveStripeOperationsSession(session, "cancelled");
+    const records = await saveStripeOperationsSession(session, "cancelled");
+    await notifyClientAndAdmin({
+      clientType: "payment_cancelled",
+      adminType: "admin_payment_cancelled",
+      booking: records.booking,
+      payment: records.payment,
+    });
     markPaymentStatus({
       paymentId: session.metadata?.payment_id,
       bookingId: session.metadata?.booking_id,
@@ -111,6 +125,7 @@ export default async function handler(req, res) {
     });
     await notifyClientAndAdmin({
       clientType: "payment_failed",
+      adminType: "admin_payment_failed",
       booking: {
         id: metadata.booking_id,
         customerEmail: intent.receipt_email || intent.customer_email || "",

@@ -182,6 +182,11 @@ export async function saveNotificationRecord(notification = {}) {
   return { saved: true, notification };
 }
 
+export async function getNotificationRecord(notificationId = "") {
+  if (!operationsStoreConfigured() || !notificationId) return null;
+  return hgetJson(key("notifications"), notificationId);
+}
+
 export async function listStoredNotifications() {
   if (!operationsStoreConfigured()) return [];
   return hvalsJson(key("notifications"));

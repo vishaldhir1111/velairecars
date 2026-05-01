@@ -17,6 +17,9 @@ export default async function handler(req, res) {
   const bookings = mergeOperations(mergeOperations(listAllBookings(), storedOperations.bookings), stripeOperations.bookings);
   const payments = mergeOperations(mergeOperations(listPayments(), storedOperations.payments), stripeOperations.payments);
   const customers = mergeCustomers(mergeCustomers(listCustomers(), storedOperations.customers), stripeOperations.customers);
+  const notifications = [...(storedOperations.notifications || [])].sort((a, b) =>
+    String(b.updatedAt || b.createdAt || "").localeCompare(String(a.updatedAt || a.createdAt || "")),
+  );
   const summary = {
     ...localSummary,
     counts: {
@@ -24,6 +27,8 @@ export default async function handler(req, res) {
       bookings: bookings.length,
       payments: payments.length,
       customers: customers.length,
+      notifications: notifications.length,
+      failedNotifications: notifications.filter((item) => item.status === "failed").length,
       pendingBookings: bookings.filter((booking) => booking.status === "pending").length,
       paymentPendingBookings: bookings.filter((booking) => booking.status === "payment_pending").length,
       confirmedBookings: bookings.filter((booking) => booking.status === "confirmed").length,
@@ -32,6 +37,7 @@ export default async function handler(req, res) {
     latestBookings: bookings.slice(0, 10),
     latestPayments: payments.slice(0, 8),
     latestCustomers: customers.slice(0, 8),
+    latestNotifications: notifications.slice(0, 8),
     stripeOperations: {
       available: stripeOperations.available,
       reason: stripeOperations.reason,

@@ -1,5 +1,6 @@
 import { allowMethods, publicError, readJson, sendJson } from "../_lib/http.js";
 import { adminAllowed, adminMode } from "../_lib/admin-auth.js";
+import { notifyClientAndAdmin } from "../_lib/notifications.js";
 import { listStoredOperations } from "../_lib/operations-store.js";
 import { adminUpdatePayment, listPayments } from "../_lib/store.js";
 import { listStripeOperations, mergeOperations } from "../_lib/stripe-operations.js";
@@ -29,6 +30,14 @@ export default async function handler(req, res) {
     if (!payment) {
       sendJson(res, 404, { error: "payment_not_found", message: "Payment record not found." });
       return;
+    }
+    if (["failed", "cancelled"].includes(payment.status)) {
+      await notifyClientAndAdmin({
+        clientType: payment.status === "cancelled" ? "payment_cancelled" : "payment_failed",
+        adminType: payment.status === "cancelled" ? "admin_payment_cancelled" : "admin_payment_failed",
+        payment,
+        note: "Payment state was updated from the Velaire operations portal.",
+      });
     }
     sendJson(res, 200, { payment });
   } catch (error) {

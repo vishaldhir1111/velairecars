@@ -11,7 +11,8 @@ function adminAllowed(req) {
 }
 
 function withinReminderWindow(booking = {}) {
-  if (!booking.pickup || ["cancelled", "completed"].includes(booking.status)) return false;
+  if (!booking.pickup || ["cancelled", "completed", "rejected"].includes(booking.status)) return false;
+  if (!["confirmed", "payment_pending"].includes(String(booking.status || ""))) return false;
   const pickup = new Date(`${booking.pickup}T${booking.pickupTime || "10:00"}:00`);
   if (Number.isNaN(pickup.getTime())) return false;
   const hours = (pickup.getTime() - Date.now()) / 3600000;
@@ -31,7 +32,14 @@ export default async function handler(req, res) {
   const reminders = [];
 
   for (const booking of bookings.filter(withinReminderWindow)) {
-    reminders.push(await sendNotification({ type: "handover_reminder", to: booking.customerEmail, booking }));
+    reminders.push(
+      await sendNotification({
+        type: "handover_reminder",
+        to: booking.customerEmail,
+        booking,
+        dedupeKey: `handover_reminder:${booking.id || booking.reference}:${booking.pickup}:${booking.pickupTime || ""}`,
+      }),
+    );
   }
 
   sendJson(res, 200, {

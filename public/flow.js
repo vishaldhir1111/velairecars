@@ -118,6 +118,7 @@ let adminState = {
   leads: [],
   customers: [],
   vehicles: [],
+  notifications: [],
 };
 
 const fleetKnowledgeBase = [
@@ -2658,6 +2659,36 @@ function renderAdminLeads(leads = []) {
     .join("");
 }
 
+function renderAdminNotifications(notifications = []) {
+  const target = document.querySelector("[data-admin-notifications]");
+  if (!target) return;
+
+  if (!notifications.length) {
+    target.innerHTML = `<article class="admin-empty">No notification records yet. Booking and payment emails will appear here once triggered.</article>`;
+    return;
+  }
+
+  target.innerHTML = notifications
+    .slice(0, 12)
+    .map(
+      (notification) => `
+        <article class="admin-notification-card">
+          <div class="admin-notification-meta">
+            <span class="status-pill ${statusClass(notification.status)}">${escapeHtml(humanStatus(notification.status))}</span>
+            <span class="status-pill muted">${escapeHtml(notification.audience || "client")}</span>
+          </div>
+          <h3>${escapeHtml(notification.subject || humanStatus(notification.type))}</h3>
+          <p>${escapeHtml(notification.customerEmail || notification.to || "Recipient pending")}</p>
+          <small>
+            ${escapeHtml(notification.vehicleName || notification.bookingReference || notification.bookingId || "Reservation context pending")}
+            ${notification.reason ? ` · ${escapeHtml(notification.reason)}` : ""}
+          </small>
+        </article>
+      `,
+    )
+    .join("");
+}
+
 function adminCalendarStatus(vehicle, isoDate) {
   const availability = vehicle.availability || {};
   const confirmed = (availability.confirmedBookings || []).find((booking) =>
@@ -2860,6 +2891,7 @@ function renderAdminFailure(error) {
   renderAdminCustomers([]);
   renderAdminPayments([]);
   renderAdminLeads([]);
+  renderAdminNotifications([]);
 }
 
 async function safeAdminRequest(path) {
@@ -2924,6 +2956,7 @@ async function refreshAdmin() {
       customers: "/api/admin/customers",
       payments: "/api/admin/payments",
       leads: "/api/admin/leads",
+      notifications: "/api/admin/notifications",
     }).map(async ([key, path]) => [key, await safeAdminRequest(path)]),
   );
   const results = Object.fromEntries(entries);
@@ -2944,12 +2977,14 @@ async function refreshAdmin() {
   const customers = results.customers.data || { customers: [] };
   const payments = results.payments.data || { payments: [] };
   const leads = results.leads.data || { leads: [] };
+  const notifications = results.notifications.data || { notifications: summary.summary?.latestNotifications || [] };
   adminState = {
     bookings: bookings.bookings || [],
     customers: customers.customers || [],
     vehicles: vehiclesResponse.vehicles || summary.summary?.vehicles || [],
     payments: payments.payments || summary.summary?.latestPayments || [],
     leads: leads.leads || summary.summary?.latestLeads || [],
+    notifications: notifications.notifications || [],
   };
   renderAdminMetrics(summary.summary || {});
   renderAdminBookings(adminState.bookings);
@@ -2957,6 +2992,7 @@ async function refreshAdmin() {
   renderAdminCustomers(adminState.customers);
   renderAdminPayments(adminState.payments);
   renderAdminLeads(adminState.leads);
+  renderAdminNotifications(adminState.notifications);
   updateAdminAccessState({
     mode: "Operations live",
     unlocked: true,

@@ -29,8 +29,10 @@ export default async function handler(req, res) {
     let booking = adminUpdateBooking(body.id, body.action, body.patch || {});
     const notifyType = ["approve", "confirm"].includes(body.action)
       ? "booking_approved"
-      : ["reject", "cancel"].includes(body.action)
+      : body.action === "reject"
         ? "booking_rejected"
+        : body.action === "cancel"
+        ? "booking_cancelled"
         : "";
     if (!booking) {
       const statusByAction = {

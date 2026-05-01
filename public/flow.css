@@ -3404,6 +3404,7 @@ h2 {
 body[data-page="admin"]:not(.is-admin-unlocked) .admin-metrics,
 body[data-page="admin"]:not(.is-admin-unlocked) .admin-grid,
 body[data-page="admin"]:not(.is-admin-unlocked) .admin-ops-grid,
+body[data-page="admin"]:not(.is-admin-unlocked) .admin-communication-panel,
 body[data-page="admin"]:not(.is-admin-unlocked) .admin-customer-panel,
 body[data-page="admin"]:not(.is-admin-unlocked) .admin-detail-drawer {
   display: none;
@@ -3544,6 +3545,11 @@ body[data-page="admin"]:not(.is-admin-unlocked) .admin-detail-drawer {
   margin: 18px auto 0;
 }
 
+.admin-communication-panel {
+  width: min(1380px, 100%);
+  margin: 18px auto 0;
+}
+
 .admin-panel {
   display: grid;
   gap: 20px;
@@ -3612,7 +3618,8 @@ body[data-page="admin"]:not(.is-admin-unlocked) .admin-detail-drawer {
 
 .status-pill.status-confirmed,
 .status-pill.status-deposit-paid,
-.status-pill.status-paid {
+.status-pill.status-paid,
+.status-pill.status-sent {
   border-color: rgba(151, 204, 162, 0.42);
   background: rgba(151, 204, 162, 0.12);
   color: #cdebd4;
@@ -3635,7 +3642,8 @@ body[data-page="admin"]:not(.is-admin-unlocked) .admin-detail-drawer {
 }
 
 .status-pill.status-completed,
-.status-pill.status-refunded {
+.status-pill.status-refunded,
+.status-pill.status-skipped {
   border-color: rgba(248, 242, 236, 0.18);
   background: rgba(248, 242, 236, 0.08);
   color: rgba(248, 242, 236, 0.78);
@@ -3646,6 +3654,8 @@ body[data-page="admin"]:not(.is-admin-unlocked) .admin-detail-drawer {
 .admin-vehicle-card,
 .admin-lead-list,
 .admin-lead-card,
+.admin-notification-list,
+.admin-notification-card,
 .admin-inline-form,
 .admin-block-list {
   display: grid;
@@ -3700,6 +3710,43 @@ body[data-page="admin"]:not(.is-admin-unlocked) .admin-detail-drawer {
 .admin-lead-card small {
   color: rgba(248, 242, 236, 0.62);
   line-height: 1.55;
+}
+
+.admin-notification-list {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.admin-notification-card {
+  align-content: start;
+  min-height: 172px;
+  border: 1px solid rgba(248, 242, 236, 0.1);
+  border-radius: var(--radius);
+  background:
+    linear-gradient(145deg, rgba(215, 161, 140, 0.08), rgba(248, 242, 236, 0.018)),
+    rgba(5, 5, 5, 0.28);
+  padding: 16px;
+}
+
+.admin-notification-card h3 {
+  margin: 2px 0 0;
+  color: var(--ivory);
+  font-family: var(--font-display);
+  font-size: 1.18rem;
+  line-height: 1.12;
+}
+
+.admin-notification-card p,
+.admin-notification-card small {
+  margin: 0;
+  color: rgba(248, 242, 236, 0.62);
+  line-height: 1.52;
+}
+
+.admin-notification-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
 }
 
 .admin-inline-form {
@@ -4328,7 +4375,8 @@ body[data-page="admin"]:not(.is-admin-unlocked) .admin-detail-drawer {
   .upload-grid,
   .preference-grid,
   .ai-capability-grid,
-  .admin-metrics {
+  .admin-metrics,
+  .admin-notification-list {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -4384,6 +4432,7 @@ body[data-page="admin"]:not(.is-admin-unlocked) .admin-detail-drawer {
   .flow-trust-strip,
   .admin-detail-grid,
   .admin-metrics,
+  .admin-notification-list,
   .admin-inline-form {
     grid-template-columns: 1fr;
   }
