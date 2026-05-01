@@ -2,6 +2,14 @@ import { useEffect, useState } from "react";
 import { conciergeFleetKnowledge, conciergePromptChips, fleet } from "./data/fleet.js";
 
 const favouriteStorageKey = "velaireFavouriteCars";
+const clientStorageKeys = [
+  "velaireReservation",
+  "velaireAccount",
+  "velaireBackendBooking",
+  "velaireFavouriteCars",
+  "velaireAdminToken",
+];
+const signedOutMessageKey = "velaireSignedOutMessage";
 
 const trustItems = [
   { value: "5", label: "Curated vehicles" },
@@ -334,7 +342,11 @@ function App() {
     try {
       await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
     } finally {
+      clientStorageKeys.forEach((key) => window.localStorage.removeItem(key));
+      window.sessionStorage.setItem(signedOutMessageKey, "You have been signed out.");
+      setFavouriteCars([]);
       setAuthState({ checked: true, authenticated: false, user: null });
+      window.location.href = "login.html?signedOut=1";
     }
   }
 

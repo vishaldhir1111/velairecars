@@ -212,6 +212,14 @@ if (!read("public/login.html").includes('name="fullName"') || !read("public/flow
   throw new Error("Login flow must collect customer name and detect existing active vehicle bookings");
 }
 
+if (
+  !read("public/flow.js").includes("clearVelaireLocalState") ||
+  !read("public/flow.js").includes("You have been signed out.") ||
+  read("public/flow.js").includes("Local booking details remain on this device")
+) {
+  throw new Error("Logout flow must clear local client state and show a clean signed-out message");
+}
+
 if (read("src/App.jsx").includes("Quick reserve") || read("src/App.jsx").includes('className="hero-reserve"')) {
   throw new Error("Homepage quick reserve form should be removed from the active React homepage");
 }

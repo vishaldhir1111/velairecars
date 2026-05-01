@@ -301,8 +301,20 @@ textarea {
   color: var(--rose-3);
 }
 
-.account-logout {
+.account-logout-actions {
+  display: grid;
+  gap: 10px;
+}
+
+.account-logout,
+.account-logout-draft {
   width: 100%;
+}
+
+.account-logout-draft {
+  min-height: 42px;
+  border-color: rgba(248, 242, 236, 0.14);
+  color: rgba(248, 242, 236, 0.72);
 }
 
 .flow-trust-strip {

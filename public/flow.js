@@ -96,6 +96,7 @@ const accountStorageKey = "velaireAccount";
 const backendBookingKey = "velaireBackendBooking";
 const favouriteStorageKey = "velaireFavouriteCars";
 const adminTokenStorageKey = "velaireAdminToken";
+const signedOutMessageKey = "velaireSignedOutMessage";
 const defaultVehicle = "lamborghini-urus";
 const MAPBOX_TOKEN = "pk.eyJ1IjoidmlzaGFsZGhpcjExMTEiLCJhIjoiY21vampwYm54MGQzejJwczFzMHcwN3h2dSJ9.M-zV1ypGN1rPPTgEk0iWgg";
 const MAPBOX_GL_VERSION = "v3.10.0";
@@ -440,6 +441,59 @@ async function logoutBackendSession() {
   await optionalApiRequest("/api/auth/logout", { method: "POST" }, null);
 }
 
+function draftReservationFields(reservation = loadReservation()) {
+  const allowedKeys = [
+    "vehicle",
+    "pickup",
+    "pickupTime",
+    "return",
+    "returnTime",
+    "location",
+    "formattedAddress",
+    "placeId",
+    "lat",
+    "lng",
+    "handoverNotes",
+    "days",
+  ];
+  return Object.fromEntries(allowedKeys.map((key) => [key, reservation[key]]).filter(([, value]) => value));
+}
+
+function clearVelaireLocalState({ keepDraft = false } = {}) {
+  const draft = keepDraft ? draftReservationFields() : null;
+  [storageKey, accountStorageKey, backendBookingKey, favouriteStorageKey, adminTokenStorageKey].forEach((key) => {
+    window.localStorage.removeItem(key);
+  });
+  if (draft && Object.keys(draft).length) {
+    window.localStorage.setItem(storageKey, JSON.stringify(draft));
+  }
+}
+
+async function performLogout({ keepDraft = false, redirect = "login.html?signedOut=1" } = {}) {
+  await logoutBackendSession();
+  clearVelaireLocalState({ keepDraft });
+  window.sessionStorage.setItem(
+    signedOutMessageKey,
+    keepDraft ? "You have been signed out. Your booking draft is still on this device." : "You have been signed out.",
+  );
+  window.location.href = redirect;
+}
+
+function showSignedOutMessage() {
+  const params = new URLSearchParams(window.location.search);
+  const message = window.sessionStorage.getItem(signedOutMessageKey);
+  if (!params.has("signedOut") && !message) return;
+  window.sessionStorage.removeItem(signedOutMessageKey);
+  showFlowToast(message || "You have been signed out.");
+  if (document.body.dataset.page === "login") {
+    renderLoginState({
+      tone: "success",
+      title: "Signed out",
+      message: message || "You have been signed out.",
+    });
+  }
+}
+
 function renderFlowAuthNavigation(session = { authenticated: false, user: null }) {
   const navLinks = document.querySelector(".flow-nav-links");
   if (!navLinks) return;
@@ -461,9 +515,7 @@ function renderFlowAuthNavigation(session = { authenticated: false, user: null }
       logoutButton.dataset.flowAuthLogout = "true";
       logoutButton.textContent = "Log out";
       logoutButton.addEventListener("click", async () => {
-        await logoutBackendSession();
-        showFlowToast("Signed out of your Velaire account.");
-        renderFlowAuthNavigation({ authenticated: false, user: null });
+        await performLogout();
       });
       navLinks.appendChild(logoutButton);
     }
@@ -3090,9 +3142,11 @@ function setupAccount() {
   });
 
   document.querySelector("[data-logout]")?.addEventListener("click", async () => {
-    await logoutBackendSession();
-    renderFlowAuthNavigation({ authenticated: false, user: null });
-    showFlowToast("Signed out of the backend session. Local booking details remain on this device.");
+    await performLogout();
+  });
+
+  document.querySelector("[data-logout-keep-draft]")?.addEventListener("click", async () => {
+    await performLogout({ keepDraft: true });
   });
 
   updateAccountDisplay(account);
@@ -3469,6 +3523,7 @@ async function setupSuccess() {
 const page = document.body.dataset.page;
 hydrateVehicleModels();
 setupFlowAuthNavigation();
+showSignedOutMessage();
 if (page === "booking") setupBooking();
 if (page === "login") setupLogin();
 if (page === "payment") setupPayment();
