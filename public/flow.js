@@ -3476,6 +3476,8 @@ function setupLogin() {
     }
     const existingBooking = journeyMode === "booking" ? matchingActiveVehicleBooking(context.bookings || []) : null;
     if (existingBooking) {
+      authMode = "returning";
+      configureLoginExperience({ journeyMode, authMode });
       renderLoginState({
         tone: "warning",
         title: "Existing Velaire reservation found",

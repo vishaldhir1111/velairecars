@@ -1,5 +1,11 @@
 import { allowMethods, publicError, readJson, sendJson, sessionCookie } from "../_lib/http.js";
-import { getAuthUserRecord, getStoredAccountRecord, saveAccountRecord, saveAuthUserRecord } from "../_lib/operations-store.js";
+import {
+  getAuthUserRecord,
+  getStoredAccountRecord,
+  getStoredCustomerContext,
+  saveAccountRecord,
+  saveAuthUserRecord,
+} from "../_lib/operations-store.js";
 import {
   authenticateAuthUserRecord,
   authenticateUser,
@@ -13,6 +19,12 @@ export default async function handler(req, res) {
 
   try {
     const body = await readJson(req);
+    if (!body.password) {
+      const error = new Error("Enter your Velaire account password to continue.");
+      error.status = 400;
+      error.publicMessage = "Enter your Velaire account password to continue.";
+      throw error;
+    }
     let user;
     try {
       user = authenticateUser(body);
@@ -24,12 +36,22 @@ export default async function handler(req, res) {
         user = authenticateAuthUserRecord(storedUser, body.password);
       } else {
         const storedAccount = await getStoredAccountRecord(body.email);
-        if (!storedAccount) throw memoryError;
+        const storedContext = storedAccount ? null : await getStoredCustomerContext(body.email);
+        const storedCustomer = storedContext?.customer || null;
+        if (!storedAccount && !storedCustomer) throw memoryError;
         user = registerUser({
           email: body.email,
           password: body.password,
-          phone: storedAccount.phone || "",
-          profile: storedAccount.profile || {},
+          phone: storedAccount?.phone || storedCustomer?.phone || "",
+          profile: {
+            ...(storedAccount?.profile || {}),
+            fullName: storedAccount?.profile?.fullName || storedCustomer?.fullName || "",
+            preferredContact:
+              storedAccount?.profile?.preferredContact ||
+              storedCustomer?.preferredContact ||
+              "Email",
+            licenceCountry: storedAccount?.profile?.licenceCountry || "United Kingdom",
+          },
         });
         const authRecord = getAuthUserRecordForPersistence(user.email);
         await saveAccountRecord(user);

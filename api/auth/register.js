@@ -9,6 +9,7 @@ export default async function handler(req, res) {
     const body = await readJson(req);
     const existingUser = findUserByEmail(body.email);
     const existingAuthUser = existingUser || (await getAuthUserRecord(body.email));
+    const storedAccount = await getStoredAccountRecord(body.email);
     const existingPublicUser = existingUser || (existingAuthUser ? {
       id: existingAuthUser.id,
       email: existingAuthUser.email,
@@ -20,6 +21,17 @@ export default async function handler(req, res) {
       favourites: existingAuthUser.favourites || [],
       createdAt: existingAuthUser.createdAt,
       updatedAt: existingAuthUser.updatedAt,
+    } : null) || (storedAccount ? {
+      id: storedAccount.id,
+      email: storedAccount.email,
+      phone: storedAccount.phone || "",
+      profile: storedAccount.profile || {},
+      preferences: storedAccount.preferences || {},
+      verification: storedAccount.verification || { status: "not_submitted", documents: {} },
+      paymentMethod: null,
+      favourites: storedAccount.favourites || [],
+      createdAt: storedAccount.createdAt,
+      updatedAt: storedAccount.updatedAt,
     } : null);
     if (existingPublicUser) {
       sendJson(res, 409, {
@@ -29,12 +41,10 @@ export default async function handler(req, res) {
       });
       return;
     }
-    const storedAccount = await getStoredAccountRecord(body.email);
     const user = registerUser({
       ...body,
-      phone: body.phone || storedAccount?.phone || "",
+      phone: body.phone || "",
       profile: {
-        ...(storedAccount?.profile || {}),
         ...(body.profile || {}),
       },
     });
