@@ -1,7 +1,7 @@
 import { allowMethods, publicError, readJson, sendJson } from "./_lib/http.js";
 import { notifyClientAndAdmin } from "./_lib/notifications.js";
 import { findActiveReservation, findPaidDeposit, getStoredCustomerContext, saveOperationsRecords } from "./_lib/operations-store.js";
-import { createBooking, currentUser, listBookings, updateBooking } from "./_lib/store.js";
+import { createBooking, currentUser, findMatchingActiveBooking, listBookings, updateBooking } from "./_lib/store.js";
 import { customersFromBookings, mergeOperations } from "./_lib/stripe-operations.js";
 
 function reservationForSignedInUser(reservation = {}, user = null) {
@@ -57,6 +57,7 @@ export default async function handler(req, res) {
         email: reservation.email,
         vehicle: reservation.vehicle,
         pickup: reservation.pickup,
+        returnDate: reservation.return,
       });
       if (paidDeposit) {
         const booking = await attachStoredBookingToUser({
@@ -103,6 +104,7 @@ export default async function handler(req, res) {
       email: reservation.email,
       vehicle: reservation.vehicle,
       pickup: reservation.pickup,
+      returnDate: reservation.return,
     });
     if (paidDeposit?.booking || paidDeposit?.payment) {
       const booking = await attachStoredBookingToUser({
@@ -126,17 +128,26 @@ export default async function handler(req, res) {
       pickup: reservation.pickup,
       returnDate: reservation.return,
     });
-    if (activeReservation?.booking) {
+    const localActiveBooking = activeReservation?.booking
+      ? null
+      : findMatchingActiveBooking({
+          userId: user?.id || "",
+          email: reservation.email,
+          vehicleSlug: reservation.vehicle,
+          pickup: reservation.pickup,
+          returnDate: reservation.return,
+        });
+    if (activeReservation?.booking || localActiveBooking) {
       const booking = await attachStoredBookingToUser({
-        booking: activeReservation.booking,
-        payment: activeReservation.payment,
+        booking: activeReservation?.booking || localActiveBooking,
+        payment: activeReservation?.payment || null,
         reservation,
         user,
       });
       sendJson(res, 200, {
         authenticated: Boolean(user),
         booking,
-        payment: activeReservation.payment || null,
+        payment: activeReservation?.payment || null,
         protected: "reservation_already_exists",
         message: "An active Velaire reservation already exists for this client and vehicle.",
       });

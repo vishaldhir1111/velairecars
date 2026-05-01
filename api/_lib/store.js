@@ -849,6 +849,22 @@ export function listBookings(userId) {
   return db.bookings.filter((booking) => booking.userId === userId).map(publicBooking);
 }
 
+export function findMatchingActiveBooking({ userId = "", email = "", vehicleSlug = "", pickup = "", returnDate = "" } = {}) {
+  const cleanEmail = normaliseEmail(email);
+  const booking = db.bookings.find((item) => {
+    const status = normaliseBookingStatus(item.status, "pending");
+    if (releasedBookingStatuses.has(status)) return false;
+    const sameAccount = (userId && item.userId === userId) || (cleanEmail && item.customerEmail === cleanEmail);
+    return (
+      sameAccount &&
+      item.vehicleSlug === vehicleSlug &&
+      item.pickup === pickup &&
+      item.return === returnDate
+    );
+  });
+  return booking ? publicBooking(booking) : null;
+}
+
 export function createPaymentIntent({ bookingId, reservation = {} }) {
   const booking = db.bookings.find((item) => item.id === bookingId);
   const existingPaidPayment = db.payments.find(

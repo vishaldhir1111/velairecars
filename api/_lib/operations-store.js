@@ -205,7 +205,7 @@ export async function getStoredCustomerContext(email = "") {
   return { bookings, payments, customer, available: operations.available };
 }
 
-export async function findPaidDeposit({ bookingId = "", email = "", vehicle = "", pickup = "" } = {}) {
+export async function findPaidDeposit({ bookingId = "", email = "", vehicle = "", pickup = "", returnDate = "" } = {}) {
   if (!operationsStoreConfigured()) return null;
   const operations = await listStoredOperations();
   const cleanEmail = String(email || "").trim().toLowerCase();
@@ -214,7 +214,8 @@ export async function findPaidDeposit({ bookingId = "", email = "", vehicle = ""
     const sameClient = cleanEmail && String(item.customerEmail || "").toLowerCase() === cleanEmail;
     const sameVehicle = !vehicle || item.vehicleSlug === vehicle;
     const samePickup = !pickup || item.pickup === pickup;
-    return sameClient && sameVehicle && samePickup && item.paymentStatus === "deposit_paid";
+    const sameReturn = !returnDate || item.return === returnDate;
+    return sameClient && sameVehicle && samePickup && sameReturn && item.paymentStatus === "deposit_paid";
   });
   const payment = operations.payments.find((item) => {
     if (booking?.id && item.bookingId === booking.id && item.status === "deposit_paid") return true;
@@ -222,7 +223,8 @@ export async function findPaidDeposit({ bookingId = "", email = "", vehicle = ""
     const sameClient = cleanEmail && String(item.customerEmail || "").toLowerCase() === cleanEmail;
     const sameVehicle = !vehicle || item.vehicleSlug === vehicle || booking?.vehicleSlug === vehicle;
     const samePickup = !pickup || item.pickup === pickup || booking?.pickup === pickup;
-    return !bookingId && sameClient && sameVehicle && samePickup && item.status === "deposit_paid";
+    const sameReturn = !returnDate || item.return === returnDate || booking?.return === returnDate;
+    return !bookingId && sameClient && sameVehicle && samePickup && sameReturn && item.status === "deposit_paid";
   });
   if (!booking && !payment) return null;
   return { booking, payment };

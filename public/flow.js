@@ -396,12 +396,33 @@ function clearReservationBookingState() {
   return reservation;
 }
 
+function startFreshBookingDraft({ vehicle = "" } = {}) {
+  const current = loadReservation();
+  const account = loadAccount();
+  const next = {
+    vehicle: vehicle || current.vehicle || defaultVehicle,
+    name: account.fullName || current.name || current.fullName || "",
+    fullName: account.fullName || current.fullName || current.name || "",
+    email: account.email || current.email || "",
+    phone: account.phone || current.phone || "",
+    clientIntent: "reservation",
+  };
+  clearBackendBooking();
+  window.localStorage.setItem(storageKey, JSON.stringify(next));
+  return next;
+}
+
 function bookingMatchesReservationDraft(booking = null, reservation = {}) {
   if (!booking?.id) return false;
   const sameVehicle = !reservation.vehicle || !booking.vehicleSlug || booking.vehicleSlug === reservation.vehicle;
   const samePickup = !reservation.pickup || !booking.pickup || booking.pickup === reservation.pickup;
   const sameReturn = !reservation.return || !booking.return || booking.return === reservation.return;
   return sameVehicle && samePickup && sameReturn;
+}
+
+function bookingExactlyMatchesReservation(booking = null, reservation = {}) {
+  if (!booking?.id || !reservation.vehicle || !reservation.pickup || !reservation.return) return false;
+  return booking.vehicleSlug === reservation.vehicle && booking.pickup === reservation.pickup && booking.return === reservation.return;
 }
 
 function bookingCanBeUpdatedForReservation(booking = null, reservation = {}) {
@@ -758,11 +779,10 @@ async function fetchAccountContext(email = "") {
 }
 
 function matchingActiveVehicleBooking(bookings = [], reservation = loadReservation()) {
-  const vehicle = reservation.vehicle || selectedSlug();
   const released = new Set(["cancelled", "completed", "rejected"]);
   return bookings.find(
     (booking) =>
-      booking?.vehicleSlug === vehicle &&
+      bookingExactlyMatchesReservation(booking, reservation) &&
       !released.has(String(booking.status || "").toLowerCase()),
   );
 }
@@ -3373,7 +3393,17 @@ async function setupAccount() {
 
 function setupBooking() {
   const form = document.querySelector("form");
-  const reservation = loadReservation();
+  const params = new URLSearchParams(window.location.search);
+  const requestedVehicle = params.get("vehicle") || "";
+  let reservation = loadReservation();
+  const storedBooking = loadBackendBooking();
+  const bookingStateIsClosed =
+    reservation.paymentStatus === "deposit_paid" ||
+    ["confirmed", "completed", "cancelled", "rejected"].includes(String(reservation.status || storedBooking?.status || "").toLowerCase()) ||
+    (storedBooking && !bookingCanBeUpdatedForReservation(storedBooking, reservation));
+  if (requestedVehicle || bookingStateIsClosed) {
+    reservation = startFreshBookingDraft({ vehicle: requestedVehicle || reservation.vehicle || selectedSlug() });
+  }
   const slug = selectedSlug();
   const radio = document.querySelector(`input[name="vehicle"][value="${slug}"]`);
   if (radio) radio.checked = true;
