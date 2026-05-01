@@ -272,6 +272,51 @@ function hashPassword(password, salt = crypto.randomBytes(16).toString("hex")) {
   return { salt, hash };
 }
 
+function sessionSecret() {
+  return String(
+    process.env.VELAIRE_SESSION_SECRET ||
+      process.env.VELAIRE_ADMIN_TOKEN ||
+      process.env.VELAIRE_PORTAL_PASSWORD ||
+      "velaire-dev-session-secret",
+  );
+}
+
+function encodeSessionPayload(payload) {
+  return Buffer.from(JSON.stringify(payload)).toString("base64url");
+}
+
+function decodeSessionPayload(value) {
+  return JSON.parse(Buffer.from(value, "base64url").toString("utf8"));
+}
+
+function sessionSignature(body) {
+  return crypto.createHmac("sha256", sessionSecret()).update(body).digest("base64url");
+}
+
+function signSessionPayload(payload) {
+  const body = encodeSessionPayload(payload);
+  return `v1.${body}.${sessionSignature(body)}`;
+}
+
+function verifySignedSessionToken(token = "") {
+  const [version, body, signature] = String(token || "").split(".");
+  if (version !== "v1" || !body || !signature) return null;
+
+  const expected = sessionSignature(body);
+  const expectedBuffer = Buffer.from(expected);
+  const receivedBuffer = Buffer.from(signature);
+  if (expectedBuffer.length !== receivedBuffer.length) return null;
+  if (!crypto.timingSafeEqual(expectedBuffer, receivedBuffer)) return null;
+
+  try {
+    const payload = decodeSessionPayload(body);
+    if (!payload?.email || !payload?.expiresAt || new Date(payload.expiresAt) <= new Date()) return null;
+    return payload;
+  } catch {
+    return null;
+  }
+}
+
 function assertEmail(email) {
   if (!normaliseEmail(email).includes("@")) {
     const error = new Error("Enter a valid email address.");
@@ -295,6 +340,69 @@ function publicUser(user) {
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,
   };
+}
+
+function publicUserFromSessionPayload(payload) {
+  if (!payload?.email) return null;
+  return {
+    id: payload.userId || `session_${normaliseEmail(payload.email)}`,
+    email: normaliseEmail(payload.email),
+    phone: payload.phone || "",
+    profile: payload.profile || {},
+    preferences: payload.preferences || {},
+    verification: payload.verification || { status: "not_submitted", documents: {} },
+    paymentMethod: null,
+    favourites: payload.favourites || [],
+    createdAt: payload.createdAt || payload.issuedAt || now(),
+    updatedAt: payload.updatedAt || payload.issuedAt || now(),
+  };
+}
+
+function importAuthUserRecord(record) {
+  if (!record?.email) return null;
+  const cleanEmail = normaliseEmail(record.email);
+  let user = db.users.find((item) => item.email === cleanEmail || item.id === record.id);
+  const next = {
+    id: record.id || user?.id || id("usr"),
+    email: cleanEmail,
+    phone: record.phone || user?.phone || "",
+    password: record.password || user?.password || null,
+    profile: {
+      fullName: record.profile?.fullName || user?.profile?.fullName || "",
+      billingAddress: record.profile?.billingAddress || user?.profile?.billingAddress || "",
+      billingAddressLine1: record.profile?.billingAddressLine1 || user?.profile?.billingAddressLine1 || record.profile?.billingAddress || "",
+      billingAddressLine2: record.profile?.billingAddressLine2 || user?.profile?.billingAddressLine2 || "",
+      billingTown: record.profile?.billingTown || user?.profile?.billingTown || "",
+      billingCity: record.profile?.billingCity || user?.profile?.billingCity || "",
+      billingPostcode: record.profile?.billingPostcode || user?.profile?.billingPostcode || "",
+      billingCountry: record.profile?.billingCountry || user?.profile?.billingCountry || "United Kingdom",
+      licenceCountry: record.profile?.licenceCountry || user?.profile?.licenceCountry || "United Kingdom",
+      preferredContact: record.profile?.preferredContact || user?.profile?.preferredContact || "Email",
+    },
+    preferences: {
+      vehicleCategories: record.preferences?.vehicleCategories || user?.preferences?.vehicleCategories || ["Super SUV", "Luxury SUV"],
+      handoverType: record.preferences?.handoverType || user?.preferences?.handoverType || "Concierge delivery",
+      communication: record.preferences?.communication || user?.preferences?.communication || ["Concierge updates"],
+      preferredLocation: record.preferences?.preferredLocation || user?.preferences?.preferredLocation || "",
+      savedLocations: record.preferences?.savedLocations || user?.preferences?.savedLocations || [],
+    },
+    verification: {
+      status: record.verification?.status || user?.verification?.status || "not_submitted",
+      documents: record.verification?.documents || user?.verification?.documents || {},
+    },
+    paymentMethod: record.paymentMethod || user?.paymentMethod || null,
+    favourites: record.favourites || user?.favourites || ["lamborghini-urus", "range-rover-sport-svr", "bmw-m440i-convertible"],
+    createdAt: record.createdAt || user?.createdAt || now(),
+    updatedAt: record.updatedAt || user?.updatedAt || now(),
+  };
+
+  if (user) {
+    Object.assign(user, next);
+  } else {
+    db.users.push(next);
+    user = next;
+  }
+  return user;
 }
 
 function userBookingSummary(userId, email) {
@@ -332,7 +440,12 @@ export function registerUser({ email, password, phone = "", profile = {} }) {
     profile: {
       fullName: profile.fullName || "",
       billingAddress: profile.billingAddress || "",
+      billingAddressLine1: profile.billingAddressLine1 || profile.billingAddress || "",
+      billingAddressLine2: profile.billingAddressLine2 || "",
+      billingTown: profile.billingTown || "",
+      billingCity: profile.billingCity || "",
       billingPostcode: profile.billingPostcode || "",
+      billingCountry: profile.billingCountry || "United Kingdom",
       licenceCountry: profile.licenceCountry || "United Kingdom",
       preferredContact: profile.preferredContact || "Email",
     },
@@ -378,16 +491,68 @@ export function authenticateUser({ email, password }) {
   return publicUser(user);
 }
 
+export function authenticateAuthUserRecord(record, password) {
+  const cleanEmail = normaliseEmail(record?.email);
+  if (!cleanEmail || !record?.password?.salt || !record?.password?.hash) {
+    const error = new Error("No Velaire account found for this email.");
+    error.status = 401;
+    error.publicMessage = "No Velaire account found for this email.";
+    throw error;
+  }
+
+  const candidate = hashPassword(password || "", record.password.salt);
+  if (candidate.hash !== record.password.hash) {
+    const error = new Error("The password did not match this Velaire account.");
+    error.status = 401;
+    error.publicMessage = "The password did not match this Velaire account.";
+    throw error;
+  }
+
+  return publicUser(importAuthUserRecord(record));
+}
+
 export function findUserByEmail(email = "") {
   const cleanEmail = normaliseEmail(email);
   if (!cleanEmail) return null;
   return publicUser(db.users.find((user) => user.email === cleanEmail));
 }
 
+export function getAuthUserRecordForPersistence(email = "") {
+  const cleanEmail = normaliseEmail(email);
+  if (!cleanEmail) return null;
+  const user = db.users.find((item) => item.email === cleanEmail);
+  if (!user) return null;
+  return {
+    id: user.id,
+    email: user.email,
+    phone: user.phone || "",
+    password: user.password || null,
+    profile: user.profile || {},
+    preferences: user.preferences || {},
+    verification: user.verification || { status: "not_submitted", documents: {} },
+    paymentMethod: user.paymentMethod || null,
+    favourites: user.favourites || [],
+    createdAt: user.createdAt,
+    updatedAt: user.updatedAt,
+  };
+}
+
 export function createSession(userId) {
-  const token = crypto.randomBytes(24).toString("hex");
+  const user = db.users.find((item) => item.id === userId);
   const session = {
-    token,
+    token: signSessionPayload({
+      userId: user?.id || userId,
+      email: user?.email || "",
+      phone: user?.phone || "",
+      profile: user?.profile || {},
+      preferences: user?.preferences || {},
+      verification: user?.verification || { status: "not_submitted", documents: {} },
+      favourites: user?.favourites || [],
+      createdAt: user?.createdAt || now(),
+      updatedAt: user?.updatedAt || now(),
+      issuedAt: now(),
+      expiresAt: new Date(Date.now() + 30 * 86400000).toISOString(),
+    }),
     userId,
     createdAt: now(),
     expiresAt: new Date(Date.now() + 30 * 86400000).toISOString(),
@@ -404,8 +569,17 @@ export function currentUser(req) {
   const token = parseCookies(req).velaire_session;
   if (!token) return null;
   const session = db.sessions.find((item) => item.token === token && new Date(item.expiresAt) > new Date());
-  if (!session) return null;
-  return publicUser(db.users.find((user) => user.id === session.userId));
+  if (session) {
+    const user = publicUser(db.users.find((item) => item.id === session.userId));
+    if (user) return user;
+  }
+
+  const payload = verifySignedSessionToken(token);
+  if (!payload) return null;
+  return (
+    publicUser(db.users.find((user) => user.id === payload.userId || user.email === normaliseEmail(payload.email))) ||
+    publicUserFromSessionPayload(payload)
+  );
 }
 
 function mutableUser(userId) {

@@ -1,8 +1,37 @@
 import { allowMethods, publicError, readJson, sendJson } from "./_lib/http.js";
 import { notifyClientAndAdmin } from "./_lib/notifications.js";
-import { findActiveReservation, findPaidDeposit, saveOperationsRecords } from "./_lib/operations-store.js";
+import { findActiveReservation, findPaidDeposit, getStoredCustomerContext, saveOperationsRecords } from "./_lib/operations-store.js";
 import { createBooking, currentUser, listBookings, updateBooking } from "./_lib/store.js";
-import { customersFromBookings } from "./_lib/stripe-operations.js";
+import { customersFromBookings, mergeOperations } from "./_lib/stripe-operations.js";
+
+function reservationForSignedInUser(reservation = {}, user = null) {
+  if (!user) return reservation;
+  return {
+    ...reservation,
+    name: reservation.name || reservation.fullName || user.profile?.fullName || "",
+    fullName: reservation.fullName || reservation.name || user.profile?.fullName || "",
+    email: reservation.email || user.email || "",
+    phone: reservation.phone || user.phone || "",
+  };
+}
+
+async function attachStoredBookingToUser({ booking, payment = null, reservation = {}, user = null } = {}) {
+  if (!booking || !user?.id) return booking;
+  const attachedBooking = {
+    ...booking,
+    userId: user.id,
+    customerName: booking.customerName || reservation.name || reservation.fullName || user.profile?.fullName || "",
+    customerEmail: booking.customerEmail || reservation.email || user.email || "",
+    customerPhone: booking.customerPhone || reservation.phone || user.phone || "",
+    updatedAt: new Date().toISOString(),
+  };
+  await saveOperationsRecords({
+    booking: attachedBooking,
+    payment,
+    customers: customersFromBookings([attachedBooking]),
+  });
+  return attachedBooking;
+}
 
 export default async function handler(req, res) {
   if (!allowMethods(req, res, ["GET", "POST", "PATCH"])) return;
@@ -10,9 +39,10 @@ export default async function handler(req, res) {
   const user = currentUser(req);
 
   if (req.method === "GET") {
+    const storedContext = user?.email ? await getStoredCustomerContext(user.email) : { bookings: [] };
     sendJson(res, 200, {
       authenticated: Boolean(user),
-      bookings: listBookings(user?.id),
+      bookings: mergeOperations(listBookings(user?.id), storedContext.bookings || []),
     });
     return;
   }
@@ -21,7 +51,7 @@ export default async function handler(req, res) {
     const body = await readJson(req);
 
     if (req.method === "PATCH") {
-      const reservation = body.patch?.reservation || {};
+      const reservation = reservationForSignedInUser(body.patch?.reservation || {}, user);
       const paidDeposit = await findPaidDeposit({
         bookingId: body.id,
         email: reservation.email,
@@ -29,8 +59,14 @@ export default async function handler(req, res) {
         pickup: reservation.pickup,
       });
       if (paidDeposit) {
+        const booking = await attachStoredBookingToUser({
+          booking: paidDeposit.booking,
+          payment: paidDeposit.payment,
+          reservation,
+          user,
+        });
         sendJson(res, 200, {
-          booking: paidDeposit.booking || {
+          booking: booking || {
             id: body.id,
             status: "confirmed",
             paymentStatus: "deposit_paid",
@@ -41,7 +77,11 @@ export default async function handler(req, res) {
         });
         return;
       }
-      const booking = updateBooking(body.id, body.patch || {});
+      const booking = updateBooking(body.id, {
+        ...(body.patch || {}),
+        reservation,
+        ...(user?.id ? { userId: user.id } : {}),
+      });
       if (!booking) {
         sendJson(res, 404, { error: "booking_not_found", message: "Booking not found." });
         return;
@@ -58,16 +98,22 @@ export default async function handler(req, res) {
       return;
     }
 
-    const reservation = body.reservation || body;
+    const reservation = reservationForSignedInUser(body.reservation || body, user);
     const paidDeposit = await findPaidDeposit({
       email: reservation.email,
       vehicle: reservation.vehicle,
       pickup: reservation.pickup,
     });
     if (paidDeposit?.booking || paidDeposit?.payment) {
+      const booking = await attachStoredBookingToUser({
+        booking: paidDeposit.booking,
+        payment: paidDeposit.payment,
+        reservation,
+        user,
+      });
       sendJson(res, 200, {
         authenticated: Boolean(user),
-        booking: paidDeposit.booking || null,
+        booking: booking || null,
         payment: paidDeposit.payment || null,
         protected: "deposit_already_paid",
       });
@@ -79,9 +125,15 @@ export default async function handler(req, res) {
       vehicle: reservation.vehicle,
     });
     if (activeReservation?.booking) {
+      const booking = await attachStoredBookingToUser({
+        booking: activeReservation.booking,
+        payment: activeReservation.payment,
+        reservation,
+        user,
+      });
       sendJson(res, 200, {
         authenticated: Boolean(user),
-        booking: activeReservation.booking,
+        booking,
         payment: activeReservation.payment || null,
         protected: "reservation_already_exists",
         message: "An active Velaire reservation already exists for this client and vehicle.",

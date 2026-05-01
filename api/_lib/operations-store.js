@@ -267,6 +267,42 @@ export async function saveAccountRecord(user = {}) {
   }
 }
 
+export async function saveAuthUserRecord(user = {}) {
+  const email = String(user.email || "").trim().toLowerCase();
+  if (!operationsStoreConfigured() || !email || !user.password?.hash || !user.password?.salt) {
+    return { saved: false, reason: "auth_record_incomplete_or_store_not_configured" };
+  }
+  try {
+    const record = {
+      id: user.id || `account_${email}`,
+      email,
+      phone: user.phone || "",
+      password: user.password,
+      profile: user.profile || {},
+      preferences: user.preferences || {},
+      verification: user.verification || {},
+      paymentMethod: user.paymentMethod || null,
+      favourites: user.favourites || [],
+      createdAt: user.createdAt || new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    await hsetJson(key("auth-users"), email, record);
+    return { saved: true, record };
+  } catch (error) {
+    return { saved: false, reason: error.publicMessage || error.message || "auth_store_write_failed" };
+  }
+}
+
+export async function getAuthUserRecord(email = "") {
+  const cleanEmail = String(email || "").trim().toLowerCase();
+  if (!operationsStoreConfigured() || !cleanEmail) return null;
+  try {
+    return await hgetJson(key("auth-users"), cleanEmail);
+  } catch {
+    return null;
+  }
+}
+
 export async function getStoredAccountRecord(email = "") {
   const cleanEmail = String(email || "").trim().toLowerCase();
   if (!operationsStoreConfigured() || !cleanEmail) return null;

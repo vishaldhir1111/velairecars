@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="Enter your Velaire Cars account details to continue a premium reservation." />
-    <title>Client Portal | Velaire Cars</title>
+    <title>Client Lounge | Velaire Cars</title>
     <link rel="stylesheet" href="flow.css" />
   </head>
   <body data-page="login">
@@ -22,20 +22,20 @@
           <a href="/#experience">Experience</a>
           <a href="booking.html">Reserve</a>
           <a href="ai.html">AI concierge</a>
-          <a href="account.html">Account</a>
+          <a href="account.html">Client Lounge</a>
         </div>
         <a class="flow-back" href="booking.html">Back to booking</a>
       </nav>
 
       <section class="flow-stage compact-stage">
         <div class="flow-intro">
-          <p class="eyebrow">Step 2 of 4</p>
-          <h1>Enter the private client portal.</h1>
-          <p>
+          <p class="eyebrow" data-login-kicker>Private client access</p>
+          <h1 data-login-title>Enter the Velaire Client Lounge.</h1>
+          <p data-login-copy>
             Continue with your contact details so the Velaire concierge can prepare verification,
             handover timing and reservation support.
           </p>
-          <div class="step-row" aria-label="Booking progress">
+          <div class="step-row" aria-label="Booking progress" data-login-progress>
             <span class="step">Car</span>
             <span class="step active">Account</span>
             <span class="step">Reserve</span>
@@ -51,19 +51,30 @@
             </div>
 
             <div class="panel-heading">
-              <p class="eyebrow">Client details</p>
-              <h2>Continue securely.</h2>
+              <p class="eyebrow">Client Lounge</p>
+              <h2 data-login-panel-title>Sign in or create access.</h2>
             </div>
 
             <div class="flow-state-card" data-login-state hidden></div>
 
+            <div class="client-access-strip" aria-label="Client access options">
+              <button class="client-access-option is-active" type="button" data-auth-mode="returning">
+                <span>Returning client</span>
+                <strong>Sign in</strong>
+              </button>
+              <button class="client-access-option" type="button" data-auth-mode="new">
+                <span>New client</span>
+                <strong>Create access</strong>
+              </button>
+            </div>
+
             <label class="field">
               Full name
-              <input type="text" name="fullName" placeholder="Your full name" autocomplete="name" />
+              <input type="text" name="fullName" placeholder="Your full name" autocomplete="name" required />
             </label>
             <label class="field">
               Email address
-              <input type="email" name="email" placeholder="you@example.com" autocomplete="email" />
+              <input type="email" name="email" placeholder="you@example.com" autocomplete="email" required />
             </label>
             <label class="field">
               Mobile number
@@ -71,13 +82,13 @@
             </label>
             <label class="field">
               Password
-              <input type="password" name="password" placeholder="Enter password" autocomplete="current-password" />
+              <input type="password" name="password" placeholder="Enter password" autocomplete="current-password" minlength="8" required />
             </label>
-            <button class="primary-button full-width" type="submit">Continue to reservation</button>
+            <button class="primary-button full-width" type="submit" data-login-submit>Continue securely</button>
             <a class="secondary-button full-width" href="account.html">Open client lounge</a>
             <p class="secure-note">
-              New Velaire clients can continue here. Licence, ID and insurance checks are completed
-              by concierge before vehicle release.
+              Your lounge keeps reservations, verification and handover preferences together. Card details
+              are never stored here and deposits are handled through Stripe Checkout.
             </p>
           </form>
 

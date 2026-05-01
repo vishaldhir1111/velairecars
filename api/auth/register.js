@@ -1,6 +1,6 @@
 import { allowMethods, publicError, readJson, sendJson, sessionCookie } from "../_lib/http.js";
-import { getStoredAccountRecord, saveAccountRecord } from "../_lib/operations-store.js";
-import { createSession, findUserByEmail, registerUser } from "../_lib/store.js";
+import { getAuthUserRecord, getStoredAccountRecord, saveAccountRecord, saveAuthUserRecord } from "../_lib/operations-store.js";
+import { createSession, findUserByEmail, getAuthUserRecordForPersistence, registerUser } from "../_lib/store.js";
 
 export default async function handler(req, res) {
   if (!allowMethods(req, res, ["POST"])) return;
@@ -8,11 +8,24 @@ export default async function handler(req, res) {
   try {
     const body = await readJson(req);
     const existingUser = findUserByEmail(body.email);
-    if (existingUser) {
+    const existingAuthUser = existingUser || (await getAuthUserRecord(body.email));
+    const existingPublicUser = existingUser || (existingAuthUser ? {
+      id: existingAuthUser.id,
+      email: existingAuthUser.email,
+      phone: existingAuthUser.phone || "",
+      profile: existingAuthUser.profile || {},
+      preferences: existingAuthUser.preferences || {},
+      verification: existingAuthUser.verification || { status: "not_submitted", documents: {} },
+      paymentMethod: null,
+      favourites: existingAuthUser.favourites || [],
+      createdAt: existingAuthUser.createdAt,
+      updatedAt: existingAuthUser.updatedAt,
+    } : null);
+    if (existingPublicUser) {
       sendJson(res, 409, {
         error: "account_exists",
         message: "A Velaire account already exists for this email. Sign in to continue the reservation.",
-        user: existingUser,
+        user: existingPublicUser,
       });
       return;
     }
@@ -25,7 +38,9 @@ export default async function handler(req, res) {
         ...(body.profile || {}),
       },
     });
+    const authRecord = getAuthUserRecordForPersistence(user.email);
     await saveAccountRecord(user);
+    await saveAuthUserRecord(authRecord);
     const session = createSession(user.id);
     res.setHeader("Set-Cookie", sessionCookie(req, session.token));
     sendJson(res, 201, { user, session: { authenticated: true } });

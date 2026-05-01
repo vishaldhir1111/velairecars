@@ -493,6 +493,49 @@ h2 {
   align-items: stretch;
 }
 
+.client-access-strip {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.client-access-option {
+  display: grid;
+  gap: 5px;
+  min-height: 76px;
+  padding: 14px;
+  border: 1px solid rgba(248, 242, 236, 0.1);
+  border-radius: var(--radius);
+  background: rgba(248, 242, 236, 0.04);
+  color: var(--muted);
+  text-align: left;
+  transition: border-color 180ms ease, background 180ms ease, color 180ms ease, transform 180ms ease;
+}
+
+.client-access-option span {
+  color: var(--rose);
+  font-size: 0.7rem;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.client-access-option strong {
+  color: var(--ivory);
+  font-family: var(--font-display);
+  font-size: 1.04rem;
+  font-weight: 650;
+}
+
+.client-access-option:hover,
+.client-access-option:focus-visible,
+.client-access-option.is-active {
+  border-color: rgba(215, 161, 140, 0.48);
+  background: linear-gradient(145deg, rgba(215, 161, 140, 0.14), rgba(248, 242, 236, 0.045));
+  color: var(--ivory);
+  outline: none;
+  transform: translateY(-1px);
+}
+
 .flow-panel {
   border: 1px solid rgba(215, 161, 140, 0.26);
   border-radius: var(--radius);
@@ -2466,6 +2509,36 @@ h2 {
   padding: 24px;
 }
 
+.client-session-card {
+  display: grid;
+  gap: 5px;
+  padding: 14px;
+  border: 1px solid rgba(215, 161, 140, 0.28);
+  border-radius: var(--radius);
+  background:
+    linear-gradient(145deg, rgba(215, 161, 140, 0.1), rgba(248, 242, 236, 0.035)),
+    rgba(5, 5, 5, 0.24);
+}
+
+.client-session-card span {
+  color: var(--rose);
+  font-size: 0.7rem;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.client-session-card strong {
+  color: var(--ivory);
+  font-family: var(--font-display);
+  font-size: 1.08rem;
+  font-weight: 650;
+}
+
+.client-session-card small {
+  color: var(--muted);
+  line-height: 1.45;
+}
+
 .client-avatar {
   display: grid;
   width: 70px;
@@ -2947,7 +3020,7 @@ h2 {
 }
 
 .payment-account-grid {
-  grid-template-columns: minmax(260px, 0.4fr) minmax(0, 1fr);
+  grid-template-columns: 1fr;
 }
 
 .preference-grid {
@@ -4191,6 +4264,7 @@ body[data-page="admin"]:not(.is-admin-unlocked) .admin-detail-drawer {
 
   .step-row,
   .choice-grid,
+  .client-access-strip,
   .two-column,
   .intro-stat-grid,
   .flow-trust-strip,

@@ -20,20 +20,20 @@ const trustItems = [
 
 const serviceCards = [
   {
-    title: "Concierge delivery",
-    text: "Home, hotel, airport and event handovers with a polished inspection process.",
+    title: "Concierge handover",
+    text: "Home, hotel, airport and event arrivals arranged with calm precision.",
   },
   {
-    title: "Verified fleet",
-    text: "Every vehicle is inspected, photographed and prepared to a high showroom standard.",
+    title: "Prepared to present",
+    text: "Every vehicle is detailed, staged and ready to feel occasion-worthy.",
   },
   {
-    title: "Clear reservation terms",
-    text: "Transparent daily rates, deposit guidance and availability messaging before you commit.",
+    title: "Effortless movement",
+    text: "A refined reserve-to-handover journey without rental-counter friction.",
   },
   {
-    title: "Premium support",
-    text: "A client-focused team for itinerary changes, extensions and special occasions.",
+    title: "Discreet support",
+    text: "Considered help for timing changes, special occasions and extended drives.",
   },
 ];
 
@@ -404,8 +404,8 @@ function App() {
           <a href="#experience">Experience</a>
           <a href="#booking">Reserve</a>
           <a href="ai.html">AI concierge</a>
-          <a href={authState.authenticated ? "account.html" : "login.html"}>
-            {authState.authenticated ? "Account" : "Login"}
+          <a href={authState.authenticated ? "account.html" : "login.html?mode=lounge"}>
+            {authState.authenticated ? "Accounts" : "Login"}
           </a>
         </nav>
 
@@ -428,9 +428,8 @@ function App() {
               <p className="eyebrow">Luxury car rental, elevated</p>
               <h1>Velaire Cars</h1>
               <p className="hero-lede">
-                Reserve exceptional vehicles with a seamless premium experience. Performance SUVs,
-                electric saloons, convertibles and driver-focused icons delivered with concierge
-                precision.
+                Exceptional cars for elegant arrivals, curated handovers and journeys that feel
+                composed from the first click.
               </p>
               <div className="hero-actions">
                 <a className="primary-button" href="#fleet">
@@ -443,8 +442,8 @@ function App() {
             </div>
 
             <div className="hero-signature" aria-label="Velaire booking promise">
-              <span>Private-client booking</span>
-              <strong>Concierge handover, verified documents and Stripe-secured deposits.</strong>
+              <span>Velaire standard</span>
+              <strong>Concierge handover, depart with class.</strong>
             </div>
           </div>
         </section>
@@ -515,17 +514,20 @@ function App() {
             <VehiclePhoto car={selectedCar} size="large" />
           </div>
           <div className="detail-copy">
-            <p className="eyebrow">Selected experience</p>
-            <h2>{selectedCar.name}</h2>
-            <p>{selectedCar.summary}</p>
+            <p className="eyebrow">Velaire arrival</p>
+            <h2>Depart with class in the {selectedCar.name}.</h2>
+            <p>
+              {selectedCar.summary} Every booking is shaped around the arrival, the route and the
+              handover detail that makes the car feel effortless.
+            </p>
             <div className="detail-meta">
               <div>
                 <span>Daily rate</span>
                 <strong>{formatCurrency(selectedCar.rate)}</strong>
               </div>
               <div>
-                <span>Reserve deposit</span>
-                <strong>{formatCurrency(selectedCar.deposit)}</strong>
+                <span>Handover style</span>
+                <strong>Concierge</strong>
               </div>
               <div>
                 <span>Best for</span>
@@ -547,10 +549,10 @@ function App() {
         <section className="section service-section">
           <div className="section-heading">
             <p className="eyebrow">Why choose Velaire</p>
-            <h2>A rental experience built like a private-client service.</h2>
+            <h2>Concierge handover, depart with class.</h2>
             <p>
-              From first enquiry to final return, the flow is designed around confidence, clarity
-              and presentation.
+              A polished luxury rental experience shaped around timing, presentation and a
+              memorable departure.
             </p>
           </div>
           <div className="service-grid">
@@ -567,10 +569,10 @@ function App() {
         <section className="booking-band" id="booking">
           <div>
             <p className="eyebrow">Reserve with confidence</p>
-            <h2>Browse, select, reserve and arrive. No counter. No confusion.</h2>
+            <h2>Choose the car, set the handover, arrive composed.</h2>
             <p>
-              Choose dates, delivery location and vehicle preference. The booking flow keeps the
-              experience premium from first click to confirmation.
+              Select dates, choose a delivery point and let the journey move through a cleaner,
+              more considered reservation flow.
             </p>
           </div>
           <div className="booking-preview">

@@ -26,7 +26,7 @@
           <a href="booking.html">Reserve</a>
           <a href="ai.html">AI concierge</a>
           <a href="/portal">Portal</a>
-          <a href="account.html">Account</a>
+          <a href="account.html">Client Lounge</a>
         </div>
         <a class="flow-back" href="booking.html">Reserve</a>
       </nav>
@@ -48,6 +48,11 @@
             <h2 data-account-bind="displayName">Velaire Client</h2>
             <span data-account-bind="membership">Private client status</span>
           </div>
+          <div class="client-session-card" data-account-session-state>
+            <span>Secure client session</span>
+            <strong>Checking your lounge access</strong>
+            <small>Only signed-in Velaire clients can open this area.</small>
+          </div>
           <div class="account-status-grid">
             <div>
               <strong data-account-bind="upcomingCount">1</strong>
@@ -59,9 +64,9 @@
             </div>
           </div>
           <div class="account-logout-actions">
-            <button class="secondary-button account-logout" type="button" data-logout>Log out</button>
+            <button class="secondary-button account-logout" type="button" data-logout>Sign out</button>
             <button class="text-button account-logout-draft" type="button" data-logout-keep-draft>
-              Log out, keep draft
+              Sign out, keep booking draft
             </button>
           </div>
         </aside>
@@ -101,7 +106,7 @@
               <article>
                 <span>Deposit status</span>
                 <strong data-bind="paymentStatus">Payment pending</strong>
-                <small>Handled only by Stripe Checkout</small>
+                <small>Updated from the reservation checkout flow</small>
               </article>
               <article>
                 <span>Documents</span>
@@ -142,7 +147,7 @@
               </article>
             </div>
 
-            <div class="account-card-grid">
+            <div class="account-card-grid compact-grid">
               <article class="account-card">
                 <p class="eyebrow">Upcoming</p>
                 <h3 data-bind="vehicleName">Lamborghini Urus 2021</h3>
@@ -175,16 +180,6 @@
                     <span>Completed weekend booking</span>
                   </li>
                 </ul>
-              </article>
-
-              <article class="account-card">
-                <p class="eyebrow">Favourite cars</p>
-                <h3>Saved for your next arrival</h3>
-                <div class="favourite-grid" data-favourite-grid>
-                  <span>Lamborghini Urus</span>
-                  <span>Range Rover SVR</span>
-                  <span>BMW M440i</span>
-                </div>
               </article>
             </div>
           </section>
@@ -238,15 +233,39 @@
                   </select>
                 </label>
                 <label class="field">
-                  Billing postcode
+                  Address first line
+                  <input type="text" name="billingAddressLine1" placeholder="Street address" autocomplete="address-line1" />
+                </label>
+                <label class="field">
+                  Address second line
+                  <input type="text" name="billingAddressLine2" placeholder="Apartment, suite, building" autocomplete="address-line2" />
+                </label>
+                <label class="field">
+                  Town
+                  <input type="text" name="billingTown" placeholder="Town" autocomplete="address-level3" />
+                </label>
+                <label class="field">
+                  City
+                  <input type="text" name="billingCity" placeholder="City" autocomplete="address-level2" />
+                </label>
+                <label class="field">
+                  Postcode
                   <input type="text" name="billingPostcode" placeholder="Postcode" autocomplete="postal-code" />
                 </label>
+                <label class="field">
+                  Country
+                  <select name="billingCountry" autocomplete="country-name">
+                    <option>United Kingdom</option>
+                    <option>United States</option>
+                    <option>United Arab Emirates</option>
+                    <option>France</option>
+                    <option>Germany</option>
+                    <option>Spain</option>
+                    <option>Italy</option>
+                    <option>Other</option>
+                  </select>
+                </label>
               </div>
-
-              <label class="field">
-                Billing address
-                <textarea name="billingAddress" rows="3" placeholder="Billing address"></textarea>
-              </label>
 
               <button class="primary-button" type="submit">Save profile</button>
             </form>
@@ -299,21 +318,9 @@
               <article class="account-card premium-card-summary">
                 <span>Deposit status</span>
                 <strong data-account-bind="cardSummary">No saved card</strong>
-                <small data-account-bind="cardName">Cards are entered only inside secure Stripe Checkout.</small>
+                <small data-account-bind="cardName">Reservation payment status appears here after checkout.</small>
                 <div data-account-payment-actions>
                   <span class="status-pill muted">Loading payment state</span>
-                </div>
-              </article>
-
-              <article class="account-card">
-                <p class="eyebrow">Stripe Checkout</p>
-                <h3>Secure card handling</h3>
-                <p class="summary-copy">
-                  Velaire does not collect or store card numbers. Reservation deposits are paid
-                  through a live Stripe Checkout session linked to the booking.
-                </p>
-                <div data-account-checkout-actions>
-                  <span class="status-pill muted">Checking deposit state</span>
                 </div>
               </article>
             </div>
@@ -324,8 +331,8 @@
                 <h3>Reservation activity</h3>
                 <ul class="account-list" data-payment-history>
                   <li>
-                    <strong>Loading Stripe activity</strong>
-                    <span>Deposit records will appear after checkout.</span>
+                    <strong>Loading payment activity</strong>
+                    <span>Deposit records will appear after reservation checkout.</span>
                   </li>
                 </ul>
               </article>
@@ -363,7 +370,7 @@
             <form class="form-grid account-form" data-account-form="preferences">
               <div class="preference-grid">
                 <fieldset>
-                  <legend>Favourite vehicle categories</legend>
+                  <legend>Preferred vehicle categories</legend>
                   <label><input type="checkbox" name="vehicleCategories" value="Super SUV" /> Super SUV</label>
                   <label><input type="checkbox" name="vehicleCategories" value="Luxury SUV" /> Luxury SUV</label>
                   <label><input type="checkbox" name="vehicleCategories" value="Convertible GT" /> Convertible GT</label>

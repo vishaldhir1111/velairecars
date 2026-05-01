@@ -91,6 +91,8 @@ Set these environment variables in production:
 
 - `VELAIRE_ADMIN_TOKEN` or `VELAIRE_PORTAL_PASSWORD` protects the operations portal APIs. If neither
   is set, the server-side default portal password is `AG23HS60`.
+- `VELAIRE_SESSION_SECRET` signs private client lounge sessions. Set this to a long random value in
+  Vercel so account sessions stay secure and stable across deployments.
 - `STRIPE_SECRET_KEY` is required for Stripe Checkout session creation.
 - `STRIPE_WEBHOOK_SECRET` verifies Stripe webhook events.
 - `VELAIRE_SITE_URL` is optional and can force Stripe redirect URLs to `https://www.velairecars.com`.

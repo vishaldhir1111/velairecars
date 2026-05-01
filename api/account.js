@@ -1,5 +1,5 @@
 import { allowMethods, publicError, readJson, sendJson } from "./_lib/http.js";
-import { getStoredAccountRecord, getStoredCustomerContext, saveAccountRecord } from "./_lib/operations-store.js";
+import { getAuthUserRecord, getStoredAccountRecord, getStoredCustomerContext, saveAccountRecord } from "./_lib/operations-store.js";
 import { currentUser, findUserByEmail, listBookings, updateAccount } from "./_lib/store.js";
 import { listStripeOperations, mergeOperations } from "./_lib/stripe-operations.js";
 
@@ -12,6 +12,26 @@ function mergeStoredAccount(user, storedAccount) {
     preferences: { ...(user.preferences || {}), ...(storedAccount.preferences || {}) },
     verification: { ...(user.verification || {}), ...(storedAccount.verification || {}) },
     favourites: storedAccount.favourites?.length ? storedAccount.favourites : user.favourites,
+  };
+}
+
+function applyAccountPatch(user, patch = {}) {
+  return {
+    ...user,
+    phone: patch.phone ?? user.phone ?? "",
+    profile: { ...(user.profile || {}), ...(patch.profile || {}) },
+    preferences: { ...(user.preferences || {}), ...(patch.preferences || {}) },
+    verification: {
+      ...(user.verification || { status: "not_submitted", documents: {} }),
+      ...(patch.verification || {}),
+      documents: {
+        ...(user.verification?.documents || {}),
+        ...(patch.verification?.documents || {}),
+      },
+    },
+    paymentMethod: patch.paymentMethod === undefined ? user.paymentMethod || null : patch.paymentMethod,
+    favourites: Array.isArray(patch.favourites) ? patch.favourites : user.favourites || [],
+    updatedAt: new Date().toISOString(),
   };
 }
 
@@ -46,10 +66,20 @@ export default async function handler(req, res) {
       const email = String(req.query.email || "").trim().toLowerCase();
       const storedAccount = await getStoredAccountRecord(email);
       const registeredAccount = findUserByEmail(email);
+      const storedAuthAccount = registeredAccount ? null : await getAuthUserRecord(email);
+      const authAccount = registeredAccount || (storedAuthAccount ? {
+        id: storedAuthAccount.id,
+        email: storedAuthAccount.email,
+        phone: storedAuthAccount.phone || "",
+        profile: storedAuthAccount.profile || {},
+        preferences: storedAuthAccount.preferences || {},
+        verification: storedAuthAccount.verification || { status: "not_submitted", documents: {} },
+        favourites: storedAuthAccount.favourites || [],
+      } : null);
       const storedContext = await getCustomerPaymentContext(email);
       const activityExists = Boolean(storedAccount || storedContext.customer || storedContext.bookings.length || storedContext.payments.length);
       sendJson(res, 200, {
-        user: storedAccount || registeredAccount || {
+        user: storedAccount || authAccount || {
           id: `stored_${email}`,
           email,
           phone: storedContext.customer?.phone || "",
@@ -62,8 +92,8 @@ export default async function handler(req, res) {
         payments: storedContext.payments,
         receipts: storedContext.payments.filter((payment) => ["deposit_paid", "refunded"].includes(payment.status)),
         storedCustomer: storedContext.customer,
-        exists: Boolean(registeredAccount || activityExists),
-        authAccountExists: Boolean(registeredAccount),
+        exists: Boolean(authAccount || activityExists),
+        authAccountExists: Boolean(authAccount),
         activityExists,
         authenticated: false,
       });
@@ -79,7 +109,7 @@ export default async function handler(req, res) {
     const storedContext = await getCustomerPaymentContext(user.email);
     sendJson(res, 200, {
       user: accountUser,
-      bookings: [...listBookings(user.id), ...storedContext.bookings],
+      bookings: mergeOperations(listBookings(user.id), storedContext.bookings),
       payments: storedContext.payments,
       receipts: storedContext.payments.filter((payment) => ["deposit_paid", "refunded"].includes(payment.status)),
       storedCustomer: storedContext.customer,
@@ -93,7 +123,14 @@ export default async function handler(req, res) {
 
   try {
     const body = await readJson(req);
-    const updated = updateAccount(user.id, body);
+    let updated;
+    try {
+      updated = updateAccount(user.id, body);
+    } catch (error) {
+      if (error.status !== 401) throw error;
+      const storedAccount = await getStoredAccountRecord(user.email);
+      updated = applyAccountPatch(mergeStoredAccount(user, storedAccount), body);
+    }
     await saveAccountRecord(updated);
     sendJson(res, 200, {
       user: updated,

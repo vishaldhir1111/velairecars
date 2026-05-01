@@ -292,7 +292,12 @@ function loadAccount() {
       preferredContact: "Email",
       licenceCountry: "United Kingdom",
       billingAddress: "",
+      billingAddressLine1: "",
+      billingAddressLine2: "",
+      billingTown: "",
+      billingCity: "",
       billingPostcode: "",
+      billingCountry: "United Kingdom",
       preferredLocation: "",
       savedLocations: [],
       handoverType: "Concierge delivery",
@@ -300,7 +305,7 @@ function loadAccount() {
       communication: ["Concierge updates"],
       files: {},
       cardSummary: "No saved card",
-      cardName: "Cards are entered only inside secure Stripe Checkout.",
+      cardName: "Reservation payment status appears here after checkout.",
       membership: "Private client status",
       ...JSON.parse(window.localStorage.getItem(accountStorageKey)),
     };
@@ -312,7 +317,12 @@ function loadAccount() {
       preferredContact: "Email",
       licenceCountry: "United Kingdom",
       billingAddress: "",
+      billingAddressLine1: "",
+      billingAddressLine2: "",
+      billingTown: "",
+      billingCity: "",
       billingPostcode: "",
+      billingCountry: "United Kingdom",
       preferredLocation: "",
       savedLocations: [],
       handoverType: "Concierge delivery",
@@ -320,7 +330,7 @@ function loadAccount() {
       communication: ["Concierge updates"],
       files: {},
       cardSummary: "No saved card",
-      cardName: "Cards are entered only inside secure Stripe Checkout.",
+      cardName: "Reservation payment status appears here after checkout.",
       membership: "Private client status",
     };
   }
@@ -484,7 +494,7 @@ async function performLogout({ keepDraft = false, redirect = "login.html?signedO
   clearVelaireLocalState({ keepDraft });
   window.sessionStorage.setItem(
     signedOutMessageKey,
-    keepDraft ? "You have been signed out. Your booking draft is still on this device." : "You have been signed out.",
+    keepDraft ? "You have been signed out. Your current reservation draft is saved on this device." : "You have been signed out.",
   );
   window.location.href = redirect;
 }
@@ -527,8 +537,8 @@ function renderFlowAuthNavigation(session = { authenticated: false, user: null }
     accountLink = document.createElement("a");
     navLinks.appendChild(accountLink);
   }
-  accountLink.href = authenticated ? "account.html" : "login.html";
-  accountLink.textContent = authenticated ? "Account" : "Login";
+  accountLink.href = authenticated ? "account.html" : "login.html?mode=lounge";
+  accountLink.textContent = authenticated ? "Accounts" : "Login";
 
   let logoutButton = navLinks.querySelector("[data-flow-auth-logout]");
   if (authenticated) {
@@ -612,8 +622,17 @@ function backendAccountPatchFromLocal(account = loadAccount()) {
     phone: account.phone || "",
     profile: {
       fullName: account.fullName || "",
-      billingAddress: account.billingAddress || "",
+      billingAddress:
+        account.billingAddress ||
+        [account.billingAddressLine1, account.billingAddressLine2, account.billingTown, account.billingCity, account.billingPostcode, account.billingCountry]
+          .filter(Boolean)
+          .join(", "),
+      billingAddressLine1: account.billingAddressLine1 || "",
+      billingAddressLine2: account.billingAddressLine2 || "",
+      billingTown: account.billingTown || "",
+      billingCity: account.billingCity || "",
       billingPostcode: account.billingPostcode || "",
+      billingCountry: account.billingCountry || "United Kingdom",
       licenceCountry: account.licenceCountry || "United Kingdom",
       preferredContact: account.preferredContact || "Email",
     },
@@ -657,7 +676,12 @@ function mergeAuthenticatedUser(user = null) {
     preferredContact: user.profile?.preferredContact || loadAccount().preferredContact || "Email",
     licenceCountry: user.profile?.licenceCountry || loadAccount().licenceCountry || "United Kingdom",
     billingAddress: user.profile?.billingAddress || loadAccount().billingAddress || "",
+    billingAddressLine1: user.profile?.billingAddressLine1 || loadAccount().billingAddressLine1 || user.profile?.billingAddress || "",
+    billingAddressLine2: user.profile?.billingAddressLine2 || loadAccount().billingAddressLine2 || "",
+    billingTown: user.profile?.billingTown || loadAccount().billingTown || "",
+    billingCity: user.profile?.billingCity || loadAccount().billingCity || "",
     billingPostcode: user.profile?.billingPostcode || loadAccount().billingPostcode || "",
+    billingCountry: user.profile?.billingCountry || loadAccount().billingCountry || "United Kingdom",
   });
   saveReservation({
     email: account.email,
@@ -682,6 +706,57 @@ function matchingActiveVehicleBooking(bookings = [], reservation = loadReservati
       booking?.vehicleSlug === vehicle &&
       !released.has(String(booking.status || "").toLowerCase()),
   );
+}
+
+function hasReservationIntent(reservation = loadReservation()) {
+  return Boolean(
+    reservation.clientIntent === "reservation" ||
+      reservation.bookingId ||
+      reservation.reference ||
+      reservation.pickup ||
+      reservation.return ||
+      reservation.location ||
+      reservation.formattedAddress,
+  );
+}
+
+function loginJourneyMode() {
+  const params = new URLSearchParams(window.location.search);
+  const requestedMode = params.get("mode");
+  if (requestedMode === "booking" || requestedMode === "lounge") return requestedMode;
+  return hasReservationIntent() ? "booking" : "lounge";
+}
+
+function configureLoginExperience({ journeyMode = loginJourneyMode(), authMode = "returning" } = {}) {
+  const bookingJourney = journeyMode === "booking";
+  const title = document.querySelector("[data-login-title]");
+  const kicker = document.querySelector("[data-login-kicker]");
+  const copy = document.querySelector("[data-login-copy]");
+  const panelTitle = document.querySelector("[data-login-panel-title]");
+  const progress = document.querySelector("[data-login-progress]");
+  const submit = document.querySelector("[data-login-submit]");
+  const fullName = document.querySelector('input[name="fullName"]');
+  const password = document.querySelector('input[name="password"]');
+
+  if (kicker) kicker.textContent = bookingJourney ? "Step 2 of 4" : "Private client access";
+  if (title) title.textContent = bookingJourney ? "Continue through the Client Lounge." : "Enter the Velaire Client Lounge.";
+  if (copy) {
+    copy.textContent = bookingJourney
+      ? "Sign in or create your Velaire profile so concierge can attach this reservation to the right private client account."
+      : "Sign in to manage reservations, verification, saved handover details and concierge preferences in one polished private space.";
+  }
+  if (panelTitle) panelTitle.textContent = authMode === "new" ? "Create private client access." : "Welcome back to Velaire.";
+  if (progress) progress.hidden = !bookingJourney;
+  if (submit) submit.textContent = bookingJourney ? "Continue to reservation" : "Open Client Lounge";
+  if (fullName) fullName.required = authMode === "new" || bookingJourney;
+  if (password) {
+    password.autocomplete = authMode === "new" ? "new-password" : "current-password";
+    password.placeholder = authMode === "new" ? "Create a secure password" : "Enter password";
+  }
+
+  document.querySelectorAll("[data-auth-mode]").forEach((button) => {
+    button.classList.toggle("is-active", button.dataset.authMode === authMode);
+  });
 }
 
 function renderLoginState({ tone = "default", title = "", message = "", actions = "" } = {}) {
@@ -1927,7 +2002,7 @@ function renderPaymentHistory(payments = []) {
   const target = document.querySelector("[data-payment-history]");
   if (!target) return;
   if (!payments.length) {
-    target.innerHTML = `<li><strong>No payment records yet</strong><span>Stripe deposit activity will appear here after checkout.</span></li>`;
+    target.innerHTML = `<li><strong>No payment records yet</strong><span>Deposit activity will appear here after reservation checkout.</span></li>`;
     return;
   }
   target.innerHTML = payments
@@ -1967,7 +2042,7 @@ function renderAccountPaymentState(bookings = [], payments = []) {
   const statusLabel = paid ? "Deposit Paid" : "Deposit Pending";
   const detail = paid
     ? "Payment confirmed by Stripe. Your booking is now in Velaire concierge review."
-    : "Secure the reservation deposit through Stripe Checkout to move this booking into concierge review.";
+    : "Deposit status will update after the reservation checkout step.";
   bindAccountText("cardSummary", statusLabel);
   bindAccountText("cardName", detail);
 
@@ -1976,16 +2051,16 @@ function renderAccountPaymentState(bookings = [], payments = []) {
     <a class="secondary-button" href="#overview">View booking details</a>
   `;
   const unpaidMarkup = `
-    <a class="primary-button" href="payment.html">Secure deposit</a>
+    <span class="status-pill muted">Awaiting reservation checkout</span>
     <a class="secondary-button" href="ai.html">Ask concierge</a>
   `;
 
   document.querySelectorAll("[data-account-primary-actions]").forEach((node) => {
     node.innerHTML = paid
       ? `<span class="status-pill status-deposit-paid">Payment confirmed</span><a class="secondary-button" href="#overview">View booking details</a><a class="secondary-button" href="ai.html">Ask concierge</a>`
-      : unpaidMarkup;
+      : `<a class="primary-button" href="payment.html">Continue reservation</a><a class="secondary-button" href="ai.html">Ask concierge</a>`;
   });
-  document.querySelectorAll("[data-account-payment-actions], [data-account-checkout-actions]").forEach((node) => {
+  document.querySelectorAll("[data-account-payment-actions]").forEach((node) => {
     node.innerHTML = paid ? paidMarkup : unpaidMarkup;
   });
 
@@ -2043,7 +2118,7 @@ function updateAccountDisplay(account = loadAccount()) {
   bindAccountText("upcomingCount", "1");
   bindAccountText("verificationStatus", verificationStatus(account));
   bindAccountText("cardSummary", account.cardSummary || "No saved card");
-  bindAccountText("cardName", account.cardName || "Cards are entered only inside secure Stripe Checkout.");
+  bindAccountText("cardName", account.cardName || "Reservation payment status appears here after checkout.");
   bindAccountText("documentCount", `${Object.values(account.files || {}).filter((file) => file?.name).length}/4 files`);
 
   document.querySelectorAll("[data-file-label]").forEach((label) => {
@@ -2108,7 +2183,12 @@ function mergeBackendAccount(user) {
     preferredContact: user.profile?.preferredContact || loadAccount().preferredContact || "Email",
     licenceCountry: user.profile?.licenceCountry || loadAccount().licenceCountry || "United Kingdom",
     billingAddress: user.profile?.billingAddress || loadAccount().billingAddress || "",
+    billingAddressLine1: user.profile?.billingAddressLine1 || loadAccount().billingAddressLine1 || user.profile?.billingAddress || "",
+    billingAddressLine2: user.profile?.billingAddressLine2 || loadAccount().billingAddressLine2 || "",
+    billingTown: user.profile?.billingTown || loadAccount().billingTown || "",
+    billingCity: user.profile?.billingCity || loadAccount().billingCity || "",
     billingPostcode: user.profile?.billingPostcode || loadAccount().billingPostcode || "",
+    billingCountry: user.profile?.billingCountry || loadAccount().billingCountry || "United Kingdom",
     preferredLocation: user.preferences?.preferredLocation || loadAccount().preferredLocation || "",
     savedLocations: user.preferences?.savedLocations || loadAccount().savedLocations || [],
     handoverType: user.preferences?.handoverType || loadAccount().handoverType || "Concierge delivery",
@@ -2117,12 +2197,26 @@ function mergeBackendAccount(user) {
     favourites: user.favourites || loadAccount().favourites || [],
     files: user.verification?.documents || loadAccount().files || {},
     cardSummary: user.paymentMethod?.label || loadAccount().cardSummary || "No saved card",
-    cardName: user.paymentMethod?.name || loadAccount().cardName || "Cards are entered only inside secure Stripe Checkout.",
+    cardName: user.paymentMethod?.name || loadAccount().cardName || "Reservation payment status appears here after checkout.",
     cardExpiry: user.paymentMethod?.expiry || loadAccount().cardExpiry || "",
     membership: verificationStatus(loadAccount()) === "Ready for review" ? "Velaire Private Client" : loadAccount().membership || "Velaire Private Client",
   });
   updateAccountDisplay(next);
   return next;
+}
+
+function renderAccountSessionState(session = null) {
+  const target = document.querySelector("[data-account-session-state]");
+  if (!target) return;
+  const account = loadAccount();
+  const user = session?.user || {};
+  const name = account.fullName || user.profile?.fullName || "Velaire Client";
+  const email = account.email || user.email || "";
+  target.innerHTML = `
+    <span>Signed-in private client</span>
+    <strong>${escapeHtml(name)}</strong>
+    <small>${escapeHtml(email ? `${email} is active on this device.` : "Your secure lounge session is active on this device.")}</small>
+  `;
 }
 
 async function hydrateAccountFromBackend() {
@@ -2142,6 +2236,7 @@ async function hydrateAccountFromBackend() {
     return;
   }
   mergeBackendAccount(result.user);
+  renderAccountSessionState({ user: result.user });
   const bookings = mergeUniqueById([...(result.bookings || []), loadBackendBooking()]);
   const payments = result.payments || [];
   const paidPayment = payments.find((payment) => payment.status === "deposit_paid");
@@ -3102,6 +3197,7 @@ function setupConciergeAssistant() {
 async function setupAccount() {
   const session = await requireClientLoungeSession();
   if (!session) return;
+  renderAccountSessionState(session);
   const account = loadAccount();
 
   document.querySelectorAll("[data-account-form]").forEach((form) => {
@@ -3229,10 +3325,24 @@ function setupBooking() {
   form?.addEventListener("input", persistDraft);
   form?.addEventListener("submit", async (event) => {
     event.preventDefault();
-    saveReservation(readBookingForm(form));
+    saveReservation({ ...readBookingForm(form), clientIntent: "reservation" });
     try {
       const availability = await checkAvailability();
       if (availability && availability.available === false) return;
+      const session = await fetchAuthSession();
+      if (session?.authenticated && session.user) {
+        mergeAuthenticatedUser(session.user);
+        await syncAccountToBackend(loadAccount());
+        const booking = await syncBookingToBackend("pending");
+        navigateTo(
+          isDepositPaidState({ booking: booking || loadBackendBooking() })
+            ? "account.html"
+            : form.getAttribute("action") === "login.html"
+              ? "payment.html"
+              : form.getAttribute("action") || "payment.html",
+        );
+        return;
+      }
       await syncBookingToBackend("draft");
       navigateTo(form.getAttribute("action") || "login.html");
     } catch {
@@ -3250,13 +3360,40 @@ function setupLogin() {
   const form = document.querySelector("form");
   const reservation = loadReservation();
   const account = loadAccount();
+  const journeyMode = loginJourneyMode();
+  let authMode = "returning";
 
   setFieldValue(form, "fullName", account.fullName || reservation.fullName || reservation.name);
   setFieldValue(form, "email", reservation.email);
   setFieldValue(form, "phone", reservation.phone);
+  configureLoginExperience({ journeyMode, authMode });
+
+  document.querySelectorAll("[data-auth-mode]").forEach((button) => {
+    button.addEventListener("click", () => {
+      authMode = button.dataset.authMode || "returning";
+      configureLoginExperience({ journeyMode, authMode });
+      clearLoginState();
+    });
+  });
+
+  async function openClientLounge(user) {
+    mergeAuthenticatedUser(user);
+    renderLoginState({
+      tone: "success",
+      title: "Client Lounge unlocked",
+      message: "Your private Velaire account is ready. Opening your lounge now.",
+    });
+    await syncAccountToBackend(loadAccount());
+    window.setTimeout(() => navigateTo("account.html"), 500);
+    return true;
+  }
 
   async function continueSignedIn(user) {
     mergeAuthenticatedUser(user);
+    if (journeyMode !== "booking") {
+      return openClientLounge(user);
+    }
+
     const context = await fetchAccountContext(user.email);
     const existingBooking = matchingActiveVehicleBooking(context?.bookings || []);
     if (existingBooking) {
@@ -3269,16 +3406,21 @@ function setupLogin() {
       });
       if (existingBooking.paymentStatus === "deposit_paid") savePaidState({ booking: existingBooking });
       renderLoginState({
-        tone: existingBooking.paymentStatus === "deposit_paid" ? "success" : "warning",
-        title: existingBooking.paymentStatus === "deposit_paid" ? "Reservation already secured" : "Reservation already exists",
+        tone: "success",
+        title: existingBooking.paymentStatus === "deposit_paid" ? "Reservation already secured" : "Existing reservation loaded",
         message:
           existingBooking.paymentStatus === "deposit_paid"
-            ? "You already have a paid deposit for this vehicle. Open your client lounge for the latest booking state."
-            : "You already have an active reservation for this vehicle. Continue to the existing reservation instead of creating a duplicate.",
-        actions: `<a class="secondary-button" href="account.html">Open client lounge</a>${
-          existingBooking.paymentStatus === "deposit_paid" ? "" : '<a class="primary-button" href="payment.html">Continue existing reservation</a>'
-        }`,
+            ? "This vehicle is already secured. Opening your account details now."
+            : "You already have an active reservation for this vehicle. Continuing to the existing reservation now.",
+        actions:
+          existingBooking.paymentStatus === "deposit_paid"
+            ? '<a class="secondary-button" href="account.html">Open account details</a>'
+            : '<a class="primary-button" href="payment.html">Continue existing reservation</a>',
       });
+      window.setTimeout(
+        () => navigateTo(existingBooking.paymentStatus === "deposit_paid" ? "account.html" : "payment.html"),
+        700,
+      );
       return false;
     }
 
@@ -3302,27 +3444,47 @@ function setupLogin() {
     if (!email) return;
     const context = await fetchAccountContext(email);
     if (!context?.exists) {
-      clearLoginState();
+      authMode = "new";
+      configureLoginExperience({ journeyMode, authMode });
+      renderLoginState({
+        tone: "success",
+        title: "New private client profile",
+        message: "Create access once and your lounge will keep reservations, verification and handover preferences together.",
+      });
       return;
     }
-    const existingBooking = matchingActiveVehicleBooking(context.bookings || []);
+    const existingBooking = journeyMode === "booking" ? matchingActiveVehicleBooking(context.bookings || []) : null;
     if (existingBooking) {
       renderLoginState({
         tone: "warning",
         title: "Existing Velaire reservation found",
         message:
           existingBooking.paymentStatus === "deposit_paid"
-            ? "This email already has a paid deposit for the selected vehicle."
-            : "This email already has an active reservation for the selected vehicle. Sign in or continue the existing booking.",
+            ? "This vehicle is already secured for this client. Sign in and we will open the booking details."
+            : "This client already has an active reservation for the selected vehicle. Sign in and we will continue that booking.",
       });
       return;
     }
     if (context.authAccountExists) {
+      authMode = "returning";
+      configureLoginExperience({ journeyMode, authMode });
       renderLoginState({
         title: "Welcome back",
-        message: "A Velaire account already exists for this email. Enter the account password and we will continue the reservation securely.",
+        message:
+          journeyMode === "booking"
+            ? "A Velaire account already exists for this email. Enter the account password and we will attach this reservation securely."
+            : "A Velaire account already exists for this email. Enter the account password to open your Client Lounge.",
       });
+      return;
     }
+
+    authMode = "new";
+    configureLoginExperience({ journeyMode, authMode });
+    renderLoginState({
+      tone: "success",
+      title: "New private client profile",
+      message: "Create access once and your lounge will keep reservations, verification and handover preferences together.",
+    });
   });
 
   form?.addEventListener("submit", async (event) => {
@@ -3333,12 +3495,15 @@ function setupLogin() {
     const email = data.get("email") || "";
     const phone = data.get("phone") || "";
     const password = data.get("password") || "";
-    saveReservation({
-      name: fullName,
-      fullName,
-      email,
-      phone,
-    });
+    if (journeyMode === "booking") {
+      saveReservation({
+        name: fullName,
+        fullName,
+        email,
+        phone,
+        clientIntent: "reservation",
+      });
+    }
     saveAccount({
       fullName,
       email: data.get("email") || "",
@@ -3352,7 +3517,16 @@ function setupLogin() {
     try {
       const context = await fetchAccountContext(email);
       const existingBooking = matchingActiveVehicleBooking(context?.bookings || []);
-      if (existingBooking) {
+      if (journeyMode === "booking" && existingBooking) {
+        const authResult = await ensureBackendAccount({
+          email,
+          phone,
+          password,
+          fullName,
+          accountExists: Boolean(context?.exists),
+          authAccountExists: Boolean(context?.authAccountExists),
+        });
+        if (authResult?.user) mergeAuthenticatedUser(authResult.user);
         saveBackendBooking(existingBooking);
         saveReservation({
           bookingId: existingBooking.id,
@@ -3362,16 +3536,21 @@ function setupLogin() {
         });
         if (existingBooking.paymentStatus === "deposit_paid") savePaidState({ booking: existingBooking });
         renderLoginState({
-          tone: existingBooking.paymentStatus === "deposit_paid" ? "success" : "warning",
-          title: existingBooking.paymentStatus === "deposit_paid" ? "Deposit already paid" : "Existing reservation found",
+          tone: "success",
+          title: existingBooking.paymentStatus === "deposit_paid" ? "Deposit already paid" : "Existing reservation loaded",
           message:
             existingBooking.paymentStatus === "deposit_paid"
-              ? "This email already has a paid reservation deposit for the selected vehicle. We have loaded the confirmed booking state."
-              : "This email already has an active reservation for the selected vehicle. Continue with that booking instead of creating a duplicate.",
-          actions: `<a class="secondary-button" href="account.html">View booking details</a>${
-            existingBooking.paymentStatus === "deposit_paid" ? "" : '<a class="primary-button" href="payment.html">Continue existing reservation</a>'
-          }`,
+              ? "This reservation is already secured. Opening the booking details now."
+              : "This reservation already exists. Continuing with the saved booking now.",
+          actions:
+            existingBooking.paymentStatus === "deposit_paid"
+              ? '<a class="secondary-button" href="account.html">View booking details</a>'
+              : '<a class="primary-button" href="payment.html">Continue existing reservation</a>',
         });
+        window.setTimeout(
+          () => navigateTo(existingBooking.paymentStatus === "deposit_paid" ? "account.html" : "payment.html"),
+          700,
+        );
         return;
       }
 
@@ -3385,8 +3564,17 @@ function setupLogin() {
       });
       if (authResult?.user) mergeAuthenticatedUser(authResult.user);
       await syncAccountToBackend(loadAccount());
-      await syncBookingToBackend("pending");
-      navigateTo(form.getAttribute("action") || "payment.html");
+      if (journeyMode === "booking") {
+        await syncBookingToBackend("pending");
+        navigateTo(form.getAttribute("action") || "payment.html");
+        return;
+      }
+      renderLoginState({
+        tone: "success",
+        title: "Client Lounge unlocked",
+        message: "Your Velaire account is active. Opening the private lounge.",
+      });
+      window.setTimeout(() => navigateTo("account.html"), 450);
     } catch (error) {
       renderLoginState({
         tone: "warning",
@@ -3398,7 +3586,7 @@ function setupLogin() {
     } finally {
       if (submitButton) {
         submitButton.disabled = false;
-        submitButton.textContent = "Continue to reservation";
+        submitButton.textContent = journeyMode === "booking" ? "Continue to reservation" : "Open Client Lounge";
       }
     }
   });
