@@ -59,7 +59,7 @@
           </p>
           <div class="step-row" aria-label="Booking progress">
             <span class="step active">Car</span>
-            <span class="step">Account</span>
+            <span class="step active">Details</span>
             <span class="step">Reserve</span>
             <span class="step">Confirm</span>
           </div>
@@ -76,7 +76,7 @@
         </div>
 
         <div class="flow-workspace booking-workspace">
-          <form class="flow-panel booking-panel form-grid" action="login.html">
+          <form class="flow-panel booking-panel form-grid" action="payment.html">
             <div class="panel-heading">
               <p class="eyebrow">Vehicle selection</p>
               <h2>Choose your arrival.</h2>
@@ -144,6 +144,45 @@
                 <strong>£175/day</strong>
               </label>
             </div>
+
+            <section class="guest-concierge-card" aria-label="Guest concierge reservation details">
+              <div class="guest-concierge-top">
+                <div class="panel-heading compact-heading">
+                  <p class="eyebrow">Guest reservation</p>
+                  <h2>Your concierge details.</h2>
+                  <span>No sign in required. We use these details to connect the reservation, deposit and handover notes to the correct client.</span>
+                </div>
+                <div class="guest-reservation-badge" aria-label="Guest reservation access">
+                  <span>Guest access</span>
+                  <strong>Reserve without an account</strong>
+                </div>
+              </div>
+
+              <div class="form-grid two-column guest-detail-grid">
+                <label class="field">
+                  Full name
+                  <input type="text" name="fullName" placeholder="Your full name" autocomplete="name" required />
+                </label>
+                <label class="field">
+                  Email address
+                  <input type="email" name="email" placeholder="you@example.com" autocomplete="email" required />
+                </label>
+                <label class="field">
+                  Phone number
+                  <input type="tel" name="phone" placeholder="+44" autocomplete="tel" required />
+                </label>
+                <label class="field guest-reservation-mode">
+                  Booking type
+                  <input type="text" value="Premium guest reservation" readonly />
+                </label>
+              </div>
+
+              <div class="guest-assurance-grid" aria-label="Guest booking assurances">
+                <span>Stripe deposit follows next</span>
+                <span>Concierge team receives your details</span>
+                <span>No duplicate account step</span>
+              </div>
+            </section>
 
             <div class="form-grid two-column">
               <label class="field date-field">
@@ -274,7 +313,7 @@
               </label>
             </div>
 
-            <button class="primary-button full-width" type="submit">Continue to account</button>
+            <button class="primary-button full-width" type="submit">Continue to secure deposit</button>
           </form>
 
           <aside class="flow-panel vehicle-summary" aria-label="Vehicle reservation summary">

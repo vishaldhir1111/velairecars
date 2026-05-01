@@ -1465,6 +1465,10 @@ function readBookingForm(form) {
 
   return {
     vehicle: data.get("vehicle") || defaultVehicle,
+    name: data.get("fullName") || data.get("name") || loadReservation().name || "",
+    fullName: data.get("fullName") || data.get("name") || loadReservation().fullName || "",
+    email: data.get("email") || loadReservation().email || "",
+    phone: data.get("phone") || loadReservation().phone || "",
     pickup,
     pickupTime: data.get("pickup-time") || "",
     return: returnDate,
@@ -3408,6 +3412,9 @@ function setupBooking() {
   const radio = document.querySelector(`input[name="vehicle"][value="${slug}"]`);
   if (radio) radio.checked = true;
 
+  setFieldValue(form, "fullName", reservation.fullName || reservation.name);
+  setFieldValue(form, "email", reservation.email);
+  setFieldValue(form, "phone", reservation.phone);
   setFieldValue(form, "pickup", reservation.pickup);
   setFieldValue(form, "pickup-time", reservation.pickupTime);
   setFieldValue(form, "return", reservation.return);
@@ -3454,22 +3461,8 @@ function setupBooking() {
     try {
       const availability = await checkAvailability();
       if (availability && availability.available === false) return;
-      const session = await fetchAuthSession();
-      if (session?.authenticated && session.user) {
-        mergeAuthenticatedUser(session.user);
-        await syncAccountToBackend(loadAccount());
-        const booking = await syncBookingToBackend("pending");
-        navigateTo(
-          isDepositPaidState({ booking: booking || loadBackendBooking() })
-            ? "account.html"
-            : form.getAttribute("action") === "login.html"
-              ? "payment.html"
-              : form.getAttribute("action") || "payment.html",
-        );
-        return;
-      }
-      await syncBookingToBackend("draft");
-      navigateTo(form.getAttribute("action") || "login.html");
+      await syncBookingToBackend("pending");
+      navigateTo(form.getAttribute("action") || "payment.html");
     } catch {
       // Conflict messaging is handled by the API helper toast.
     }

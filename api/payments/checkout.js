@@ -10,6 +10,7 @@ async function existingPaidDeposit({ bookingId = "", reservation = {} } = {}) {
     email: reservation.email,
     vehicle: reservation.vehicle,
     pickup: reservation.pickup,
+    returnDate: reservation.return,
   });
   if (stored) return stored;
 
@@ -21,13 +22,22 @@ async function existingPaidDeposit({ bookingId = "", reservation = {} } = {}) {
     const sameClient = cleanEmail && String(item.customerEmail || "").toLowerCase() === cleanEmail;
     const sameVehicle = !reservation.vehicle || item.vehicleSlug === reservation.vehicle;
     const samePickup = !reservation.pickup || item.pickup === reservation.pickup;
-    return sameClient && sameVehicle && samePickup && item.paymentStatus === "deposit_paid";
+    const sameReturn = !reservation.return || item.return === reservation.return;
+    return sameClient && sameVehicle && samePickup && sameReturn && item.paymentStatus === "deposit_paid";
   });
   const localPayment = localPayments.find((item) => {
     if (item.status !== "deposit_paid") return false;
     if (localBooking?.id && item.bookingId === localBooking.id) return true;
     if (bookingId && item.bookingId === bookingId) return true;
-    return !bookingId && cleanEmail && String(item.customerEmail || "").toLowerCase() === cleanEmail;
+    const paymentBooking = localBookings.find((booking) => booking.id === item.bookingId);
+    const sameClient =
+      cleanEmail &&
+      (String(item.customerEmail || "").toLowerCase() === cleanEmail ||
+        String(paymentBooking?.customerEmail || "").toLowerCase() === cleanEmail);
+    const sameVehicle = !reservation.vehicle || paymentBooking?.vehicleSlug === reservation.vehicle;
+    const samePickup = !reservation.pickup || paymentBooking?.pickup === reservation.pickup;
+    const sameReturn = !reservation.return || paymentBooking?.return === reservation.return;
+    return !bookingId && sameClient && sameVehicle && samePickup && sameReturn;
   });
   if (localBooking || localPayment) return { booking: localBooking, payment: localPayment };
 
@@ -38,7 +48,8 @@ async function existingPaidDeposit({ bookingId = "", reservation = {} } = {}) {
     const sameClient = cleanEmail && String(item.customerEmail || "").toLowerCase() === cleanEmail;
     const sameVehicle = !reservation.vehicle || item.vehicleSlug === reservation.vehicle;
     const samePickup = !reservation.pickup || item.pickup === reservation.pickup;
-    return sameClient && sameVehicle && samePickup && item.paymentStatus === "deposit_paid";
+    const sameReturn = !reservation.return || item.return === reservation.return;
+    return sameClient && sameVehicle && samePickup && sameReturn && item.paymentStatus === "deposit_paid";
   });
   const payment = stripeOperations.payments.find((item) => {
     if (item.status !== "deposit_paid") return false;
@@ -47,7 +58,8 @@ async function existingPaidDeposit({ bookingId = "", reservation = {} } = {}) {
     const sameClient = cleanEmail && String(item.customerEmail || "").toLowerCase() === cleanEmail;
     const sameVehicle = !reservation.vehicle || item.vehicleSlug === reservation.vehicle || booking?.vehicleSlug === reservation.vehicle;
     const samePickup = !reservation.pickup || item.pickup === reservation.pickup || booking?.pickup === reservation.pickup;
-    return !bookingId && sameClient && sameVehicle && samePickup;
+    const sameReturn = !reservation.return || item.return === reservation.return || booking?.return === reservation.return;
+    return !bookingId && sameClient && sameVehicle && samePickup && sameReturn;
   });
   return booking || payment ? { booking, payment } : null;
 }
