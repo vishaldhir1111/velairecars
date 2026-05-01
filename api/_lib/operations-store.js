@@ -228,7 +228,7 @@ export async function findPaidDeposit({ bookingId = "", email = "", vehicle = ""
   return { booking, payment };
 }
 
-export async function findActiveReservation({ bookingId = "", email = "", vehicle = "" } = {}) {
+export async function findActiveReservation({ bookingId = "", email = "", vehicle = "", pickup = "", returnDate = "" } = {}) {
   if (!operationsStoreConfigured()) return null;
   const operations = await listStoredOperations();
   const cleanEmail = String(email || "").trim().toLowerCase();
@@ -239,7 +239,9 @@ export async function findActiveReservation({ bookingId = "", email = "", vehicl
     if (bookingId && item.id === bookingId) return true;
     const sameClient = cleanEmail && String(item.customerEmail || "").toLowerCase() === cleanEmail;
     const sameVehicle = !vehicle || item.vehicleSlug === vehicle;
-    return sameClient && sameVehicle;
+    const samePickup = pickup ? item.pickup === pickup : true;
+    const sameReturn = returnDate ? item.return === returnDate : true;
+    return sameClient && sameVehicle && samePickup && sameReturn;
   });
   if (!booking) return null;
   const payment = operations.payments.find((item) => item.bookingId === booking.id) || null;

@@ -363,12 +363,71 @@ function saveBackendBooking(booking) {
   return booking;
 }
 
+function clearBackendBooking() {
+  window.localStorage.removeItem(backendBookingKey);
+}
+
 function loadBackendBooking() {
   try {
     return JSON.parse(window.localStorage.getItem(backendBookingKey)) || null;
   } catch {
     return null;
   }
+}
+
+const reservationBookingKeys = [
+  "bookingId",
+  "reference",
+  "status",
+  "paymentStatus",
+  "paymentIntentId",
+  "checkoutSessionId",
+  "paidAt",
+  "confirmedAt",
+];
+
+function clearReservationBookingState() {
+  clearBackendBooking();
+  const reservation = loadReservation();
+  reservationBookingKeys.forEach((key) => {
+    delete reservation[key];
+  });
+  window.localStorage.setItem(storageKey, JSON.stringify(reservation));
+  return reservation;
+}
+
+function bookingMatchesReservationDraft(booking = null, reservation = {}) {
+  if (!booking?.id) return false;
+  const sameVehicle = !reservation.vehicle || !booking.vehicleSlug || booking.vehicleSlug === reservation.vehicle;
+  const samePickup = !reservation.pickup || !booking.pickup || booking.pickup === reservation.pickup;
+  const sameReturn = !reservation.return || !booking.return || booking.return === reservation.return;
+  return sameVehicle && samePickup && sameReturn;
+}
+
+function bookingCanBeUpdatedForReservation(booking = null, reservation = {}) {
+  if (!booking?.id) return false;
+  if (reservation.bookingId && reservation.bookingId !== booking.id) return false;
+  if (booking.paymentStatus === "deposit_paid" || reservation.paymentStatus === "deposit_paid") return false;
+  const status = String(booking.status || "").toLowerCase();
+  if (["confirmed", "completed", "cancelled", "rejected"].includes(status)) return false;
+  if (status === "draft") return true;
+  return bookingMatchesReservationDraft(booking, reservation);
+}
+
+function currentBackendBookingForReservation(reservation = loadReservation()) {
+  const booking = loadBackendBooking();
+  if (!booking?.id) return null;
+  if (reservation.bookingId && reservation.bookingId === booking.id) return booking;
+  return bookingMatchesReservationDraft(booking, reservation) ? booking : null;
+}
+
+function saveBookingDraft(next = {}) {
+  const draft = { ...loadReservation(), ...next };
+  const booking = loadBackendBooking();
+  if (booking && !bookingCanBeUpdatedForReservation(booking, draft)) {
+    clearReservationBookingState();
+  }
+  return saveReservation(next);
 }
 
 function mergeUniqueById(items = []) {
@@ -850,7 +909,11 @@ async function ensureBackendAccount({
 async function syncBookingToBackend(status = "draft") {
   const reservation = loadReservation();
   const currentBooking = loadBackendBooking();
-  const result = currentBooking?.id
+  const shouldPatchCurrentBooking = bookingCanBeUpdatedForReservation(currentBooking, reservation);
+  if (currentBooking?.id && !shouldPatchCurrentBooking) {
+    clearBackendBooking();
+  }
+  const result = shouldPatchCurrentBooking
     ? await optionalApiRequest(
         "/api/bookings",
         {
@@ -893,7 +956,7 @@ async function syncBookingToBackend(status = "draft") {
 
 async function createPaymentIntent() {
   const reservation = loadReservation();
-  const booking = loadBackendBooking() || (await syncBookingToBackend("pending"));
+  const booking = currentBackendBookingForReservation(reservation) || (await syncBookingToBackend("pending"));
   const result = await optionalApiRequest(
     "/api/payments/intent",
     {
@@ -916,7 +979,7 @@ async function createPaymentIntent() {
 
 async function createPaymentCheckout() {
   const reservation = loadReservation();
-  const booking = loadBackendBooking() || (await syncBookingToBackend("payment_pending"));
+  const booking = currentBackendBookingForReservation(reservation) || (await syncBookingToBackend("payment_pending"));
   let result;
   try {
     result = await apiRequest("/api/payments/checkout", {
@@ -3334,14 +3397,14 @@ function setupBooking() {
 
     const checked = document.querySelector('input[name="vehicle"]:checked');
     if (checked) {
-      saveReservation({ vehicle: checked.value });
+      saveBookingDraft({ vehicle: checked.value });
       updateSummary();
     }
   }
 
   function persistDraft() {
     if (!form) return;
-    saveReservation(readBookingForm(form));
+    saveBookingDraft(readBookingForm(form));
     updateSummary();
     window.clearTimeout(persistDraft.availabilityTimer);
     persistDraft.availabilityTimer = window.setTimeout(checkAvailability, 360);
@@ -3357,7 +3420,7 @@ function setupBooking() {
   form?.addEventListener("input", persistDraft);
   form?.addEventListener("submit", async (event) => {
     event.preventDefault();
-    saveReservation({ ...readBookingForm(form), clientIntent: "reservation" });
+    saveBookingDraft({ ...readBookingForm(form), clientIntent: "reservation" });
     try {
       const availability = await checkAvailability();
       if (availability && availability.available === false) return;

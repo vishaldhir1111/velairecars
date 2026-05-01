@@ -123,6 +123,8 @@ export default async function handler(req, res) {
     const activeReservation = await findActiveReservation({
       email: reservation.email,
       vehicle: reservation.vehicle,
+      pickup: reservation.pickup,
+      returnDate: reservation.return,
     });
     if (activeReservation?.booking) {
       const booking = await attachStoredBookingToUser({
