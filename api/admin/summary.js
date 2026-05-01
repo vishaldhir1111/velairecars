@@ -1,4 +1,5 @@
 import { allowMethods, sendJson } from "../_lib/http.js";
+import { listStoredOperations } from "../_lib/operations-store.js";
 import { adminSummary, listAllBookings, listCustomers, listPayments } from "../_lib/store.js";
 import { listStripeOperations, mergeCustomers, mergeOperations } from "../_lib/stripe-operations.js";
 
@@ -17,10 +18,10 @@ export default async function handler(req, res) {
   }
 
   const localSummary = adminSummary();
-  const stripeOperations = await listStripeOperations();
-  const bookings = mergeOperations(listAllBookings(), stripeOperations.bookings);
-  const payments = mergeOperations(listPayments(), stripeOperations.payments);
-  const customers = mergeCustomers(listCustomers(), stripeOperations.customers);
+  const [storedOperations, stripeOperations] = await Promise.all([listStoredOperations(), listStripeOperations()]);
+  const bookings = mergeOperations(mergeOperations(listAllBookings(), storedOperations.bookings), stripeOperations.bookings);
+  const payments = mergeOperations(mergeOperations(listPayments(), storedOperations.payments), stripeOperations.payments);
+  const customers = mergeCustomers(mergeCustomers(listCustomers(), storedOperations.customers), stripeOperations.customers);
   const summary = {
     ...localSummary,
     counts: {
@@ -39,6 +40,11 @@ export default async function handler(req, res) {
       available: stripeOperations.available,
       reason: stripeOperations.reason,
       payments: stripeOperations.payments.length,
+    },
+    storedOperations: {
+      available: storedOperations.available,
+      reason: storedOperations.reason,
+      payments: storedOperations.payments.length,
     },
   };
 

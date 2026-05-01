@@ -293,6 +293,7 @@ function loadAccount() {
       billingAddress: "",
       billingPostcode: "",
       preferredLocation: "",
+      savedLocations: [],
       handoverType: "Concierge delivery",
       vehicleCategories: ["Super SUV", "Luxury SUV"],
       communication: ["Concierge updates"],
@@ -312,6 +313,7 @@ function loadAccount() {
       billingAddress: "",
       billingPostcode: "",
       preferredLocation: "",
+      savedLocations: [],
       handoverType: "Concierge delivery",
       vehicleCategories: ["Super SUV", "Luxury SUV"],
       communication: ["Concierge updates"],
@@ -445,6 +447,7 @@ function backendAccountPatchFromLocal(account = loadAccount()) {
       handoverType: account.handoverType || "Concierge delivery",
       communication: account.communication || [],
       preferredLocation: account.preferredLocation || "",
+      savedLocations: account.savedLocations || [],
     },
     verification: {
       status: verificationStatus(account).toLowerCase().replace(/\s+/g, "_"),
@@ -1534,25 +1537,219 @@ function verificationStatus(account = loadAccount()) {
   return "Not submitted";
 }
 
+function documentMeta(file) {
+  return {
+    name: file.name,
+    type: file.type || "Selected document",
+    size: file.size || 0,
+    status: "ready_for_review",
+    storageStatus: "metadata_saved",
+    updatedAt: new Date().toISOString(),
+  };
+}
+
+function readImagePreview(file) {
+  if (!file || !file.type?.startsWith("image/") || file.size > 2 * 1024 * 1024) return Promise.resolve("");
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ""));
+    reader.onerror = () => resolve("");
+    reader.readAsDataURL(file);
+  });
+}
+
+function strongestBooking(bookings = []) {
+  const priority = {
+    confirmed: 1,
+    payment_pending: 2,
+    pending: 3,
+    draft: 4,
+    completed: 5,
+    cancelled: 6,
+  };
+  return bookings
+    .slice()
+    .sort((a, b) => (priority[a.status] || 9) - (priority[b.status] || 9) || String(b.updatedAt || b.createdAt).localeCompare(String(a.updatedAt || a.createdAt)))[0];
+}
+
+function renderCurrentReservation(bookings = []) {
+  const target = document.querySelector("[data-current-reservation]");
+  if (!target) return;
+  const booking = strongestBooking(bookings) || loadBackendBooking();
+  if (!booking) {
+    target.innerHTML = `
+      <article class="account-empty-state">
+        <strong>No active reservation yet</strong>
+        <span>Reserve a vehicle and your private client timeline will appear here.</span>
+      </article>
+    `;
+    return;
+  }
+
+  target.innerHTML = `
+    <article class="account-reservation-card">
+      <div>
+        <span class="status-pill ${statusClass(booking.status)}">${escapeHtml(humanStatus(booking.status))}</span>
+        <h3>${escapeHtml(booking.vehicleName || "Velaire reservation")}</h3>
+        <p>${escapeHtml(booking.location || "Concierge handover pending")}</p>
+      </div>
+      <div class="account-reservation-meta">
+        <span>${escapeHtml(formatDisplayDate(booking.pickup) || "Pickup pending")}</span>
+        <strong>${escapeHtml(booking.reference || booking.id || "Reference pending")}</strong>
+        <small>${escapeHtml(humanStatus(booking.paymentStatus || "not_started"))}</small>
+      </div>
+    </article>
+  `;
+}
+
+function readinessItem(label, complete, detail) {
+  return {
+    label,
+    complete,
+    detail,
+  };
+}
+
+function renderClientReadiness(account = loadAccount(), bookings = [], payments = []) {
+  const target = document.querySelector("[data-client-readiness]");
+  const primaryBooking = strongestBooking(bookings) || loadBackendBooking() || {};
+  const reservation = loadReservation();
+  const hasPaidDeposit =
+    payments.some((payment) => payment.status === "deposit_paid") ||
+    primaryBooking.paymentStatus === "deposit_paid" ||
+    reservation.paymentStatus === "deposit_paid";
+  const hasLocation = Boolean(primaryBooking.location || reservation.formattedAddress || reservation.location);
+  const isVerified = verificationStatus(account) === "Ready for review";
+  const isApproved = primaryBooking.status === "confirmed";
+  const items = [
+    readinessItem("Profile", Boolean(account.fullName && account.email && account.phone), account.fullName ? "Client details saved" : "Add your client details"),
+    readinessItem("Verification", isVerified, isVerified ? "Documents ready for review" : "Upload licence, proof of address and ID"),
+    readinessItem("Deposit", hasPaidDeposit, hasPaidDeposit ? "Stripe deposit received" : "Secure deposit required"),
+    readinessItem("Handover", hasLocation, hasLocation ? "Preferred location saved" : "Add delivery or handover point"),
+    readinessItem("Approval", isApproved, isApproved ? "Reservation approved" : "Concierge approval pending"),
+  ];
+  const completeCount = items.filter((item) => item.complete).length;
+
+  bindAccountText(
+    "portalStatus",
+    completeCount >= 4 ? "Release-ready private client" : completeCount >= 2 ? "Concierge review in progress" : "Concierge profile in progress",
+  );
+  bindAccountText(
+    "portalSummary",
+    completeCount >= 4
+      ? "Your Velaire profile is prepared for a polished handover. The concierge team will confirm final timing."
+      : `${completeCount}/5 readiness steps complete. Finish the remaining checks to prepare your vehicle release.`,
+  );
+
+  if (!target) return;
+  target.innerHTML = items
+    .map(
+      (item) => `
+        <li class="${item.complete ? "is-complete" : "is-pending"}">
+          <strong>${escapeHtml(item.label)}</strong>
+          <span>${escapeHtml(item.detail)}</span>
+        </li>
+      `,
+    )
+    .join("");
+}
+
+function renderPaymentHistory(payments = []) {
+  const target = document.querySelector("[data-payment-history]");
+  if (!target) return;
+  if (!payments.length) {
+    target.innerHTML = `<li><strong>No payment records yet</strong><span>Stripe deposit activity will appear here after checkout.</span></li>`;
+    return;
+  }
+  target.innerHTML = payments
+    .map(
+      (payment) => `
+        <li>
+          <strong>${escapeHtml(payment.bookingReference || payment.bookingId || "Reservation deposit")}</strong>
+          <span>${escapeHtml(humanStatus(payment.status))} · ${money(Number(payment.amount || 0))} · ${escapeHtml(payment.providerReference || payment.checkoutSessionId || "Stripe reference pending")}</span>
+        </li>
+      `,
+    )
+    .join("");
+}
+
+function renderReceipts(receipts = []) {
+  const target = document.querySelector("[data-receipt-list]");
+  if (!target) return;
+  if (!receipts.length) {
+    target.innerHTML = `<article class="receipt-card"><strong>No receipts yet</strong><span>Deposit receipts will appear after a successful Stripe payment.</span></article>`;
+    return;
+  }
+  target.innerHTML = receipts
+    .map(
+      (payment) => `
+        <article class="receipt-card">
+          <span>${escapeHtml(humanStatus(payment.status))}</span>
+          <strong>${money(Number(payment.amountPaid || payment.amount || 0))}</strong>
+          <small>${escapeHtml(payment.bookingReference || payment.bookingId || "Velaire reservation")} · ${escapeHtml(payment.providerReference || payment.checkoutSessionId || "Stripe")}</small>
+        </article>
+      `,
+    )
+    .join("");
+}
+
+function renderSavedLocations(account = loadAccount()) {
+  const target = document.querySelector("[data-saved-locations]");
+  if (!target) return;
+  const reservation = loadReservation();
+  const locations = [
+    ...(account.savedLocations || []),
+    reservation.formattedAddress || reservation.location
+      ? {
+          label: reservation.formattedAddress || reservation.location,
+          type: "Current booking handover",
+          lat: reservation.lat || "",
+          lng: reservation.lng || "",
+        }
+      : null,
+  ].filter(Boolean);
+  const unique = new Map(locations.map((item) => [String(item.label).toLowerCase(), item]));
+  const saved = [...unique.values()].slice(0, 5);
+  target.innerHTML = saved.length
+    ? saved
+        .map(
+          (location) => `
+            <article class="location-card">
+              <strong>${escapeHtml(location.label)}</strong>
+              <span>${escapeHtml(location.type || "Saved handover point")}</span>
+              ${location.lat && location.lng ? `<small>${escapeHtml(location.lat)}, ${escapeHtml(location.lng)}</small>` : ""}
+            </article>
+          `,
+        )
+        .join("")
+    : `<article class="location-card"><strong>No saved locations yet</strong><span>Save a handover address from a booking to reuse it next time.</span></article>`;
+}
+
 function updateAccountDisplay(account = loadAccount()) {
   const displayName = account.fullName || "Velaire Client";
   const initials = accountInitials(displayName);
 
   ["client-avatar", "profile-avatar"].forEach((id) => {
     const avatar = document.getElementById(id);
-    if (avatar) avatar.textContent = initials;
+    if (!avatar) return;
+    const preview = account.files?.displayPhoto?.preview || "";
+    avatar.textContent = preview ? "" : initials;
+    avatar.style.backgroundImage = preview ? `url("${preview}")` : "";
+    avatar.classList.toggle("has-photo", Boolean(preview));
   });
 
   bindAccountText("displayName", displayName);
-  bindAccountText("membership", account.membership || "Private client status");
+  bindAccountText("membership", account.membership || "Velaire Private Client");
   bindAccountText("upcomingCount", "1");
   bindAccountText("verificationStatus", verificationStatus(account));
   bindAccountText("cardSummary", account.cardSummary || "No saved card");
   bindAccountText("cardName", account.cardName || "Cards are entered only inside secure Stripe Checkout.");
+  bindAccountText("documentCount", `${Object.values(account.files || {}).filter((file) => file?.name).length}/4 files`);
 
   document.querySelectorAll("[data-file-label]").forEach((label) => {
     const key = label.dataset.fileLabel;
-    label.textContent = account.files?.[key]?.name || fileLabelDefaults[key] || "Select file";
+    const file = account.files?.[key];
+    label.textContent = file?.name ? `${file.name} · ${file.status ? humanStatus(file.status) : "Selected"}` : fileLabelDefaults[key] || "Select file";
   });
 
   const favouriteGrid = document.querySelector("[data-favourite-grid]");
@@ -1566,6 +1763,8 @@ function updateAccountDisplay(account = loadAccount()) {
       .map((label) => `<span>${label}</span>`)
       .join("");
   }
+  renderSavedLocations(account);
+  renderClientReadiness(account);
 }
 
 function renderBookingHistory(bookings = []) {
@@ -1611,6 +1810,7 @@ function mergeBackendAccount(user) {
     billingAddress: user.profile?.billingAddress || loadAccount().billingAddress || "",
     billingPostcode: user.profile?.billingPostcode || loadAccount().billingPostcode || "",
     preferredLocation: user.preferences?.preferredLocation || loadAccount().preferredLocation || "",
+    savedLocations: user.preferences?.savedLocations || loadAccount().savedLocations || [],
     handoverType: user.preferences?.handoverType || loadAccount().handoverType || "Concierge delivery",
     vehicleCategories: user.preferences?.vehicleCategories || loadAccount().vehicleCategories || [],
     communication: user.preferences?.communication || loadAccount().communication || [],
@@ -1619,6 +1819,7 @@ function mergeBackendAccount(user) {
     cardSummary: user.paymentMethod?.label || loadAccount().cardSummary || "No saved card",
     cardName: user.paymentMethod?.name || loadAccount().cardName || "Cards are entered only inside secure Stripe Checkout.",
     cardExpiry: user.paymentMethod?.expiry || loadAccount().cardExpiry || "",
+    membership: verificationStatus(loadAccount()) === "Ready for review" ? "Velaire Private Client" : loadAccount().membership || "Velaire Private Client",
   });
   updateAccountDisplay(next);
   return next;
@@ -1627,11 +1828,22 @@ function mergeBackendAccount(user) {
 async function hydrateAccountFromBackend() {
   const result = await optionalApiRequest("/api/account", { method: "GET" }, null);
   if (!result) {
-    renderBookingHistory([]);
+    const localBooking = loadBackendBooking();
+    const localBookings = localBooking ? [localBooking] : [];
+    renderClientReadiness(loadAccount(), localBookings, []);
+    renderCurrentReservation(localBookings);
+    renderBookingHistory(localBookings);
+    renderPaymentHistory([]);
+    renderReceipts([]);
     return;
   }
   mergeBackendAccount(result.user);
-  renderBookingHistory(result.bookings || []);
+  const bookings = result.bookings || [];
+  renderClientReadiness(loadAccount(), bookings, result.payments || []);
+  renderCurrentReservation(bookings);
+  renderBookingHistory(bookings);
+  renderPaymentHistory(result.payments || []);
+  renderReceipts(result.receipts || []);
 }
 
 function renderAdminMetrics(summary = {}) {
@@ -2155,9 +2367,11 @@ async function refreshAdmin() {
   updateAdminAccessState({
     mode: "Operations live",
     message:
-      summary.summary?.stripeOperations?.available === false
+      summary.summary?.storedOperations?.available === true
+        ? "Admin API loaded from the operations data store and Stripe Checkout ledger."
+        : summary.summary?.stripeOperations?.available === false
         ? "Admin API loaded. Stripe payment ledger is unavailable until STRIPE_SECRET_KEY is configured."
-        : "Admin API loaded with Stripe Checkout deposit records.",
+        : "Admin API loaded from Stripe Checkout. Add Vercel KV or Upstash Redis REST variables for persisted operations records.",
   });
 }
 
@@ -2585,24 +2799,48 @@ function setupAccount() {
   });
 
   document.querySelectorAll("[data-file-input]").forEach((input) => {
-    input.addEventListener("change", () => {
+    input.addEventListener("change", async () => {
       const file = input.files?.[0];
       if (!file) return;
       const accountNext = loadAccount();
+      const key = input.dataset.fileInput;
+      const meta = documentMeta(file);
+      if (key === "displayPhoto") {
+        meta.preview = await readImagePreview(file);
+      }
       updateAccountDisplay(
         saveAccount({
           files: {
             ...(accountNext.files || {}),
-            [input.dataset.fileInput]: {
-              name: file.name,
-              type: file.type || "Selected document",
-              updatedAt: new Date().toISOString(),
-            },
+            [key]: meta,
           },
         }),
       );
       syncAccountToBackend(loadAccount());
     });
+  });
+
+  document.querySelector("[data-save-current-location]")?.addEventListener("click", () => {
+    const reservation = loadReservation();
+    const label = reservation.formattedAddress || reservation.location;
+    if (!label) {
+      showFlowToast("Add a delivery location in the booking flow first.", "warning");
+      return;
+    }
+    const accountNext = loadAccount();
+    const savedLocations = [
+      ...(accountNext.savedLocations || []),
+      {
+        label,
+        type: "Concierge delivery",
+        lat: reservation.lat || "",
+        lng: reservation.lng || "",
+        updatedAt: new Date().toISOString(),
+      },
+    ];
+    updateAccountDisplay(saveAccount({ savedLocations }));
+    syncAccountToBackend(loadAccount());
+    showFlowToast("Handover location saved to your client lounge.");
   });
 
   document.querySelector("[data-logout]")?.addEventListener("click", async () => {

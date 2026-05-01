@@ -68,7 +68,9 @@
           <a href="#profile">Profile</a>
           <a href="#verification">Verification</a>
           <a href="#payments">Payments</a>
+          <a href="#receipts">Receipts</a>
           <a href="#preferences">Preferences</a>
+          <a href="#locations">Locations</a>
           <a href="ai.html">AI concierge</a>
           <a href="admin.html">Operations</a>
         </aside>
@@ -93,13 +95,46 @@
               </article>
               <article>
                 <span>Payment method</span>
-                <strong data-account-bind="cardSummary">No saved card</strong>
+                <strong data-bind="paymentStatus">Payment pending</strong>
                 <small>Handled only by Stripe Checkout</small>
               </article>
               <article>
-                <span>Deposit guidance</span>
-                <strong data-bind="depositValue">£2,500</strong>
-                <small>Vehicle-specific reserve deposit</small>
+                <span>Documents</span>
+                <strong data-account-bind="documentCount">0/4 files</strong>
+                <small>Photo, licence, address and ID metadata</small>
+              </article>
+            </div>
+
+            <div class="client-command-grid" aria-label="Private client readiness">
+              <article class="client-command-card">
+                <div>
+                  <p class="eyebrow">Private client status</p>
+                  <h3 data-account-bind="portalStatus">Concierge profile in progress</h3>
+                  <p data-account-bind="portalSummary">
+                    Complete verification, deposit and handover preferences to prepare your Velaire release.
+                  </p>
+                </div>
+                <div class="client-command-actions">
+                  <a class="primary-button" href="payment.html">Continue deposit</a>
+                  <a class="secondary-button" href="ai.html">Ask concierge</a>
+                </div>
+              </article>
+
+              <article class="client-readiness-card">
+                <p class="eyebrow">Release readiness</p>
+                <ol class="client-readiness-list" data-client-readiness>
+                  <li>
+                    <strong>Client profile</strong>
+                    <span>Loading account checks</span>
+                  </li>
+                </ol>
+              </article>
+            </div>
+
+            <div class="account-current-reservation" data-current-reservation>
+              <article class="account-empty-state">
+                <strong>Loading reservation status</strong>
+                <span>Your current or most recent Velaire booking will appear here.</span>
               </article>
             </div>
 
@@ -245,6 +280,7 @@
                   Once all documents are selected, the concierge team can review licence eligibility,
                   address confirmation and vehicle release requirements.
                 </p>
+                <small data-account-bind="documentCount">0/4 files</small>
               </aside>
             </div>
           </section>
@@ -278,14 +314,10 @@
               <article class="account-card">
                 <p class="eyebrow">Payment history</p>
                 <h3>Reservation activity</h3>
-                <ul class="account-list">
+                <ul class="account-list" data-payment-history>
                   <li>
-                    <strong>Reservation hold</strong>
-                    <span data-bind="depositValue">£2,500</span>
-                  </li>
-                  <li>
-                    <strong>Past refund</strong>
-                    <span>£500 returned after inspection</span>
+                    <strong>Loading Stripe activity</strong>
+                    <span>Deposit records will appear after checkout.</span>
                   </li>
                 </ul>
               </article>
@@ -296,6 +328,20 @@
                   Deposit levels depend on vehicle, duration, licence checks and handover location.
                   Refunds are reviewed after return inspection.
                 </p>
+              </article>
+            </div>
+          </section>
+
+          <section class="flow-panel account-section" id="receipts">
+            <div class="panel-heading">
+              <p class="eyebrow">Invoices and receipts</p>
+              <h2>Payment records.</h2>
+              <span>Customer-facing receipt summaries for deposits, refunds and reservation payments.</span>
+            </div>
+            <div class="receipt-grid" data-receipt-list>
+              <article class="receipt-card">
+                <strong>No receipts yet</strong>
+                <span>Successful Stripe deposit receipts will appear here.</span>
               </article>
             </div>
           </section>
@@ -339,6 +385,21 @@
               </label>
               <button class="primary-button" type="submit">Save preferences</button>
             </form>
+          </section>
+
+          <section class="flow-panel account-section" id="locations">
+            <div class="panel-heading">
+              <p class="eyebrow">Saved handover locations</p>
+              <h2>Delivery preferences.</h2>
+              <span>Reuse preferred homes, hotels, offices and airports for future concierge handovers.</span>
+            </div>
+            <div class="location-grid" data-saved-locations>
+              <article class="location-card">
+                <strong>No saved locations yet</strong>
+                <span>Save a delivery address from the booking flow to reuse it next time.</span>
+              </article>
+            </div>
+            <button class="secondary-button" type="button" data-save-current-location>Save current booking location</button>
           </section>
 
         </div>

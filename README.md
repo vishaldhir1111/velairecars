@@ -49,6 +49,7 @@ The `api/` folder contains Vercel-ready serverless endpoints:
 - `POST /api/payments/checkout`
 - `GET/POST /api/payments/session`
 - `POST /api/payments/webhook`
+- `POST /api/notifications/reminders`
 - `POST /api/concierge`
 - `GET /api/admin/summary`
 - `GET/PATCH /api/admin/bookings`
@@ -57,10 +58,10 @@ The `api/` folder contains Vercel-ready serverless endpoints:
 - `GET/PATCH /api/admin/payments`
 - `GET/PATCH/POST/DELETE /api/admin/vehicles`
 
-The current backend uses an in-memory store scaffold so the flow is API-shaped without adding a
-database dependency. For production, replace `api/_lib/store.js` with a durable database adapter.
-Stripe Checkout is required for reservation deposits, with webhook and return-page verification. No
-raw card data is collected or stored by Velaire.
+The current backend keeps the live booking flow lightweight, but Stripe payment operations are now
+mirrored into an optional durable Vercel KV / Upstash Redis REST store through
+`api/_lib/operations-store.js`. Stripe Checkout is required for reservation deposits, with webhook
+and return-page verification. No raw card data is collected or stored by Velaire.
 
 ## Operations And Trust
 
@@ -74,7 +75,13 @@ raw card data is collected or stored by Velaire.
   admin cancels or completes the booking.
 - Phase 2 deposit statuses are `payment_pending`, `deposit_paid`, `failed`, `cancelled` and
   `refunded`. A booking is only moved to paid/confirmed after Stripe returns a paid Checkout
-  Session through `/api/payments/session` or the Stripe webhook.
+  Session through `/api/payments/session` or the Stripe webhook. The webhook writes booking,
+  payment and customer records into the operations store when Vercel KV / Upstash REST variables are
+  configured, and the Operations dashboard reads that same store.
+- Phase 3 client account features include profile/photo metadata, verification document metadata,
+  saved handover locations, richer booking history, receipt summaries and notification triggers for
+  booking requests, paid deposits, failed payments, admin approval/rejection and handover reminders.
+  Resend is used for email delivery when `RESEND_API_KEY` is configured.
 - Legal and trust pages are in `public/` and share the same Nexa, black and rose-gold flow design
   system as the booking and account experience. Have a solicitor review the policy copy before using
   it as binding production legal wording.
@@ -85,6 +92,13 @@ Set these environment variables in production:
 - `STRIPE_SECRET_KEY` is required for Stripe Checkout session creation.
 - `STRIPE_WEBHOOK_SECRET` verifies Stripe webhook events.
 - `VELAIRE_SITE_URL` is optional and can force Stripe redirect URLs to `https://www.velairecars.com`.
+- `KV_REST_API_URL` and `KV_REST_API_TOKEN` enable durable Operations records on Vercel KV.
+- Alternatively, `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` can be used.
+- `VELAIRE_STORE_PREFIX` is optional and defaults to `velaire:operations`.
+- `RESEND_API_KEY` enables transactional emails.
+- `VELAIRE_EMAIL_FROM` sets the sender, for example `Velaire Cars <reservations@velairecars.com>`.
+- `VELAIRE_ADMIN_EMAIL` receives optional internal booking/payment notifications.
+- `VELAIRE_REMINDER_WINDOW_HOURS` controls the handover reminder endpoint and defaults to `48`.
 
 ## Run
 

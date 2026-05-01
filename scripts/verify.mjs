@@ -33,6 +33,7 @@ const requiredFiles = [
   "api/account.js",
   "api/availability.js",
   "api/concierge.js",
+  "api/notifications/reminders.js",
   "api/auth/login.js",
   "api/auth/register.js",
   "api/auth/logout.js",
@@ -49,7 +50,10 @@ const requiredFiles = [
   "api/admin/vehicles.js",
   "api/_lib/fleet-data.js",
   "api/_lib/http.js",
+  "api/_lib/notifications.js",
+  "api/_lib/operations-store.js",
   "api/_lib/stripe.js",
+  "api/_lib/stripe-operations.js",
   "api/_lib/store.js",
   "vite.config.js",
   "package.json",
@@ -144,6 +148,26 @@ if (!read("api/payments/session.js").includes("retrieveStripeCheckoutSession")) 
 
 if (!read("api/payments/webhook.js").includes("verifyStripeSignature")) {
   throw new Error("api/payments/webhook.js is missing Stripe signature verification");
+}
+
+if (!read("api/payments/webhook.js").includes("saveStripeOperationsSession")) {
+  throw new Error("Stripe webhook is not persisting successful Checkout sessions into Operations");
+}
+
+if (!read("api/admin/payments.js").includes("listStoredOperations")) {
+  throw new Error("Operations payments endpoint is not reading the durable operations store");
+}
+
+if (!read("api/_lib/notifications.js").includes("RESEND_API_KEY")) {
+  throw new Error("Phase 3 notifications are not wired to Resend environment variables");
+}
+
+if (!read("public/account.html").includes("data-receipt-list") || !read("public/account.html").includes("data-saved-locations")) {
+  throw new Error("Phase 3 account receipts or saved handover locations are missing");
+}
+
+if (!read("public/account.html").includes("data-client-readiness") || !read("public/flow.js").includes("renderClientReadiness")) {
+  throw new Error("Premium private client readiness panel is missing from the account portal");
 }
 
 for (const forbidden of [

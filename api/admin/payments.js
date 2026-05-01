@@ -1,4 +1,5 @@
 import { allowMethods, publicError, readJson, sendJson } from "../_lib/http.js";
+import { listStoredOperations } from "../_lib/operations-store.js";
 import { adminUpdatePayment, listPayments } from "../_lib/store.js";
 import { listStripeOperations, mergeOperations } from "../_lib/stripe-operations.js";
 
@@ -17,9 +18,10 @@ export default async function handler(req, res) {
   }
 
   if (req.method === "GET") {
-    const stripeOperations = await listStripeOperations();
+    const [storedOperations, stripeOperations] = await Promise.all([listStoredOperations(), listStripeOperations()]);
     sendJson(res, 200, {
-      payments: mergeOperations(listPayments(), stripeOperations.payments),
+      payments: mergeOperations(mergeOperations(listPayments(), storedOperations.payments), stripeOperations.payments),
+      storedOperations,
       stripeOperations,
       mode: process.env.VELAIRE_ADMIN_TOKEN ? "protected" : "scaffold_open",
     });

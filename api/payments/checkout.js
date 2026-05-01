@@ -1,4 +1,5 @@
 import { allowMethods, publicError, readJson, sendJson } from "../_lib/http.js";
+import { saveStripeOperationsSession } from "../_lib/operations-store.js";
 import { attachCheckoutToPayment, createPaymentIntent } from "../_lib/store.js";
 import { createStripeCheckoutSession, stripeConfigured } from "../_lib/stripe.js";
 
@@ -21,6 +22,7 @@ export default async function handler(req, res) {
     });
 
     const session = await createStripeCheckoutSession(req, paymentIntent, body.reservation || {});
+    await saveStripeOperationsSession(session, "payment_pending");
     const payment = attachCheckoutToPayment(paymentIntent.id, {
       sessionId: session.id,
       url: session.url,

@@ -26,12 +26,12 @@ function sessionIsVelaire(session = {}) {
   );
 }
 
-function normaliseSession(session = {}) {
+function normaliseSession(session = {}, statusOverride = "") {
   const metadata = session.metadata || {};
   const customer = session.customer_details || {};
   const vehicleSlug = metadata.vehicle_slug || metadata.vehicle || "";
   const vehicle = findVehicle(vehicleSlug);
-  const paymentStatus = paymentStatusFromCheckoutSession(session);
+  const paymentStatus = statusOverride || paymentStatusFromCheckoutSession(session);
   const amount = amountFromStripe(session.amount_total || metadata.deposit_amount * 100 || vehicle.deposit * 100);
   const createdAt = nowFromStripe(session.created);
   const bookingId = metadata.booking_id || session.client_reference_id || `stripe_${session.id}`;
@@ -117,7 +117,7 @@ function uniqueById(items = []) {
   return [...map.values()].sort((a, b) => String(b.updatedAt || b.createdAt).localeCompare(String(a.updatedAt || a.createdAt)));
 }
 
-function customersFromBookings(bookings = []) {
+export function customersFromBookings(bookings = []) {
   const byEmail = new Map();
   for (const booking of bookings) {
     const email = String(booking.customerEmail || "").toLowerCase();
@@ -156,6 +156,17 @@ function customersFromBookings(bookings = []) {
   return [...byEmail.values()].sort((a, b) => String(b.updatedAt || b.createdAt).localeCompare(String(a.updatedAt || a.createdAt)));
 }
 
+export function recordsFromStripeSession(session = {}, statusOverride = "") {
+  const { booking, payment } = normaliseSession(session, statusOverride);
+  return {
+    booking,
+    payment,
+    bookings: booking ? [booking] : [],
+    payments: payment ? [payment] : [],
+    customers: booking ? customersFromBookings([booking]) : [],
+  };
+}
+
 export async function listStripeOperations() {
   if (!stripeConfigured()) {
     return { bookings: [], payments: [], customers: [], available: false, reason: "stripe_not_configured" };
@@ -163,7 +174,7 @@ export async function listStripeOperations() {
 
   try {
     const response = await stripeRequest("/checkout/sessions?limit=100");
-    const records = (response.data || []).filter(sessionIsVelaire).map(normaliseSession);
+    const records = (response.data || []).filter(sessionIsVelaire).map((session) => normaliseSession(session));
     const bookings = uniqueById(records.map((record) => record.booking));
     const payments = uniqueById(records.map((record) => record.payment));
     return {

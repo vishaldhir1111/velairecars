@@ -1,4 +1,5 @@
 import { allowMethods, publicError, readJson, sendJson } from "../_lib/http.js";
+import { saveStripeOperationsSession } from "../_lib/operations-store.js";
 import { markPaymentStatus, upsertStripeCheckoutSession } from "../_lib/store.js";
 import { paymentStatusFromCheckoutSession, retrieveStripeCheckoutSession } from "../_lib/stripe.js";
 
@@ -11,6 +12,7 @@ export default async function handler(req, res) {
     const session = await retrieveStripeCheckoutSession(sessionId);
     const paymentStatus = paymentStatusFromCheckoutSession(session);
     upsertStripeCheckoutSession(session, paymentStatus);
+    await saveStripeOperationsSession(session, paymentStatus);
     const result = markPaymentStatus({
       paymentId: session.metadata?.payment_id,
       bookingId: session.metadata?.booking_id,

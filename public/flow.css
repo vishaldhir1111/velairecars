@@ -2371,6 +2371,13 @@ h2 {
   font-size: 1.35rem;
   font-weight: 500;
   box-shadow: 0 0 0 12px rgba(215, 161, 140, 0.06);
+  background-size: cover;
+  background-position: center;
+}
+
+.client-avatar.has-photo {
+  border-color: rgba(248, 242, 236, 0.28);
+  box-shadow: 0 0 0 10px rgba(215, 161, 140, 0.08), 0 18px 44px rgba(0, 0, 0, 0.32);
 }
 
 .client-avatar.large {
@@ -2399,6 +2406,10 @@ h2 {
 .account-status-grid div,
 .account-metric-grid article,
 .account-card,
+.account-reservation-card,
+.account-empty-state,
+.receipt-card,
+.location-card,
 .verification-status-card,
 .premium-card-summary,
 .concierge-prompts {
@@ -2535,6 +2546,163 @@ h2 {
   margin: 0;
   font-size: 1.5rem;
   line-height: 1.1;
+}
+
+.account-current-reservation,
+.client-command-grid,
+.receipt-grid,
+.location-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.client-command-grid {
+  grid-template-columns: minmax(0, 1.12fr) minmax(300px, 0.88fr);
+}
+
+.client-command-card,
+.client-readiness-card {
+  border: 1px solid rgba(215, 161, 140, 0.18);
+  border-radius: var(--radius);
+  background:
+    linear-gradient(145deg, rgba(215, 161, 140, 0.11), rgba(248, 242, 236, 0.03)),
+    rgba(5, 5, 5, 0.32);
+  box-shadow: 0 22px 60px rgba(0, 0, 0, 0.24);
+}
+
+.client-command-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 18px;
+  align-items: center;
+  padding: 22px;
+}
+
+.client-command-card h3,
+.client-readiness-card strong {
+  color: var(--ivory);
+  font-family: var(--font-display);
+  font-weight: 500;
+}
+
+.client-command-card h3 {
+  margin: 0 0 8px;
+  font-size: clamp(1.8rem, 3vw, 3rem);
+  line-height: 1;
+}
+
+.client-command-card p:not(.eyebrow),
+.client-readiness-list span {
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.client-command-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.client-readiness-card {
+  display: grid;
+  gap: 14px;
+  padding: 20px;
+}
+
+.client-readiness-list {
+  display: grid;
+  gap: 10px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.client-readiness-list li {
+  position: relative;
+  display: grid;
+  gap: 4px;
+  padding-left: 28px;
+}
+
+.client-readiness-list li::before {
+  position: absolute;
+  top: 4px;
+  left: 0;
+  display: grid;
+  width: 16px;
+  height: 16px;
+  place-items: center;
+  border: 1px solid rgba(215, 161, 140, 0.42);
+  border-radius: 50%;
+  color: #110b09;
+  content: "";
+  font-size: 0.68rem;
+}
+
+.client-readiness-list li.is-complete::before {
+  background: var(--rose);
+  content: "✓";
+}
+
+.client-readiness-list li.is-pending::before {
+  background: rgba(248, 242, 236, 0.08);
+}
+
+.account-reservation-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 18px;
+  align-items: center;
+  padding: 20px;
+}
+
+.account-reservation-card h3 {
+  color: var(--ivory);
+  font-family: var(--font-display);
+  font-size: clamp(1.65rem, 3vw, 2.55rem);
+  font-weight: 500;
+  margin: 10px 0 6px;
+}
+
+.account-reservation-card p,
+.account-reservation-meta small,
+.account-empty-state span,
+.receipt-card span,
+.receipt-card small,
+.location-card span,
+.location-card small {
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.account-reservation-meta {
+  display: grid;
+  justify-items: end;
+  gap: 6px;
+  min-width: 190px;
+}
+
+.account-reservation-meta strong,
+.receipt-card strong,
+.location-card strong,
+.account-empty-state strong {
+  color: var(--ivory);
+  font-family: var(--font-display);
+  font-weight: 500;
+}
+
+.account-empty-state,
+.receipt-card,
+.location-card {
+  display: grid;
+  gap: 8px;
+  padding: 16px;
+}
+
+.receipt-grid,
+.location-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .account-list {
@@ -3785,6 +3953,9 @@ h2 {
 
   .account-metric-grid,
   .account-card-grid,
+  .client-command-grid,
+  .receipt-grid,
+  .location-grid,
   .upload-grid,
   .preference-grid,
   .ai-capability-grid,
@@ -3979,11 +4150,24 @@ h2 {
   .account-metric-grid,
   .account-card-grid,
   .account-card-grid.compact-grid,
+  .client-command-grid,
+  .receipt-grid,
+  .location-grid,
   .upload-grid,
   .preference-grid,
   .profile-photo-row,
-  .concierge-input-row {
+  .concierge-input-row,
+  .account-reservation-card,
+  .client-command-card {
     grid-template-columns: 1fr;
+  }
+
+  .account-reservation-meta {
+    justify-items: start;
+  }
+
+  .client-command-actions {
+    justify-content: flex-start;
   }
 
   .account-sidebar {

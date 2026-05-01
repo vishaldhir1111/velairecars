@@ -1,4 +1,5 @@
 import { allowMethods, publicError, readJson, sendJson, sessionCookie } from "../_lib/http.js";
+import { saveAccountRecord } from "../_lib/operations-store.js";
 import { createSession, registerUser } from "../_lib/store.js";
 
 export default async function handler(req, res) {
@@ -7,6 +8,7 @@ export default async function handler(req, res) {
   try {
     const body = await readJson(req);
     const user = registerUser(body);
+    await saveAccountRecord(user);
     const session = createSession(user.id);
     res.setHeader("Set-Cookie", sessionCookie(req, session.token));
     sendJson(res, 201, { user, session: { authenticated: true } });

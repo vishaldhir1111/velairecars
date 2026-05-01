@@ -1,5 +1,8 @@
 import { allowMethods, publicError, readJson, sendJson } from "./_lib/http.js";
+import { notifyClientAndAdmin } from "./_lib/notifications.js";
+import { saveOperationsRecords } from "./_lib/operations-store.js";
 import { createBooking, currentUser, listBookings, updateBooking } from "./_lib/store.js";
+import { customersFromBookings } from "./_lib/stripe-operations.js";
 
 export default async function handler(req, res) {
   if (!allowMethods(req, res, ["GET", "POST", "PATCH"])) return;
@@ -23,6 +26,14 @@ export default async function handler(req, res) {
         sendJson(res, 404, { error: "booking_not_found", message: "Booking not found." });
         return;
       }
+      await saveOperationsRecords({ booking, customers: customersFromBookings([booking]) });
+      if (body.patch?.status === "pending") {
+        await notifyClientAndAdmin({
+          clientType: "booking_created",
+          adminType: "admin_new_booking",
+          booking,
+        });
+      }
       sendJson(res, 200, { booking });
       return;
     }
@@ -32,6 +43,14 @@ export default async function handler(req, res) {
       reservation: body.reservation || body,
       status: body.status || "draft",
     });
+    await saveOperationsRecords({ booking, customers: customersFromBookings([booking]) });
+    if (booking.status === "pending") {
+      await notifyClientAndAdmin({
+        clientType: "booking_created",
+        adminType: "admin_new_booking",
+        booking,
+      });
+    }
     sendJson(res, 201, {
       authenticated: Boolean(user),
       booking,

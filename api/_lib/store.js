@@ -337,6 +337,7 @@ export function registerUser({ email, password, phone = "", profile = {} }) {
       handoverType: "Concierge delivery",
       communication: ["Concierge updates"],
       preferredLocation: "",
+      savedLocations: [],
     },
     verification: {
       status: "not_submitted",
