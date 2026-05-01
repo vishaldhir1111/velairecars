@@ -1,11 +1,6 @@
 import { allowMethods, publicError, readJson, sendJson } from "../_lib/http.js";
+import { adminAllowed } from "../_lib/admin-auth.js";
 import { blockVehicleDates, listOperationalVehicles, removeVehicleBlock, updateVehicleOperations } from "../_lib/store.js";
-
-function adminAllowed(req) {
-  const expected = process.env.VELAIRE_ADMIN_TOKEN;
-  if (!expected) return true;
-  return req.headers.authorization === `Bearer ${expected}` || req.headers["x-velaire-admin-token"] === expected;
-}
 
 export default async function handler(req, res) {
   if (!allowMethods(req, res, ["GET", "PATCH", "POST", "DELETE"])) return;

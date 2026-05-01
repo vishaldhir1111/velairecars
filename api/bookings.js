@@ -1,6 +1,6 @@
 import { allowMethods, publicError, readJson, sendJson } from "./_lib/http.js";
 import { notifyClientAndAdmin } from "./_lib/notifications.js";
-import { findPaidDeposit, saveOperationsRecords } from "./_lib/operations-store.js";
+import { findActiveReservation, findPaidDeposit, saveOperationsRecords } from "./_lib/operations-store.js";
 import { createBooking, currentUser, listBookings, updateBooking } from "./_lib/store.js";
 import { customersFromBookings } from "./_lib/stripe-operations.js";
 
@@ -70,6 +70,21 @@ export default async function handler(req, res) {
         booking: paidDeposit.booking || null,
         payment: paidDeposit.payment || null,
         protected: "deposit_already_paid",
+      });
+      return;
+    }
+
+    const activeReservation = await findActiveReservation({
+      email: reservation.email,
+      vehicle: reservation.vehicle,
+    });
+    if (activeReservation?.booking) {
+      sendJson(res, 200, {
+        authenticated: Boolean(user),
+        booking: activeReservation.booking,
+        payment: activeReservation.payment || null,
+        protected: "reservation_already_exists",
+        message: "An active Velaire reservation already exists for this client and vehicle.",
       });
       return;
     }

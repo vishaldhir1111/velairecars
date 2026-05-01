@@ -1,13 +1,8 @@
 import { allowMethods, sendJson } from "../_lib/http.js";
+import { adminAllowed, adminMode } from "../_lib/admin-auth.js";
 import { listStoredOperations } from "../_lib/operations-store.js";
 import { adminSummary, listAllBookings, listCustomers, listPayments } from "../_lib/store.js";
 import { listStripeOperations, mergeCustomers, mergeOperations } from "../_lib/stripe-operations.js";
-
-function adminAllowed(req) {
-  const expected = process.env.VELAIRE_ADMIN_TOKEN;
-  if (!expected) return true;
-  return req.headers.authorization === `Bearer ${expected}` || req.headers["x-velaire-admin-token"] === expected;
-}
 
 export default async function handler(req, res) {
   if (!allowMethods(req, res, ["GET"])) return;
@@ -32,6 +27,7 @@ export default async function handler(req, res) {
       pendingBookings: bookings.filter((booking) => booking.status === "pending").length,
       paymentPendingBookings: bookings.filter((booking) => booking.status === "payment_pending").length,
       confirmedBookings: bookings.filter((booking) => booking.status === "confirmed").length,
+      needsReply: localSummary.counts.needsReply,
     },
     latestBookings: bookings.slice(0, 10),
     latestPayments: payments.slice(0, 8),
@@ -49,7 +45,7 @@ export default async function handler(req, res) {
   };
 
   sendJson(res, 200, {
-    operationsMode: process.env.VELAIRE_ADMIN_TOKEN ? "protected" : "scaffold_open",
+    operationsMode: adminMode(),
     summary,
     nextProductionStep: "Use Stripe Checkout as the durable payment ledger now; replace the in-memory reservation scaffold with Postgres, Neon, Supabase or another durable database for full production history.",
   });

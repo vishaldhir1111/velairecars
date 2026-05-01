@@ -10,8 +10,9 @@ visual system.
 - `src/App.jsx` imports `src/styles.css`.
 - `public/booking.html`, `public/login.html`, `public/account.html`, `public/ai.html`,
   `public/admin.html`, `public/payment.html` and `public/success.html` are static flow pages served at
-  `/booking.html`, `/login.html`, `/account.html`, `/ai.html`, `/admin.html`, `/payment.html` and
+  `/booking.html`, `/login.html`, `/account.html`, `/ai.html`, `/portal`, `/payment.html` and
   `/success.html`.
+- `vercel.json` rewrites `/portal` to the operations page while keeping clean URLs enabled.
 - `public/terms.html`, `public/privacy.html`, `public/cancellation.html`, `public/insurance.html`,
   `public/requirements.html` and `public/deposit.html` are the legal and trust pages served at
   `/terms.html`, `/privacy.html`, `/cancellation.html`, `/insurance.html`, `/requirements.html`
@@ -65,8 +66,8 @@ and return-page verification. No raw card data is collected or stored by Velaire
 
 ## Operations And Trust
 
-- `public/admin.html` is the premium operations dashboard for bookings, customers, vehicles,
-  concierge leads, deposits and payment status.
+- `/portal` is the premium operations dashboard for bookings, customer accounts, vehicles,
+  concierge messages needing reply, deposits and payment status.
 - Availability is stored in `api/_lib/store.js` as blocked dates plus pending and confirmed booking
   holds per vehicle. The admin vehicle cards include a 42-day availability calendar, and booking
   creation plus admin updates check this state to reduce double-booking risk.
@@ -88,7 +89,8 @@ and return-page verification. No raw card data is collected or stored by Velaire
 
 Set these environment variables in production:
 
-- `VELAIRE_ADMIN_TOKEN` protects the admin operations APIs.
+- `VELAIRE_ADMIN_TOKEN` or `VELAIRE_PORTAL_PASSWORD` protects the operations portal APIs. If neither
+  is set, the server-side default portal password is `AG23HS60`.
 - `STRIPE_SECRET_KEY` is required for Stripe Checkout session creation.
 - `STRIPE_WEBHOOK_SECRET` verifies Stripe webhook events.
 - `VELAIRE_SITE_URL` is optional and can force Stripe redirect URLs to `https://www.velairecars.com`.

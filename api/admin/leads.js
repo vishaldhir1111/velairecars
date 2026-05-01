@@ -1,11 +1,6 @@
 import { allowMethods, publicError, readJson, sendJson } from "../_lib/http.js";
+import { adminAllowed, adminMode } from "../_lib/admin-auth.js";
 import { listLeads, updateLead } from "../_lib/store.js";
-
-function adminAllowed(req) {
-  const expected = process.env.VELAIRE_ADMIN_TOKEN;
-  if (!expected) return true;
-  return req.headers.authorization === `Bearer ${expected}` || req.headers["x-velaire-admin-token"] === expected;
-}
 
 export default async function handler(req, res) {
   if (!allowMethods(req, res, ["GET", "PATCH"])) return;
@@ -18,7 +13,7 @@ export default async function handler(req, res) {
   if (req.method === "GET") {
     sendJson(res, 200, {
       leads: listLeads(),
-      mode: process.env.VELAIRE_ADMIN_TOKEN ? "protected" : "scaffold_open",
+      mode: adminMode(),
     });
     return;
   }

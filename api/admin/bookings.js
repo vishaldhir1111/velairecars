@@ -1,14 +1,9 @@
 import { allowMethods, publicError, readJson, sendJson } from "../_lib/http.js";
+import { adminAllowed, adminMode } from "../_lib/admin-auth.js";
 import { notifyClientAndAdmin } from "../_lib/notifications.js";
 import { listStoredOperations, updateStoredBookingStatus } from "../_lib/operations-store.js";
 import { adminUpdateBooking, listAllBookings } from "../_lib/store.js";
 import { listStripeOperations, mergeOperations } from "../_lib/stripe-operations.js";
-
-function adminAllowed(req) {
-  const expected = process.env.VELAIRE_ADMIN_TOKEN;
-  if (!expected) return true;
-  return req.headers.authorization === `Bearer ${expected}` || req.headers["x-velaire-admin-token"] === expected;
-}
 
 export default async function handler(req, res) {
   if (!allowMethods(req, res, ["GET", "PATCH"])) return;
@@ -24,7 +19,7 @@ export default async function handler(req, res) {
       bookings: mergeOperations(mergeOperations(listAllBookings(), storedOperations.bookings), stripeOperations.bookings),
       storedOperations,
       stripeOperations,
-      mode: process.env.VELAIRE_ADMIN_TOKEN ? "protected" : "scaffold_open",
+      mode: adminMode(),
     });
     return;
   }

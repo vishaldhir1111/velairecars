@@ -49,6 +49,7 @@ const requiredFiles = [
   "api/admin/payments.js",
   "api/admin/vehicles.js",
   "api/_lib/fleet-data.js",
+  "api/_lib/admin-auth.js",
   "api/_lib/http.js",
   "api/_lib/notifications.js",
   "api/_lib/operations-store.js",
@@ -56,6 +57,7 @@ const requiredFiles = [
   "api/_lib/stripe-operations.js",
   "api/_lib/store.js",
   "vite.config.js",
+  "vercel.json",
   "package.json",
 ];
 
@@ -85,6 +87,10 @@ if (!app.includes('from "./data/fleet.js"')) {
 }
 
 const vite = read("vite.config.js");
+const vercel = read("vercel.json");
+if (!vercel.includes('"source": "/portal"') || !vercel.includes('"destination": "/admin.html"')) {
+  throw new Error("vercel.json must expose the Operations portal at /portal");
+}
 for (const page of [
   "booking.html",
   "login.html",
@@ -134,6 +140,14 @@ if (!read("public/admin.html").includes('data-admin-count="paymentPendingBooking
   throw new Error("public/admin.html is missing the payment-pending operations metric");
 }
 
+if (!read("public/admin.html").includes('data-admin-count="needsReply"')) {
+  throw new Error("public/admin.html is missing the customer-message needs-reply metric");
+}
+
+if (!read("api/_lib/admin-auth.js").includes("VELAIRE_PORTAL_PASSWORD") || !read("api/_lib/admin-auth.js").includes("AG23HS60")) {
+  throw new Error("Operations portal password guard is missing");
+}
+
 if (!read("public/flow.js").includes("renderAdminAvailabilityCalendar") || !read("public/flow.js").includes("payment_pending")) {
   throw new Error("public/flow.js is missing the Phase 1 admin calendar or payment-pending status logic");
 }
@@ -148,6 +162,14 @@ if (!read("api/payments/checkout.js").includes("deposit_already_paid")) {
 
 if (!read("api/bookings.js").includes("deposit_already_paid")) {
   throw new Error("api/bookings.js must protect paid bookings from stale payment-pending syncs");
+}
+
+if (!read("api/bookings.js").includes("reservation_already_exists") || !read("api/_lib/operations-store.js").includes("findActiveReservation")) {
+  throw new Error("Booking API must return existing active reservations instead of creating duplicates");
+}
+
+if (!read("api/auth/register.js").includes("account_exists") || !read("api/auth/register.js").includes("findUserByEmail")) {
+  throw new Error("Registration API must guide existing accounts into login instead of duplicating them");
 }
 
 if (!read("api/payments/session.js").includes("retrieveStripeCheckoutSession")) {
@@ -184,6 +206,14 @@ if (
   !read("public/payment.html").includes("data-payment-paid-panel")
 ) {
   throw new Error("Paid-deposit account/payment state handling is missing");
+}
+
+if (!read("public/login.html").includes('name="fullName"') || !read("public/flow.js").includes("matchingActiveVehicleBooking")) {
+  throw new Error("Login flow must collect customer name and detect existing active vehicle bookings");
+}
+
+if (read("src/App.jsx").includes("Quick reserve") || read("src/App.jsx").includes('className="hero-reserve"')) {
+  throw new Error("Homepage quick reserve form should be removed from the active React homepage");
 }
 
 for (const forbidden of [

@@ -228,6 +228,24 @@ export async function findPaidDeposit({ bookingId = "", email = "", vehicle = ""
   return { booking, payment };
 }
 
+export async function findActiveReservation({ bookingId = "", email = "", vehicle = "" } = {}) {
+  if (!operationsStoreConfigured()) return null;
+  const operations = await listStoredOperations();
+  const cleanEmail = String(email || "").trim().toLowerCase();
+  const released = new Set(["cancelled", "completed", "rejected"]);
+  const booking = operations.bookings.find((item) => {
+    const status = String(item.status || "").toLowerCase();
+    if (released.has(status)) return false;
+    if (bookingId && item.id === bookingId) return true;
+    const sameClient = cleanEmail && String(item.customerEmail || "").toLowerCase() === cleanEmail;
+    const sameVehicle = !vehicle || item.vehicleSlug === vehicle;
+    return sameClient && sameVehicle;
+  });
+  if (!booking) return null;
+  const payment = operations.payments.find((item) => item.bookingId === booking.id) || null;
+  return { booking, payment };
+}
+
 export async function saveAccountRecord(user = {}) {
   const email = String(user.email || "").trim().toLowerCase();
   if (!operationsStoreConfigured() || !email) return { saved: false, reason: "operations_store_not_configured" };

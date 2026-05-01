@@ -285,7 +285,7 @@ function loadAccount() {
   const reservation = loadReservation();
   try {
     return {
-      fullName: "",
+      fullName: reservation.fullName || reservation.name || "",
       email: reservation.email || "",
       phone: reservation.phone || "",
       preferredContact: "Email",
@@ -305,7 +305,7 @@ function loadAccount() {
     };
   } catch {
     return {
-      fullName: "",
+      fullName: reservation.fullName || reservation.name || "",
       email: reservation.email || "",
       phone: reservation.phone || "",
       preferredContact: "Email",
@@ -436,6 +436,47 @@ function saveAdminToken(token) {
   return cleanToken;
 }
 
+async function logoutBackendSession() {
+  await optionalApiRequest("/api/auth/logout", { method: "POST" }, null);
+}
+
+function renderFlowAuthNavigation(session = { authenticated: false, user: null }) {
+  const navLinks = document.querySelector(".flow-nav-links");
+  if (!navLinks) return;
+  const authenticated = Boolean(session.authenticated);
+  let accountLink = navLinks.querySelector('a[href="account.html"], a[href="login.html"]');
+  if (!accountLink) {
+    accountLink = document.createElement("a");
+    navLinks.appendChild(accountLink);
+  }
+  accountLink.href = authenticated ? "account.html" : "login.html";
+  accountLink.textContent = authenticated ? "Account" : "Login";
+
+  let logoutButton = navLinks.querySelector("[data-flow-auth-logout]");
+  if (authenticated) {
+    if (!logoutButton) {
+      logoutButton = document.createElement("button");
+      logoutButton.type = "button";
+      logoutButton.className = "flow-nav-button";
+      logoutButton.dataset.flowAuthLogout = "true";
+      logoutButton.textContent = "Log out";
+      logoutButton.addEventListener("click", async () => {
+        await logoutBackendSession();
+        showFlowToast("Signed out of your Velaire account.");
+        renderFlowAuthNavigation({ authenticated: false, user: null });
+      });
+      navLinks.appendChild(logoutButton);
+    }
+    return;
+  }
+  logoutButton?.remove();
+}
+
+async function setupFlowAuthNavigation() {
+  const session = await fetchAuthSession();
+  renderFlowAuthNavigation(session || { authenticated: false, user: null });
+}
+
 function showFlowToast(message, tone = "default") {
   let toast = document.querySelector(".flow-toast");
   if (!toast) {
@@ -527,7 +568,68 @@ async function syncAccountToBackend(account = loadAccount()) {
   );
 }
 
-async function ensureBackendAccount({ email, password, phone }) {
+async function fetchAuthSession() {
+  return optionalApiRequest("/api/auth/session", { method: "GET" }, { authenticated: false, user: null });
+}
+
+function mergeAuthenticatedUser(user = null) {
+  if (!user) return loadAccount();
+  const account = saveAccount({
+    fullName: user.profile?.fullName || loadAccount().fullName || "",
+    email: user.email || loadAccount().email || "",
+    phone: user.phone || loadAccount().phone || "",
+    preferredContact: user.profile?.preferredContact || loadAccount().preferredContact || "Email",
+    licenceCountry: user.profile?.licenceCountry || loadAccount().licenceCountry || "United Kingdom",
+    billingAddress: user.profile?.billingAddress || loadAccount().billingAddress || "",
+    billingPostcode: user.profile?.billingPostcode || loadAccount().billingPostcode || "",
+  });
+  saveReservation({
+    email: account.email,
+    phone: account.phone,
+    name: account.fullName,
+    fullName: account.fullName,
+  });
+  return account;
+}
+
+async function fetchAccountContext(email = "") {
+  const cleanEmail = String(email || "").trim();
+  if (!cleanEmail) return null;
+  return optionalApiRequest(`/api/account?email=${encodeURIComponent(cleanEmail)}`, { method: "GET" }, null);
+}
+
+function matchingActiveVehicleBooking(bookings = [], reservation = loadReservation()) {
+  const vehicle = reservation.vehicle || selectedSlug();
+  const released = new Set(["cancelled", "completed", "rejected"]);
+  return bookings.find(
+    (booking) =>
+      booking?.vehicleSlug === vehicle &&
+      !released.has(String(booking.status || "").toLowerCase()),
+  );
+}
+
+function renderLoginState({ tone = "default", title = "", message = "", actions = "" } = {}) {
+  const target = document.querySelector("[data-login-state]");
+  if (!target) return;
+  target.hidden = false;
+  target.classList.toggle("is-warning", tone === "warning");
+  target.classList.toggle("is-success", tone === "success");
+  target.innerHTML = `
+    ${title ? `<strong>${escapeHtml(title)}</strong>` : ""}
+    ${message ? `<span>${escapeHtml(message)}</span>` : ""}
+    ${actions ? `<div class="flow-state-actions">${actions}</div>` : ""}
+  `;
+}
+
+function clearLoginState() {
+  const target = document.querySelector("[data-login-state]");
+  if (!target) return;
+  target.hidden = true;
+  target.innerHTML = "";
+  target.classList.remove("is-warning", "is-success");
+}
+
+async function ensureBackendAccount({ email, password, phone, fullName, accountExists = false, authAccountExists = false }) {
   const cleanEmail = String(email || "").trim();
   if (!cleanEmail) return null;
 
@@ -537,6 +639,11 @@ async function ensureBackendAccount({ email, password, phone }) {
       body: JSON.stringify({ email: cleanEmail, password }),
     });
   } catch {
+    if (accountExists && authAccountExists) {
+      const error = new Error("A Velaire account already exists for this email. Enter the account password to continue.");
+      error.status = 401;
+      throw error;
+    }
     return optionalApiRequest(
       "/api/auth/register",
       {
@@ -546,6 +653,7 @@ async function ensureBackendAccount({ email, password, phone }) {
           password,
           phone,
           profile: {
+            fullName,
             preferredContact: "Email",
             licenceCountry: "United Kingdom",
           },
@@ -588,6 +696,14 @@ async function syncBookingToBackend(status = "draft") {
   }
   if (result?.protected === "deposit_already_paid" || result?.payment?.status === "deposit_paid" || result?.booking?.paymentStatus === "deposit_paid") {
     savePaidState({ booking: result.booking, payment: result.payment });
+  }
+  if (result?.protected === "reservation_already_exists" && result?.booking) {
+    saveReservation({
+      bookingId: result.booking.id,
+      reference: result.booking.reference,
+      status: result.booking.status,
+      paymentStatus: result.booking.paymentStatus,
+    });
   }
   return result?.booking || null;
 }
@@ -1975,12 +2091,15 @@ function renderAdminMetrics(summary = {}) {
   if (mode) mode.textContent = "Operations live";
 }
 
-function updateAdminAccessState({ message = "", tone = "default", mode = "" } = {}) {
+function updateAdminAccessState({ message = "", tone = "default", mode = "", unlocked = null } = {}) {
   const status = document.querySelector("[data-admin-access-status]");
   const modeNode = document.querySelector("[data-admin-mode]");
   const input = document.querySelector("[data-admin-token-input]");
+  const isUnlocked = unlocked === null ? mode === "Operations live" : Boolean(unlocked);
+  document.body.classList.toggle("is-admin-unlocked", isUnlocked);
   if (status) {
-    status.textContent = message || (loadAdminToken() ? "Admin token saved in this browser." : "Enter the admin token if this dashboard is protected.");
+    status.textContent =
+      message || (loadAdminToken() ? "Portal password saved in this browser." : "Enter the operations password to load the portal.");
     status.classList.toggle("is-warning", tone === "warning");
   }
   if (modeNode && mode) modeNode.textContent = mode;
@@ -2166,6 +2285,7 @@ function renderAdminLeads(leads = []) {
   target.innerHTML = leads
     .map((lead) => {
       const vehicle = vehicles[lead.recommendedVehicle];
+      const needsReply = ["new", "contacted"].includes(lead.status || "new");
       return `
         <article class="admin-lead-card">
           <div>
@@ -2174,6 +2294,10 @@ function renderAdminLeads(leads = []) {
             <p>${escapeHtml(lead.prompt || "Concierge question pending")}</p>
           </div>
           <small>${escapeHtml(lead.response || "Lead response pending")}</small>
+          <div class="admin-message-state">
+            <span>${needsReply ? "Reply needed" : "Reply state updated"}</span>
+            <strong>${escapeHtml(lead.customerEmail || "Email follow-up pending")}</strong>
+          </div>
           <div class="admin-action-row">
             <button type="button" data-admin-lead-status="new" data-lead-id="${lead.id}">New</button>
             <button type="button" data-admin-lead-status="contacted" data-lead-id="${lead.id}">Contacted</button>
@@ -2377,8 +2501,9 @@ function renderAdminFailure(error) {
   updateAdminAccessState({
     tone: "warning",
     mode: needsToken ? "Token required" : "API unavailable",
+    unlocked: false,
     message: needsToken
-      ? "This Operations dashboard is protected. Paste the VELAIRE_ADMIN_TOKEN value below to load bookings, customers and payments."
+      ? "This Operations portal is locked. Enter the portal password to load bookings, customers and payments."
       : error?.message || "Operations data could not be loaded. The dashboard is showing safe empty states.",
   });
   renderAdminMetrics({ counts: {} });
@@ -2486,6 +2611,7 @@ async function refreshAdmin() {
   renderAdminLeads(adminState.leads);
   updateAdminAccessState({
     mode: "Operations live",
+    unlocked: true,
     message:
       summary.summary?.storedOperations?.available === true
         ? "Admin API loaded from the operations data store and Stripe Checkout ledger."
@@ -2964,7 +3090,8 @@ function setupAccount() {
   });
 
   document.querySelector("[data-logout]")?.addEventListener("click", async () => {
-    await optionalApiRequest("/api/auth/logout", { method: "POST" }, null);
+    await logoutBackendSession();
+    renderFlowAuthNavigation({ authenticated: false, user: null });
     showFlowToast("Signed out of the backend session. Local booking details remain on this device.");
   });
 
@@ -3042,28 +3169,158 @@ function setupBooking() {
 function setupLogin() {
   const form = document.querySelector("form");
   const reservation = loadReservation();
+  const account = loadAccount();
 
+  setFieldValue(form, "fullName", account.fullName || reservation.fullName || reservation.name);
   setFieldValue(form, "email", reservation.email);
   setFieldValue(form, "phone", reservation.phone);
 
+  async function continueSignedIn(user) {
+    mergeAuthenticatedUser(user);
+    const context = await fetchAccountContext(user.email);
+    const existingBooking = matchingActiveVehicleBooking(context?.bookings || []);
+    if (existingBooking) {
+      saveBackendBooking(existingBooking);
+      saveReservation({
+        bookingId: existingBooking.id,
+        reference: existingBooking.reference,
+        status: existingBooking.status,
+        paymentStatus: existingBooking.paymentStatus,
+      });
+      if (existingBooking.paymentStatus === "deposit_paid") savePaidState({ booking: existingBooking });
+      renderLoginState({
+        tone: existingBooking.paymentStatus === "deposit_paid" ? "success" : "warning",
+        title: existingBooking.paymentStatus === "deposit_paid" ? "Reservation already secured" : "Reservation already exists",
+        message:
+          existingBooking.paymentStatus === "deposit_paid"
+            ? "You already have a paid deposit for this vehicle. Open your client lounge for the latest booking state."
+            : "You already have an active reservation for this vehicle. Continue to the existing reservation instead of creating a duplicate.",
+        actions: `<a class="secondary-button" href="account.html">Open client lounge</a>${
+          existingBooking.paymentStatus === "deposit_paid" ? "" : '<a class="primary-button" href="payment.html">Continue existing reservation</a>'
+        }`,
+      });
+      return false;
+    }
+
+    renderLoginState({
+      tone: "success",
+      title: "Signed in",
+      message: "Your Velaire account is active. Continuing to the reservation step.",
+    });
+    await syncAccountToBackend(loadAccount());
+    await syncBookingToBackend("pending");
+    window.setTimeout(() => navigateTo(form?.getAttribute("action") || "payment.html"), 650);
+    return true;
+  }
+
+  fetchAuthSession().then((session) => {
+    if (session?.authenticated && session.user) continueSignedIn(session.user);
+  });
+
+  form?.elements?.email?.addEventListener("blur", async () => {
+    const email = form.elements.email.value.trim();
+    if (!email) return;
+    const context = await fetchAccountContext(email);
+    if (!context?.exists) {
+      clearLoginState();
+      return;
+    }
+    const existingBooking = matchingActiveVehicleBooking(context.bookings || []);
+    if (existingBooking) {
+      renderLoginState({
+        tone: "warning",
+        title: "Existing Velaire reservation found",
+        message:
+          existingBooking.paymentStatus === "deposit_paid"
+            ? "This email already has a paid deposit for the selected vehicle."
+            : "This email already has an active reservation for the selected vehicle. Sign in or continue the existing booking.",
+      });
+      return;
+    }
+    if (context.authAccountExists) {
+      renderLoginState({
+        title: "Welcome back",
+        message: "A Velaire account already exists for this email. Enter the account password and we will continue the reservation securely.",
+      });
+    }
+  });
+
   form?.addEventListener("submit", async (event) => {
     event.preventDefault();
+    clearLoginState();
     const data = new FormData(form);
+    const fullName = data.get("fullName") || "";
     const email = data.get("email") || "";
     const phone = data.get("phone") || "";
     const password = data.get("password") || "";
     saveReservation({
+      name: fullName,
+      fullName,
       email,
       phone,
     });
     saveAccount({
+      fullName,
       email: data.get("email") || "",
       phone: data.get("phone") || "",
     });
-    await ensureBackendAccount({ email, phone, password });
-    await syncAccountToBackend(loadAccount());
-    await syncBookingToBackend("pending");
-    navigateTo(form.getAttribute("action") || "payment.html");
+    const submitButton = form.querySelector('button[type="submit"]');
+    if (submitButton) {
+      submitButton.disabled = true;
+      submitButton.textContent = "Checking client record...";
+    }
+    try {
+      const context = await fetchAccountContext(email);
+      const existingBooking = matchingActiveVehicleBooking(context?.bookings || []);
+      if (existingBooking) {
+        saveBackendBooking(existingBooking);
+        saveReservation({
+          bookingId: existingBooking.id,
+          reference: existingBooking.reference,
+          status: existingBooking.status,
+          paymentStatus: existingBooking.paymentStatus,
+        });
+        if (existingBooking.paymentStatus === "deposit_paid") savePaidState({ booking: existingBooking });
+        renderLoginState({
+          tone: existingBooking.paymentStatus === "deposit_paid" ? "success" : "warning",
+          title: existingBooking.paymentStatus === "deposit_paid" ? "Deposit already paid" : "Existing reservation found",
+          message:
+            existingBooking.paymentStatus === "deposit_paid"
+              ? "This email already has a paid reservation deposit for the selected vehicle. We have loaded the confirmed booking state."
+              : "This email already has an active reservation for the selected vehicle. Continue with that booking instead of creating a duplicate.",
+          actions: `<a class="secondary-button" href="account.html">View booking details</a>${
+            existingBooking.paymentStatus === "deposit_paid" ? "" : '<a class="primary-button" href="payment.html">Continue existing reservation</a>'
+          }`,
+        });
+        return;
+      }
+
+      const authResult = await ensureBackendAccount({
+        email,
+        phone,
+        password,
+        fullName,
+        accountExists: Boolean(context?.exists),
+        authAccountExists: Boolean(context?.authAccountExists),
+      });
+      if (authResult?.user) mergeAuthenticatedUser(authResult.user);
+      await syncAccountToBackend(loadAccount());
+      await syncBookingToBackend("pending");
+      navigateTo(form.getAttribute("action") || "payment.html");
+    } catch (error) {
+      renderLoginState({
+        tone: "warning",
+        title: "Sign in to continue",
+        message:
+          error.message ||
+          "A Velaire account already exists for this email. Enter the correct password to continue the reservation.",
+      });
+    } finally {
+      if (submitButton) {
+        submitButton.disabled = false;
+        submitButton.textContent = "Continue to reservation";
+      }
+    }
   });
 }
 
@@ -3211,6 +3468,7 @@ async function setupSuccess() {
 
 const page = document.body.dataset.page;
 hydrateVehicleModels();
+setupFlowAuthNavigation();
 if (page === "booking") setupBooking();
 if (page === "login") setupLogin();
 if (page === "payment") setupPayment();

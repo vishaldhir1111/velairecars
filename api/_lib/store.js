@@ -378,6 +378,12 @@ export function authenticateUser({ email, password }) {
   return publicUser(user);
 }
 
+export function findUserByEmail(email = "") {
+  const cleanEmail = normaliseEmail(email);
+  if (!cleanEmail) return null;
+  return publicUser(db.users.find((user) => user.email === cleanEmail));
+}
+
 export function createSession(userId) {
   const token = crypto.randomBytes(24).toString("hex");
   const session = {
@@ -1123,6 +1129,7 @@ export function adminSummary() {
       bookings: db.bookings.length,
       payments: db.payments.length,
       leads: leads.length,
+      needsReply: leads.filter((lead) => ["new", "contacted"].includes(lead.status)).length,
       activeSessions: db.sessions.length,
       pendingBookings: db.bookings.filter((booking) => normaliseBookingStatus(booking.status) === "pending").length,
       paymentPendingBookings: db.bookings.filter(

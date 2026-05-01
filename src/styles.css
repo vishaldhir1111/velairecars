@@ -213,9 +213,15 @@ select {
   justify-self: end;
   min-width: 126px;
   border: 1px solid var(--rose);
+  background: transparent;
   color: var(--rose);
   padding: 11px 18px;
   font-size: 0.88rem;
+}
+
+.nav-auth-button {
+  cursor: pointer;
+  font-family: inherit;
 }
 
 .nav-cta:hover,
@@ -259,14 +265,14 @@ select {
 
 .hero-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(320px, 430px);
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
   gap: 52px;
   align-items: end;
   min-height: calc(100vh - 208px);
 }
 
 .hero-copy {
-  max-width: 760px;
+  max-width: 840px;
   padding-bottom: 46px;
 }
 
@@ -345,6 +351,35 @@ select {
 
 .full-button {
   width: 100%;
+}
+
+.hero-signature {
+  display: grid;
+  gap: 12px;
+  align-self: end;
+  border: 1px solid rgba(215, 161, 140, 0.26);
+  border-radius: var(--radius);
+  background:
+    radial-gradient(circle at 90% 0%, rgba(215, 161, 140, 0.18), transparent 34%),
+    rgba(9, 8, 8, 0.7);
+  padding: 24px;
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(22px);
+}
+
+.hero-signature span {
+  color: var(--rose);
+  font-size: 0.75rem;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.hero-signature strong {
+  color: var(--ivory);
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 500;
+  line-height: 1.1;
 }
 
 .hero-reserve {

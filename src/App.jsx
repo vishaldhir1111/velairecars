@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { conciergeFleetKnowledge, conciergePromptChips, fleet } from "./data/fleet.js";
 
 const favouriteStorageKey = "velaireFavouriteCars";
@@ -306,6 +306,7 @@ function App() {
   const [isConciergeOpen, setIsConciergeOpen] = useState(false);
   const [conciergeInput, setConciergeInput] = useState("");
   const [favouriteCars, setFavouriteCars] = useState(loadFavouriteCars);
+  const [authState, setAuthState] = useState({ checked: false, authenticated: false, user: null });
   const [conciergeMessages, setConciergeMessages] = useState([
     {
       role: "assistant",
@@ -313,6 +314,29 @@ function App() {
         "Welcome to the Velaire concierge. Tell me the occasion, passenger count, location and the impression you want to create. I can recommend, compare and upsell from the Velaire fleet.",
     },
   ]);
+
+  useEffect(() => {
+    let active = true;
+    fetch("/api/auth/session", { credentials: "include" })
+      .then((response) => (response.ok ? response.json() : { authenticated: false, user: null }))
+      .then((session) => {
+        if (active) setAuthState({ checked: true, authenticated: Boolean(session.authenticated), user: session.user || null });
+      })
+      .catch(() => {
+        if (active) setAuthState({ checked: true, authenticated: false, user: null });
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  async function logout() {
+    try {
+      await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
+    } finally {
+      setAuthState({ checked: true, authenticated: false, user: null });
+    }
+  }
 
   async function askConcierge(question) {
     const clean = question.trim();
@@ -368,12 +392,20 @@ function App() {
           <a href="#experience">Experience</a>
           <a href="#booking">Reserve</a>
           <a href="ai.html">AI concierge</a>
-          <a href="account.html">Account</a>
+          <a href={authState.authenticated ? "account.html" : "login.html"}>
+            {authState.authenticated ? "Account" : "Login"}
+          </a>
         </nav>
 
-        <a className="nav-cta" href="booking.html">
-          Reserve now
-        </a>
+        {authState.authenticated ? (
+          <button className="nav-cta nav-auth-button" type="button" onClick={logout}>
+            Log out
+          </button>
+        ) : (
+          <a className="nav-cta" href="booking.html">
+            Reserve now
+          </a>
+        )}
       </header>
 
       <main>
@@ -398,37 +430,10 @@ function App() {
               </div>
             </div>
 
-            <form className="hero-reserve" action="booking.html" aria-label="Quick reservation">
-              <p className="eyebrow">Quick reserve</p>
-              <label>
-                Vehicle
-                <select name="vehicle" defaultValue={fleet[1].slug}>
-                  {fleet.map((car) => (
-                    <option value={car.slug} key={car.slug}>
-                      {car.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <div className="form-pair">
-                <label>
-                  Pickup
-                  <input type="date" name="pickup" />
-                </label>
-                <label>
-                  Time
-                  <input type="time" name="time" defaultValue="10:00" />
-                </label>
-              </div>
-              <label>
-                Delivery location
-                <input type="text" name="location" placeholder="Mayfair, Heathrow, hotel or venue" />
-              </label>
-              <button className="primary-button full-button" type="submit">
-                Check availability
-              </button>
-              <p className="form-note">Deposit guidance and concierge delivery shown before payment.</p>
-            </form>
+            <div className="hero-signature" aria-label="Velaire booking promise">
+              <span>Private-client booking</span>
+              <strong>Concierge handover, verified documents and Stripe-secured deposits.</strong>
+            </div>
           </div>
         </section>
 

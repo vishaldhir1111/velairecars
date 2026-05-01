@@ -1,6 +1,6 @@
 import { allowMethods, publicError, readJson, sendJson } from "./_lib/http.js";
 import { getStoredAccountRecord, getStoredCustomerContext, saveAccountRecord } from "./_lib/operations-store.js";
-import { currentUser, listBookings, updateAccount } from "./_lib/store.js";
+import { currentUser, findUserByEmail, listBookings, updateAccount } from "./_lib/store.js";
 import { listStripeOperations, mergeOperations } from "./_lib/stripe-operations.js";
 
 function mergeStoredAccount(user, storedAccount) {
@@ -45,9 +45,11 @@ export default async function handler(req, res) {
     if (req.method === "GET" && req.query?.email) {
       const email = String(req.query.email || "").trim().toLowerCase();
       const storedAccount = await getStoredAccountRecord(email);
+      const registeredAccount = findUserByEmail(email);
       const storedContext = await getCustomerPaymentContext(email);
+      const activityExists = Boolean(storedAccount || storedContext.customer || storedContext.bookings.length || storedContext.payments.length);
       sendJson(res, 200, {
-        user: storedAccount || {
+        user: storedAccount || registeredAccount || {
           id: `stored_${email}`,
           email,
           phone: storedContext.customer?.phone || "",
@@ -60,6 +62,9 @@ export default async function handler(req, res) {
         payments: storedContext.payments,
         receipts: storedContext.payments.filter((payment) => ["deposit_paid", "refunded"].includes(payment.status)),
         storedCustomer: storedContext.customer,
+        exists: Boolean(registeredAccount || activityExists),
+        authAccountExists: Boolean(registeredAccount),
+        activityExists,
         authenticated: false,
       });
       return;
@@ -78,6 +83,10 @@ export default async function handler(req, res) {
       payments: storedContext.payments,
       receipts: storedContext.payments.filter((payment) => ["deposit_paid", "refunded"].includes(payment.status)),
       storedCustomer: storedContext.customer,
+      exists: true,
+      authAccountExists: true,
+      activityExists: Boolean(storedContext.customer || storedContext.bookings.length || storedContext.payments.length),
+      authenticated: true,
     });
     return;
   }

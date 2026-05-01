@@ -7,12 +7,12 @@
       name="description"
       content="Velaire Cars operations dashboard for bookings, availability, pricing and reservation deposits."
     />
-    <title>Operations | Velaire Cars</title>
+    <title>Operations Portal | Velaire Cars</title>
     <link rel="stylesheet" href="flow.css" />
   </head>
   <body data-page="admin">
     <main class="flow-shell admin-shell">
-      <nav class="flow-nav" aria-label="Operations navigation">
+      <nav class="flow-nav" aria-label="Operations portal navigation">
         <a class="brand" href="/">
           <span class="brand-mark">V</span>
           <span class="brand-copy">
@@ -24,7 +24,7 @@
           <a href="/#fleet">Fleet</a>
           <a href="booking.html">Reserve</a>
           <a href="account.html">Account</a>
-          <a href="admin.html">Operations</a>
+          <a href="/portal">Portal</a>
         </div>
         <a class="flow-back" href="booking.html">New booking</a>
       </nav>
@@ -32,29 +32,29 @@
       <section class="admin-hero flow-panel">
         <div>
           <p class="eyebrow">Velaire operations</p>
-          <h1>Booking control, without losing the luxury edge.</h1>
+          <h1>Operations portal.</h1>
           <p>
-            Review reservation requests, approve or reject bookings, manage blocked vehicle dates
-            and adjust deposit or daily pricing from one premium operations view.
+            View accounts, bookings, customer follow-ups, reply state, availability and deposit
+            activity from one polished internal Velaire workspace.
           </p>
         </div>
         <div class="admin-status-card">
-          <span>Mode</span>
-          <strong data-admin-mode>Operations scaffold</strong>
-          <small data-admin-access-status>Set VELAIRE_ADMIN_TOKEN in production to protect this dashboard.</small>
+          <span>Secure access</span>
+          <strong data-admin-mode>Portal locked</strong>
+          <small data-admin-access-status>Enter the operations password to load bookings, customers and payments.</small>
           <form class="admin-token-form" data-admin-token-form>
             <label>
-              Admin token
+              Portal password
               <input
                 type="password"
                 name="adminToken"
                 data-admin-token-input
-                placeholder="Paste VELAIRE_ADMIN_TOKEN"
+                placeholder="Enter operations password"
                 autocomplete="off"
               />
             </label>
             <div class="admin-token-actions">
-              <button type="submit">Unlock operations</button>
+              <button type="submit">Unlock portal</button>
               <button type="button" data-admin-token-clear>Clear</button>
             </div>
           </form>
@@ -87,8 +87,8 @@
           <strong data-admin-count="payments">0</strong>
         </article>
         <article>
-          <span>Leads</span>
-          <strong data-admin-count="leads">0</strong>
+          <span>Needs reply</span>
+          <strong data-admin-count="needsReply">0</strong>
         </article>
       </section>
 
@@ -163,9 +163,9 @@
 
         <article class="flow-panel admin-panel">
           <div class="panel-heading">
-            <p class="eyebrow">Concierge leads</p>
-            <h2>Enquiries.</h2>
-            <span>Track AI concierge prompts, recommended vehicles and follow-up state.</span>
+            <p class="eyebrow">Customer messages</p>
+            <h2>Reply state.</h2>
+            <span>Track concierge prompts, recommended vehicles, email follow-up and response status.</span>
           </div>
           <div class="admin-lead-list" data-admin-leads>
             <article class="admin-empty">Loading concierge leads...</article>
@@ -175,9 +175,9 @@
 
       <section class="flow-panel admin-panel admin-customer-panel">
         <div class="panel-heading">
-          <p class="eyebrow">Customer operations</p>
-          <h2>Customers.</h2>
-          <span>Review client contact details, account status, booking value and last enquiry activity.</span>
+          <p class="eyebrow">Account operations</p>
+          <h2>Accounts and customers.</h2>
+          <span>Review client contact details, account status, who booked what and last enquiry activity.</span>
         </div>
         <div class="admin-table-shell">
           <table class="admin-table">
