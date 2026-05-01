@@ -469,8 +469,18 @@ function clearVelaireLocalState({ keepDraft = false } = {}) {
   }
 }
 
+function clearAccountOnlyState() {
+  [accountStorageKey, backendBookingKey, favouriteStorageKey].forEach((key) => {
+    window.localStorage.removeItem(key);
+  });
+}
+
 async function performLogout({ keepDraft = false, redirect = "login.html?signedOut=1" } = {}) {
-  await logoutBackendSession();
+  try {
+    await apiRequest("/api/auth/logout", { method: "POST" });
+  } catch {
+    await logoutBackendSession();
+  }
   clearVelaireLocalState({ keepDraft });
   window.sessionStorage.setItem(
     signedOutMessageKey,
@@ -492,6 +502,20 @@ function showSignedOutMessage() {
       message: message || "You have been signed out.",
     });
   }
+}
+
+async function requireClientLoungeSession() {
+  const session = await fetchAuthSession();
+  if (session?.authenticated && session.user) {
+    mergeAuthenticatedUser(session.user);
+    renderFlowAuthNavigation(session);
+    return session;
+  }
+
+  clearAccountOnlyState();
+  window.sessionStorage.setItem(signedOutMessageKey, "Sign in to open your Velaire client lounge.");
+  window.location.href = "login.html?signedOut=1";
+  return null;
 }
 
 function renderFlowAuthNavigation(session = { authenticated: false, user: null }) {
@@ -3075,7 +3099,9 @@ function setupConciergeAssistant() {
   });
 }
 
-function setupAccount() {
+async function setupAccount() {
+  const session = await requireClientLoungeSession();
+  if (!session) return;
   const account = loadAccount();
 
   document.querySelectorAll("[data-account-form]").forEach((form) => {
