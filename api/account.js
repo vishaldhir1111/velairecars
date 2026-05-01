@@ -77,8 +77,9 @@ export default async function handler(req, res) {
         favourites: storedAuthAccount.favourites || [],
       } : null);
       const storedContext = await getCustomerPaymentContext(email);
-      const storedProfileExists = Boolean(storedAccount || storedContext.customer);
-      const activityExists = Boolean(storedProfileExists || storedContext.bookings.length || storedContext.payments.length);
+      const accountProfileExists = Boolean(authAccount || storedAccount);
+      const customerActivityExists = Boolean(storedContext.customer || storedContext.bookings.length || storedContext.payments.length);
+      const activityExists = Boolean(accountProfileExists || customerActivityExists);
       sendJson(res, 200, {
         user: storedAccount || authAccount || {
           id: `stored_${email}`,
@@ -94,8 +95,9 @@ export default async function handler(req, res) {
         receipts: storedContext.payments.filter((payment) => ["deposit_paid", "refunded"].includes(payment.status)),
         storedCustomer: storedContext.customer,
         exists: Boolean(authAccount || activityExists),
-        accountAccessExists: Boolean(authAccount || storedProfileExists),
-        authAccountExists: Boolean(authAccount || storedProfileExists),
+        accountAccessExists: accountProfileExists,
+        authAccountExists: accountProfileExists,
+        customerActivityExists,
         activityExists,
         authenticated: false,
       });

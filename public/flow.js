@@ -3474,21 +3474,23 @@ function setupLogin() {
       });
       return;
     }
+    const accountAccessExists = hasAccountAccess(context);
     const existingBooking = journeyMode === "booking" ? matchingActiveVehicleBooking(context.bookings || []) : null;
     if (existingBooking) {
-      authMode = "returning";
+      authMode = accountAccessExists ? "returning" : "new";
       configureLoginExperience({ journeyMode, authMode });
       renderLoginState({
-        tone: "warning",
+        tone: accountAccessExists ? "warning" : "success",
         title: "Existing Velaire reservation found",
-        message:
-          existingBooking.paymentStatus === "deposit_paid"
-            ? "This vehicle is already secured for this client. Sign in and we will open the booking details."
-            : "This client already has an active reservation for the selected vehicle. Sign in and we will continue that booking.",
+        message: accountAccessExists
+          ? existingBooking.paymentStatus === "deposit_paid"
+            ? "This vehicle is already secured for this client. Login and we will open the booking details."
+            : "This client already has an active reservation for the selected vehicle. Login and we will continue that booking."
+          : "This email has reservation activity but no Client Lounge access yet. Create access to connect and manage the booking.",
       });
       return;
     }
-    if (hasAccountAccess(context)) {
+    if (accountAccessExists) {
       authMode = "returning";
       configureLoginExperience({ journeyMode, authMode });
       renderLoginState({
@@ -3549,14 +3551,25 @@ function setupLogin() {
       }
       const existingBooking = matchingActiveVehicleBooking(context?.bookings || []);
       if (journeyMode === "booking" && existingBooking) {
+        if (!accountAccessExists && !creatingAccess) {
+          authMode = "new";
+          configureLoginExperience({ journeyMode, authMode });
+          renderLoginState({
+            tone: "success",
+            title: "Create access to continue",
+            message:
+              "This email already has reservation activity, but Client Lounge access has not been created yet. Add your name, phone and password to continue with the saved booking.",
+          });
+          return;
+        }
         const authResult = await ensureBackendAccount({
           email,
           phone,
           password,
           fullName,
-          accountExists: Boolean(context?.exists),
+          accountExists: accountAccessExists,
           authAccountExists: accountAccessExists,
-          mode: "returning",
+          mode: accountAccessExists ? "returning" : "new",
         });
         if (authResult?.user) mergeAuthenticatedUser(authResult.user);
         saveBackendBooking(existingBooking);
@@ -3591,7 +3604,7 @@ function setupLogin() {
         phone,
         password,
         fullName,
-        accountExists: Boolean(context?.exists),
+        accountExists: accountAccessExists,
         authAccountExists: accountAccessExists,
         mode: creatingAccess ? "new" : "returning",
       });

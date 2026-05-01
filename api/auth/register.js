@@ -1,5 +1,11 @@
 import { allowMethods, publicError, readJson, sendJson, sessionCookie } from "../_lib/http.js";
-import { getAuthUserRecord, getStoredAccountRecord, saveAccountRecord, saveAuthUserRecord } from "../_lib/operations-store.js";
+import {
+  getAuthUserRecord,
+  getStoredAccountRecord,
+  getStoredCustomerContext,
+  saveAccountRecord,
+  saveAuthUserRecord,
+} from "../_lib/operations-store.js";
 import { createSession, findUserByEmail, getAuthUserRecordForPersistence, registerUser } from "../_lib/store.js";
 
 export default async function handler(req, res) {
@@ -10,6 +16,8 @@ export default async function handler(req, res) {
     const existingUser = findUserByEmail(body.email);
     const existingAuthUser = existingUser || (await getAuthUserRecord(body.email));
     const storedAccount = await getStoredAccountRecord(body.email);
+    const storedContext = storedAccount ? { customer: null } : await getStoredCustomerContext(body.email);
+    const storedCustomer = storedContext.customer || null;
     const existingPublicUser = existingUser || (existingAuthUser ? {
       id: existingAuthUser.id,
       email: existingAuthUser.email,
@@ -43,8 +51,10 @@ export default async function handler(req, res) {
     }
     const user = registerUser({
       ...body,
-      phone: body.phone || "",
+      phone: body.phone || storedCustomer?.phone || "",
       profile: {
+        fullName: storedCustomer?.fullName || "",
+        preferredContact: storedCustomer?.preferredContact || "Email",
         ...(body.profile || {}),
       },
     });

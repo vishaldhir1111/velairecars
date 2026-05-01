@@ -55,7 +55,8 @@ export function sessionCookie(req, token, maxAge = 60 * 60 * 24 * 30) {
   const forwardedProto = req.headers["x-forwarded-proto"];
   const isSecure = forwardedProto === "https" || req.headers.host?.includes("vercel.app");
   const secure = isSecure ? "; Secure" : "";
-  return `velaire_session=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAge}${secure}`;
+  const expires = maxAge === 0 ? "; Expires=Thu, 01 Jan 1970 00:00:00 GMT" : "";
+  return `velaire_session=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAge}${expires}${secure}`;
 }
 
 export function clearSessionCookie(req) {

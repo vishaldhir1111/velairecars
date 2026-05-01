@@ -2,7 +2,6 @@ import { allowMethods, publicError, readJson, sendJson, sessionCookie } from "..
 import {
   getAuthUserRecord,
   getStoredAccountRecord,
-  getStoredCustomerContext,
   saveAccountRecord,
   saveAuthUserRecord,
 } from "../_lib/operations-store.js";
@@ -36,21 +35,16 @@ export default async function handler(req, res) {
         user = authenticateAuthUserRecord(storedUser, body.password);
       } else {
         const storedAccount = await getStoredAccountRecord(body.email);
-        const storedContext = storedAccount ? null : await getStoredCustomerContext(body.email);
-        const storedCustomer = storedContext?.customer || null;
-        if (!storedAccount && !storedCustomer) throw memoryError;
+        if (!storedAccount) throw memoryError;
         user = registerUser({
           email: body.email,
           password: body.password,
-          phone: storedAccount?.phone || storedCustomer?.phone || "",
+          phone: storedAccount.phone || "",
           profile: {
-            ...(storedAccount?.profile || {}),
-            fullName: storedAccount?.profile?.fullName || storedCustomer?.fullName || "",
-            preferredContact:
-              storedAccount?.profile?.preferredContact ||
-              storedCustomer?.preferredContact ||
-              "Email",
-            licenceCountry: storedAccount?.profile?.licenceCountry || "United Kingdom",
+            ...(storedAccount.profile || {}),
+            fullName: storedAccount.profile?.fullName || "",
+            preferredContact: storedAccount.profile?.preferredContact || "Email",
+            licenceCountry: storedAccount.profile?.licenceCountry || "United Kingdom",
           },
         });
         const authRecord = getAuthUserRecordForPersistence(user.email);
