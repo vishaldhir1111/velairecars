@@ -3557,7 +3557,82 @@ body[data-page="admin"]:not(.is-admin-unlocked) .admin-detail-drawer {
   padding: 26px;
 }
 
+.admin-filter-bar {
+  display: grid;
+  grid-template-columns: minmax(260px, 1.2fr) repeat(3, minmax(150px, 0.62fr)) auto;
+  gap: 10px;
+  align-items: end;
+  border: 1px solid rgba(248, 242, 236, 0.09);
+  border-radius: var(--radius);
+  background:
+    linear-gradient(135deg, rgba(215, 161, 140, 0.08), rgba(248, 242, 236, 0.02)),
+    rgba(248, 242, 236, 0.035);
+  padding: 12px;
+}
+
+.admin-filter-bar label {
+  display: grid;
+  gap: 7px;
+  color: rgba(248, 242, 236, 0.58);
+  font-size: 0.68rem;
+  font-weight: 850;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.admin-filter-bar input,
+.admin-filter-bar select {
+  min-height: 42px;
+  width: 100%;
+  border: 1px solid rgba(248, 242, 236, 0.13);
+  border-radius: 10px;
+  background: rgba(5, 5, 5, 0.38);
+  color: var(--ivory);
+  font: inherit;
+  outline: none;
+  padding: 0 12px;
+}
+
+.admin-filter-bar input:focus,
+.admin-filter-bar select:focus {
+  border-color: rgba(215, 161, 140, 0.58);
+  box-shadow: 0 0 0 3px rgba(215, 161, 140, 0.12);
+}
+
+.admin-filter-bar button {
+  min-height: 42px;
+  border: 1px solid rgba(248, 242, 236, 0.12);
+  border-radius: 10px;
+  background: rgba(248, 242, 236, 0.07);
+  color: rgba(248, 242, 236, 0.78);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 850;
+  padding: 0 14px;
+}
+
+.admin-result-strip {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 10px;
+  border: 1px solid rgba(215, 161, 140, 0.13);
+  border-radius: 999px;
+  background: rgba(215, 161, 140, 0.055);
+  color: rgba(248, 242, 236, 0.66);
+  padding: 10px 14px;
+  font-size: 0.78rem;
+  font-weight: 750;
+}
+
+.admin-result-strip strong {
+  color: var(--rose-3);
+}
+
 .admin-table-shell {
+  border: 1px solid rgba(248, 242, 236, 0.08);
+  border-radius: var(--radius);
+  background: rgba(5, 5, 5, 0.18);
   overflow-x: auto;
 }
 
@@ -3578,15 +3653,35 @@ body[data-page="admin"]:not(.is-admin-unlocked) .admin-detail-drawer {
 }
 
 .admin-table th {
+  background: rgba(5, 5, 5, 0.3);
   color: var(--rose);
   font-size: 0.72rem;
   font-weight: 850;
   text-transform: uppercase;
 }
 
+.admin-table tbody tr {
+  transition:
+    background 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.admin-table tbody tr:hover {
+  background: rgba(215, 161, 140, 0.045);
+  box-shadow: inset 3px 0 0 rgba(215, 161, 140, 0.48);
+}
+
+.admin-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
 .admin-table td strong {
   display: block;
   color: var(--ivory);
+}
+
+.admin-booking-row td {
+  padding-block: 18px;
 }
 
 .admin-text-button {
@@ -3602,6 +3697,25 @@ body[data-page="admin"]:not(.is-admin-unlocked) .admin-detail-drawer {
   text-underline-offset: 4px;
 }
 
+.admin-reference-button {
+  display: inline-flex;
+  border: 0;
+  background: transparent;
+  color: var(--ivory);
+  cursor: pointer;
+  font: inherit;
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 650;
+  padding: 0;
+  text-align: left;
+}
+
+.admin-reference-button:hover,
+.admin-text-button:hover {
+  color: #f3d1c1;
+}
+
 .status-pill {
   display: inline-flex;
   min-height: 28px;
@@ -3609,7 +3723,11 @@ body[data-page="admin"]:not(.is-admin-unlocked) .admin-detail-drawer {
   border: 1px solid rgba(215, 161, 140, 0.25);
   border-radius: 999px;
   background: rgba(215, 161, 140, 0.09);
+  color: var(--rose-3);
+  font-size: 0.72rem;
+  font-weight: 850;
   padding: 6px 10px;
+  white-space: nowrap;
 }
 
 .status-pill.muted {
@@ -3619,7 +3737,9 @@ body[data-page="admin"]:not(.is-admin-unlocked) .admin-detail-drawer {
 .status-pill.status-confirmed,
 .status-pill.status-deposit-paid,
 .status-pill.status-paid,
-.status-pill.status-sent {
+.status-pill.status-sent,
+.status-pill.status-converted,
+.status-pill.status-contacted {
   border-color: rgba(151, 204, 162, 0.42);
   background: rgba(151, 204, 162, 0.12);
   color: #cdebd4;
@@ -3627,7 +3747,8 @@ body[data-page="admin"]:not(.is-admin-unlocked) .admin-detail-drawer {
 
 .status-pill.status-payment-pending,
 .status-pill.status-requires-checkout,
-.status-pill.status-pending {
+.status-pill.status-pending,
+.status-pill.status-new {
   border-color: rgba(215, 161, 140, 0.42);
   background: rgba(215, 161, 140, 0.12);
   color: var(--rose-3);
@@ -3635,7 +3756,8 @@ body[data-page="admin"]:not(.is-admin-unlocked) .admin-detail-drawer {
 
 .status-pill.status-cancelled,
 .status-pill.status-expired,
-.status-pill.status-failed {
+.status-pill.status-failed,
+.status-pill.status-rejected {
   border-color: rgba(235, 118, 91, 0.42);
   background: rgba(235, 118, 91, 0.12);
   color: #ffb29f;
@@ -3643,7 +3765,8 @@ body[data-page="admin"]:not(.is-admin-unlocked) .admin-detail-drawer {
 
 .status-pill.status-completed,
 .status-pill.status-refunded,
-.status-pill.status-skipped {
+.status-pill.status-skipped,
+.status-pill.status-closed {
   border-color: rgba(248, 242, 236, 0.18);
   background: rgba(248, 242, 236, 0.08);
   color: rgba(248, 242, 236, 0.78);
@@ -3675,8 +3798,25 @@ body[data-page="admin"]:not(.is-admin-unlocked) .admin-detail-drawer {
   border-radius: var(--radius);
   background: rgba(215, 161, 140, 0.1);
   color: var(--rose-3);
+  cursor: pointer;
   padding: 0 12px;
   font-weight: 850;
+}
+
+.admin-action-row button:hover,
+.admin-inline-form button:hover,
+.admin-block-list button:hover,
+.admin-filter-bar button:hover {
+  border-color: rgba(215, 161, 140, 0.52);
+  background: rgba(215, 161, 140, 0.16);
+  color: #f3d1c1;
+}
+
+.admin-action-row button:disabled,
+.admin-inline-form button:disabled,
+.admin-block-list button:disabled {
+  cursor: wait;
+  opacity: 0.56;
 }
 
 .admin-vehicle-card {
@@ -3961,7 +4101,7 @@ body[data-page="admin"]:not(.is-admin-unlocked) .admin-detail-drawer {
   position: relative;
   display: grid;
   gap: 20px;
-  width: min(620px, 100%);
+  width: min(720px, 100%);
   max-height: calc(100vh - 122px);
   overflow: auto;
   padding: 28px;
@@ -3981,6 +4121,30 @@ body[data-page="admin"]:not(.is-admin-unlocked) .admin-detail-drawer {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
+}
+
+.admin-detail-statusbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid rgba(215, 161, 140, 0.16);
+  border-radius: var(--radius);
+  background:
+    linear-gradient(135deg, rgba(215, 161, 140, 0.1), rgba(248, 242, 236, 0.025)),
+    rgba(5, 5, 5, 0.26);
+  padding: 12px;
+}
+
+.admin-detail-statusbar strong {
+  margin-left: auto;
+  color: var(--ivory);
+  font-family: var(--font-display);
+  font-size: 1.12rem;
+}
+
+.detail-actions {
+  margin-top: 10px;
 }
 
 .admin-detail-grid div,
@@ -4384,6 +4548,15 @@ body[data-page="admin"]:not(.is-admin-unlocked) .admin-detail-drawer {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .admin-filter-bar {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-filter-search,
+  .admin-filter-bar button {
+    grid-column: 1 / -1;
+  }
+
   .admin-inline-form button {
     grid-column: 1 / -1;
   }
@@ -4433,8 +4606,18 @@ body[data-page="admin"]:not(.is-admin-unlocked) .admin-detail-drawer {
   .admin-detail-grid,
   .admin-metrics,
   .admin-notification-list,
-  .admin-inline-form {
+  .admin-inline-form,
+  .admin-filter-bar {
     grid-template-columns: 1fr;
+  }
+
+  .admin-filter-search,
+  .admin-filter-bar button {
+    grid-column: auto;
+  }
+
+  .admin-result-strip {
+    border-radius: var(--radius);
   }
 
   .admin-hero,

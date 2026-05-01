@@ -102,6 +102,49 @@
             <h2>Bookings.</h2>
             <span>Approve, reject or review client details and handover summaries.</span>
           </div>
+          <form class="admin-filter-bar" data-admin-booking-filters aria-label="Booking filters">
+            <label class="admin-filter-search">
+              Search bookings
+              <input
+                type="search"
+                name="query"
+                data-admin-filter="query"
+                placeholder="Name, email, vehicle or reference"
+                autocomplete="off"
+              />
+            </label>
+            <label>
+              Booking status
+              <select name="status" data-admin-filter="status">
+                <option value="">All statuses</option>
+                <option value="pending">Pending</option>
+                <option value="payment_pending">Payment pending</option>
+                <option value="confirmed">Confirmed</option>
+                <option value="cancelled">Cancelled</option>
+                <option value="completed">Completed</option>
+                <option value="rejected">Rejected</option>
+              </select>
+            </label>
+            <label>
+              Deposit status
+              <select name="paymentStatus" data-admin-filter="paymentStatus">
+                <option value="">All deposits</option>
+                <option value="payment_pending">Payment pending</option>
+                <option value="deposit_paid">Deposit paid</option>
+                <option value="failed">Failed</option>
+                <option value="cancelled">Cancelled</option>
+                <option value="refunded">Refunded</option>
+              </select>
+            </label>
+            <label>
+              Pickup date
+              <input type="date" name="date" data-admin-filter="date" />
+            </label>
+            <button type="button" data-admin-clear-filters>Clear</button>
+          </form>
+          <div class="admin-result-strip" data-admin-booking-results>
+            <span>Unlock the portal to load booking requests.</span>
+          </div>
           <div class="admin-table-shell">
             <table class="admin-table">
               <thead>

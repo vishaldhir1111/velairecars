@@ -119,6 +119,12 @@ let adminState = {
   customers: [],
   vehicles: [],
   notifications: [],
+  filters: {
+    query: "",
+    status: "",
+    paymentStatus: "",
+    date: "",
+  },
 };
 
 const fleetKnowledgeBase = [
@@ -268,6 +274,76 @@ function adminActionLabel(action = "") {
     complete: "completed",
   };
   return labels[action] || humanStatus(action).toLowerCase();
+}
+
+function normaliseAdminText(value = "") {
+  return String(value || "").trim().toLowerCase();
+}
+
+function adminStatusTone(value = "") {
+  const clean = normaliseAdminText(value).replaceAll("_", "-");
+  if (["confirmed", "deposit-paid", "paid", "sent"].includes(clean)) return "Ready";
+  if (["pending", "payment-pending", "requires-checkout"].includes(clean)) return "Action";
+  if (["cancelled", "failed", "expired", "rejected"].includes(clean)) return "Issue";
+  if (["completed", "refunded", "skipped"].includes(clean)) return "Closed";
+  return "Review";
+}
+
+function adminDateMatches(booking, isoDate = "") {
+  if (!isoDate) return true;
+  const pickup = String(booking.pickup || "").slice(0, 10);
+  const returnDate = String(booking.return || "").slice(0, 10);
+  if (pickup === isoDate || returnDate === isoDate) return true;
+  const selected = new Date(`${isoDate}T00:00:00`);
+  const pickupDate = pickup ? new Date(`${pickup}T00:00:00`) : null;
+  const returnValue = returnDate ? new Date(`${returnDate}T00:00:00`) : pickupDate;
+  if (!pickupDate || Number.isNaN(selected.getTime()) || Number.isNaN(pickupDate.getTime())) return false;
+  return selected >= pickupDate && selected <= returnValue;
+}
+
+function bookingSearchText(booking = {}) {
+  return [
+    booking.reference,
+    booking.id,
+    booking.vehicleName,
+    booking.vehicle,
+    booking.customerName,
+    booking.customerEmail,
+    booking.customerPhone,
+    booking.location,
+    booking.billingPostcode,
+    booking.status,
+    booking.paymentStatus,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+}
+
+function filterAdminBookings(bookings = [], filters = adminState.filters) {
+  const query = normaliseAdminText(filters.query);
+  const status = normaliseAdminText(filters.status);
+  const paymentStatus = normaliseAdminText(filters.paymentStatus);
+  const date = filters.date || "";
+
+  return bookings.filter((booking) => {
+    const matchesQuery = !query || bookingSearchText(booking).includes(query);
+    const matchesStatus = !status || normaliseAdminText(booking.status) === status;
+    const matchesPayment = !paymentStatus || normaliseAdminText(booking.paymentStatus) === paymentStatus;
+    return matchesQuery && matchesStatus && matchesPayment && adminDateMatches(booking, date);
+  });
+}
+
+function updateAdminBookingResultStrip(filtered = [], total = 0) {
+  const target = document.querySelector("[data-admin-booking-results]");
+  if (!target) return;
+  const activeFilters = Object.values(adminState.filters || {}).filter(Boolean).length;
+  const pending = filtered.filter((booking) => ["pending", "payment_pending"].includes(booking.status)).length;
+  const paid = filtered.filter((booking) => booking.paymentStatus === "deposit_paid").length;
+  target.innerHTML = `
+    <span>${filtered.length} of ${total} bookings shown${activeFilters ? ` · ${activeFilters} filter${activeFilters === 1 ? "" : "s"} active` : ""}</span>
+    <strong>${pending} needs review · ${paid} deposit paid</strong>
+  `;
 }
 
 function loadReservation() {
@@ -2454,43 +2530,72 @@ function renderAdminBookings(bookings = []) {
   const target = document.querySelector("[data-admin-bookings]");
   if (!target) return;
 
+  const filteredBookings = filterAdminBookings(bookings);
+  updateAdminBookingResultStrip(filteredBookings, bookings.length);
+
   if (!bookings.length) {
     target.innerHTML = `
       <tr>
         <td colspan="7">
           <strong>No booking requests yet</strong><br />
-          <span>New client reservations will appear here once the booking flow syncs to the API.</span>
+          <span>Guest reservations will appear here once the booking flow syncs to the operations API.</span>
         </td>
       </tr>
     `;
     return;
   }
 
-  target.innerHTML = bookings
+  if (!filteredBookings.length) {
+    target.innerHTML = `
+      <tr>
+        <td colspan="7">
+          <strong>No bookings match these filters</strong><br />
+          <span>Clear the filters or adjust the search to see more reservation requests.</span>
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  target.innerHTML = filteredBookings
     .map((booking) => {
       const dates = `${formatDisplayDate(booking.pickup) || "Pickup pending"} - ${
         formatDisplayDate(booking.return) || "return pending"
       }`;
-      const customer = booking.customerEmail || booking.customerPhone || booking.customerName || "Client details pending";
+      const customerName = booking.customerName || "Guest client";
+      const customerContact = [booking.customerEmail, booking.customerPhone].filter(Boolean).join(" · ");
+      const handover = booking.location || booking.handoverLocation || "Handover pending";
+      const paymentStatus = booking.paymentStatus || "payment_pending";
+      const bookingStatus = booking.status || "pending";
       return `
-        <tr>
+        <tr class="admin-booking-row">
           <td>
-            <strong>${escapeHtml(booking.reference || booking.id)}</strong>
-            <span>${escapeHtml(booking.location || "Handover pending")}</span>
+            <button type="button" class="admin-reference-button" data-admin-view-booking="${booking.id}">
+              ${escapeHtml(booking.reference || booking.id)}
+            </button>
+            <span>${escapeHtml(adminStatusTone(bookingStatus))}</span>
           </td>
-          <td>${escapeHtml(booking.vehicleName || "Vehicle pending")}</td>
-          <td>${escapeHtml(dates)}</td>
+          <td>
+            <strong>${escapeHtml(booking.vehicleName || "Vehicle pending")}</strong>
+            <span>${escapeHtml(handover)}</span>
+          </td>
+          <td>
+            <strong>${escapeHtml(dates)}</strong>
+            <span>${escapeHtml(booking.pickupTime || "Time pending")}</span>
+          </td>
           <td>
             <button type="button" class="admin-text-button" data-admin-view-booking="${booking.id}">
-              ${escapeHtml(customer)}
+              ${escapeHtml(customerName)}
             </button>
+            <span>${escapeHtml(customerContact || "Contact pending")}</span>
           </td>
-          <td><span class="status-pill ${statusClass(booking.status)}">${escapeHtml(humanStatus(booking.status))}</span></td>
-          <td><span class="status-pill muted ${statusClass(booking.paymentStatus)}">${escapeHtml(
-            humanStatus(booking.paymentStatus),
+          <td><span class="status-pill ${statusClass(bookingStatus)}">${escapeHtml(humanStatus(bookingStatus))}</span></td>
+          <td><span class="status-pill ${statusClass(paymentStatus)}">${escapeHtml(
+            humanStatus(paymentStatus),
           )}</span></td>
           <td>
             <div class="admin-action-row">
+              <button type="button" data-admin-view-booking="${booking.id}">View</button>
               <button type="button" data-admin-booking-action="pending" data-booking-id="${booking.id}">Pending</button>
               <button type="button" data-admin-booking-action="payment_pending" data-booking-id="${booking.id}">Payment pending</button>
               <button type="button" data-admin-booking-action="confirm" data-booking-id="${booking.id}">Confirm</button>
@@ -2511,11 +2616,27 @@ function renderAdminBookingDetail(booking) {
 
   const payment = adminState.payments.find((item) => item.bookingId === booking.id);
   const timeline = booking.timeline?.length ? booking.timeline : [];
+  const billingParts = [
+    booking.billingAddressLine1 || booking.billingAddress,
+    booking.billingAddressLine2,
+    booking.billingTown,
+    booking.billingCity,
+    booking.billingPostcode,
+    booking.billingCountry,
+  ].filter(Boolean);
+  const paymentStatus = booking.paymentStatus || payment?.status || "payment_pending";
+  const bookingStatus = booking.status || "pending";
   target.innerHTML = `
     <div class="panel-heading">
       <p class="eyebrow">Booking detail</p>
       <h2>${escapeHtml(booking.reference || "Velaire booking")}</h2>
       <span>${escapeHtml(booking.vehicleName || "Vehicle pending")}</span>
+    </div>
+
+    <div class="admin-detail-statusbar">
+      <span class="status-pill ${statusClass(bookingStatus)}">${escapeHtml(humanStatus(bookingStatus))}</span>
+      <span class="status-pill ${statusClass(paymentStatus)}">${escapeHtml(humanStatus(paymentStatus))}</span>
+      <strong>${money(Number(booking.totals?.total || booking.estimatedTotal || 0))} estimated hire</strong>
     </div>
 
     <div class="admin-detail-grid">
@@ -2527,17 +2648,19 @@ function renderAdminBookingDetail(booking) {
       <div>
         <span>Billing</span>
         <strong>${escapeHtml(booking.billingPostcode || booking.billingCity || "Billing pending")}</strong>
-        <small>${escapeHtml(booking.billingAddress || "No billing address saved yet")}</small>
+        <small>${escapeHtml(billingParts.join(", ") || "No billing address saved yet")}</small>
       </div>
       <div>
         <span>Status</span>
-        <strong><span class="status-pill ${statusClass(booking.status)}">${escapeHtml(humanStatus(booking.status))}</span></strong>
-        <small>Payment: ${escapeHtml(humanStatus(booking.paymentStatus))}</small>
+        <strong>${escapeHtml(humanStatus(bookingStatus))}</strong>
+        <small>${escapeHtml(adminStatusTone(bookingStatus))} · Payment: ${escapeHtml(humanStatus(paymentStatus))}</small>
       </div>
       <div>
         <span>Dates</span>
         <strong>${escapeHtml(formatDisplayDate(booking.pickup) || "Pickup pending")}</strong>
-        <small>Return: ${escapeHtml(formatDisplayDate(booking.return) || "Return pending")}</small>
+        <small>${escapeHtml(booking.pickupTime || "Time pending")} · Return: ${escapeHtml(
+          formatDisplayDate(booking.return) || "Return pending",
+        )}</small>
       </div>
       <div>
         <span>Deposit</span>
@@ -2550,6 +2673,17 @@ function renderAdminBookingDetail(booking) {
       <span>Handover</span>
       <p>${escapeHtml(booking.location || "Handover location pending")}</p>
       <small>${escapeHtml(booking.handoverNotes || "No concierge notes yet")}</small>
+    </div>
+
+    <div class="admin-detail-section">
+      <span>Operations actions</span>
+      <div class="admin-action-row detail-actions">
+        <button type="button" data-admin-booking-action="pending" data-booking-id="${booking.id}">Pending</button>
+        <button type="button" data-admin-booking-action="payment_pending" data-booking-id="${booking.id}">Payment pending</button>
+        <button type="button" data-admin-booking-action="confirm" data-booking-id="${booking.id}">Confirm</button>
+        <button type="button" data-admin-booking-action="cancel" data-booking-id="${booking.id}">Cancel</button>
+        <button type="button" data-admin-booking-action="complete" data-booking-id="${booking.id}">Complete</button>
+      </div>
     </div>
 
     <div class="admin-detail-section">
@@ -2585,9 +2719,12 @@ function renderAdminPayments(payments = []) {
   }
 
   target.innerHTML = payments
-    .map(
-      (payment) => `
-        <tr>
+    .map((payment) => {
+      const booking = adminState.bookings.find((item) => item.id === payment.bookingId);
+      const customerName = payment.customerName || booking?.customerName || "Guest client";
+      const customerContact = payment.customerEmail || booking?.customerEmail || "Client pending";
+      return `
+        <tr class="admin-payment-row">
           <td>
             <strong>${money(Number(payment.amount || 0))}</strong>
             <span>
@@ -2595,12 +2732,12 @@ function renderAdminPayments(payments = []) {
             </span>
           </td>
           <td>
-            ${escapeHtml(payment.bookingReference || payment.bookingId || "Booking pending")}
-            <span>${escapeHtml(payment.vehicleName || "Vehicle pending")}</span>
+            <strong>${escapeHtml(payment.bookingReference || booking?.reference || payment.bookingId || "Booking pending")}</strong>
+            <span>${escapeHtml(payment.vehicleName || booking?.vehicleName || "Vehicle pending")}</span>
           </td>
           <td>
-            ${escapeHtml(payment.customerEmail || "Client pending")}
-            <span>${escapeHtml(payment.customerPhone || "")}</span>
+            <strong>${escapeHtml(customerName)}</strong>
+            <span>${escapeHtml([customerContact, payment.customerPhone || booking?.customerPhone || ""].filter(Boolean).join(" · "))}</span>
           </td>
           <td><span class="status-pill ${statusClass(payment.status)}">${escapeHtml(humanStatus(payment.status))}</span></td>
           <td>
@@ -2617,8 +2754,8 @@ function renderAdminPayments(payments = []) {
             </div>
           </td>
         </tr>
-      `,
-    )
+      `;
+    })
     .join("");
 }
 
@@ -2638,7 +2775,7 @@ function renderAdminLeads(leads = []) {
       return `
         <article class="admin-lead-card">
           <div>
-            <span class="status-pill">${escapeHtml(humanStatus(lead.status))}</span>
+            <span class="status-pill ${statusClass(lead.status)}">${escapeHtml(humanStatus(lead.status))}</span>
             <h3>${escapeHtml(vehicle?.shortName || lead.recommendedVehicle || "Fleet recommendation")}</h3>
             <p>${escapeHtml(lead.prompt || "Concierge question pending")}</p>
           </div>
@@ -2911,7 +3048,7 @@ function renderAdminCustomers(customers = []) {
       <tr>
         <td colspan="6">
           <strong>No customers yet</strong><br />
-          <span>Client accounts and booking enquiries will appear here once customers use the flow.</span>
+          <span>Guest contacts and reservation enquiries will appear here once customers use the booking flow.</span>
         </td>
       </tr>
     `;
@@ -2985,6 +3122,7 @@ async function refreshAdmin() {
     payments: payments.payments || summary.summary?.latestPayments || [],
     leads: leads.leads || summary.summary?.latestLeads || [],
     notifications: notifications.notifications || [],
+    filters: adminState.filters || { query: "", status: "", paymentStatus: "", date: "" },
   };
   renderAdminMetrics(summary.summary || {});
   renderAdminBookings(adminState.bookings);
@@ -3007,11 +3145,35 @@ async function refreshAdmin() {
 
 function setupAdmin() {
   const tokenForm = document.querySelector("[data-admin-token-form]");
+  const filtersForm = document.querySelector("[data-admin-booking-filters]");
   tokenForm?.addEventListener("submit", async (event) => {
     event.preventDefault();
     const token = new FormData(tokenForm).get("adminToken");
     saveAdminToken(token);
     await refreshAdmin();
+  });
+
+  filtersForm?.addEventListener("input", () => {
+    const data = new FormData(filtersForm);
+    adminState.filters = {
+      query: String(data.get("query") || ""),
+      status: String(data.get("status") || ""),
+      paymentStatus: String(data.get("paymentStatus") || ""),
+      date: String(data.get("date") || ""),
+    };
+    renderAdminBookings(adminState.bookings);
+  });
+
+  filtersForm?.addEventListener("change", () => {
+    const event = new Event("input", { bubbles: true });
+    filtersForm.dispatchEvent(event);
+  });
+
+  document.querySelector("[data-admin-clear-filters]")?.addEventListener("click", () => {
+    if (!filtersForm) return;
+    filtersForm.reset();
+    adminState.filters = { query: "", status: "", paymentStatus: "", date: "" };
+    renderAdminBookings(adminState.bookings);
   });
 
   document.querySelector("[data-admin-token-clear]")?.addEventListener("click", async () => {
