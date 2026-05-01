@@ -94,7 +94,7 @@
                 <small>Licence, address and ID checks</small>
               </article>
               <article>
-                <span>Payment method</span>
+                <span>Deposit status</span>
                 <strong data-bind="paymentStatus">Payment pending</strong>
                 <small>Handled only by Stripe Checkout</small>
               </article>
@@ -114,9 +114,8 @@
                     Complete verification, deposit and handover preferences to prepare your Velaire release.
                   </p>
                 </div>
-                <div class="client-command-actions">
-                  <a class="primary-button" href="payment.html">Continue deposit</a>
-                  <a class="secondary-button" href="ai.html">Ask concierge</a>
+                <div class="client-command-actions" data-account-primary-actions>
+                  <span class="status-pill muted">Loading booking state</span>
                 </div>
               </article>
 
@@ -293,10 +292,12 @@
 
             <div class="payment-account-grid">
               <article class="account-card premium-card-summary">
-                <span>Payment method</span>
+                <span>Deposit status</span>
                 <strong data-account-bind="cardSummary">No saved card</strong>
                 <small data-account-bind="cardName">Cards are entered only inside secure Stripe Checkout.</small>
-                <a class="secondary-button" href="payment.html">Open secure checkout</a>
+                <div data-account-payment-actions>
+                  <span class="status-pill muted">Loading payment state</span>
+                </div>
               </article>
 
               <article class="account-card">
@@ -306,7 +307,9 @@
                   Velaire does not collect or store card numbers. Reservation deposits are paid
                   through a live Stripe Checkout session linked to the booking.
                 </p>
-                <a class="primary-button" href="payment.html">Continue to deposit</a>
+                <div data-account-checkout-actions>
+                  <span class="status-pill muted">Checking deposit state</span>
+                </div>
               </article>
             </div>
 

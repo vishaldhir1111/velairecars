@@ -2124,6 +2124,48 @@ h2 {
   color: #ffbea9;
 }
 
+.payment-paid-panel {
+  display: grid;
+  gap: 12px;
+  border: 1px solid rgba(151, 204, 162, 0.42);
+  border-radius: var(--radius);
+  background:
+    radial-gradient(circle at 90% 0%, rgba(151, 204, 162, 0.16), transparent 36%),
+    linear-gradient(145deg, rgba(215, 161, 140, 0.1), rgba(151, 204, 162, 0.08)),
+    rgba(5, 5, 5, 0.3);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.26);
+  padding: 18px;
+}
+
+.payment-paid-panel[hidden] {
+  display: none;
+}
+
+.payment-paid-panel span {
+  color: #cdebd4;
+  font-size: 0.72rem;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.payment-paid-panel strong {
+  color: var(--ivory);
+  font-family: var(--font-display);
+  font-size: clamp(1.35rem, 2vw, 2rem);
+  font-weight: 650;
+}
+
+.payment-paid-panel p {
+  margin: 0;
+  color: rgba(248, 242, 236, 0.72);
+  line-height: 1.58;
+}
+
+.payment-card.is-payment-confirmed .checkout-card,
+.payment-card.is-payment-confirmed .secure-note {
+  opacity: 0.58;
+}
+
 .notice-card,
 .mini-summary,
 .secure-band {

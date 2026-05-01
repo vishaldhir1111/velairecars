@@ -252,6 +252,10 @@ function normalisePaymentStatus(status, fallback = "payment_pending") {
   return paymentStatusAliases[clean] || clean || fallback;
 }
 
+function isDepositPaidStatus(status) {
+  return paidPaymentStatuses.has(normalisePaymentStatus(status, ""));
+}
+
 function bookingStatusForPaymentStatus(status) {
   const canonical = normalisePaymentStatus(status);
   if (paidPaymentStatuses.has(canonical)) return "confirmed";
@@ -592,7 +596,15 @@ export function updateBooking(idValue, patch = {}) {
   const booking = db.bookings.find((item) => item.id === idValue);
   if (!booking) return null;
 
-  const { reservation, ...bookingPatch } = patch;
+  const { reservation, allowPaidStateTransition = false, ...bookingPatch } = patch;
+  const wasDepositPaid = isDepositPaidStatus(booking.paymentStatus);
+  const incomingPaymentStatus = bookingPatch.paymentStatus ? normalisePaymentStatus(bookingPatch.paymentStatus) : "";
+  const incomingBookingStatus = bookingPatch.status ? normaliseBookingStatus(bookingPatch.status) : "";
+  const stalePaidDowngrade =
+    wasDepositPaid &&
+    !allowPaidStateTransition &&
+    ((incomingPaymentStatus && incomingPaymentStatus !== "deposit_paid") ||
+      ["draft", "pending", "payment_pending"].includes(incomingBookingStatus));
   const nextStatus = normaliseBookingStatus(bookingPatch.status || booking.status, booking.status);
   if (reservation) {
     const totals = calculateOperationalTotals({
@@ -638,9 +650,15 @@ export function updateBooking(idValue, patch = {}) {
   }
 
   if (bookingPatch.status) bookingPatch.status = normaliseBookingStatus(bookingPatch.status);
+  if (bookingPatch.paymentStatus) bookingPatch.paymentStatus = normalisePaymentStatus(bookingPatch.paymentStatus);
+  if (stalePaidDowngrade) {
+    delete bookingPatch.status;
+    delete bookingPatch.paymentStatus;
+    bookingPatch.paidAt = booking.paidAt || bookingPatch.paidAt || now();
+  }
   Object.assign(booking, { ...bookingPatch, updatedAt: now() });
   booking.timeline.push({
-    label: patch.status ? `Status changed to ${patch.status}` : "Booking updated",
+    label: stalePaidDowngrade ? "Paid booking protected from stale payment sync" : patch.status ? `Status changed to ${patch.status}` : "Booking updated",
     at: now(),
   });
   return publicBooking(booking);
@@ -653,6 +671,18 @@ export function listBookings(userId) {
 
 export function createPaymentIntent({ bookingId, reservation = {} }) {
   const booking = db.bookings.find((item) => item.id === bookingId);
+  const existingPaidPayment = db.payments.find(
+    (item) => item.bookingId === booking?.id && paidPaymentStatuses.has(normalisePaymentStatus(item.status)),
+  );
+  if (isDepositPaidStatus(booking?.paymentStatus) || existingPaidPayment) {
+    const error = new Error("This reservation deposit has already been paid.");
+    error.status = 409;
+    error.code = "deposit_already_paid";
+    error.publicMessage = "This reservation deposit has already been paid. The booking is now in concierge review.";
+    error.booking = booking ? publicBooking(booking) : null;
+    error.payment = existingPaidPayment ? publicPayment(existingPaidPayment) : null;
+    throw error;
+  }
   const totals =
     booking?.totals ||
     calculateOperationalTotals({
@@ -765,6 +795,7 @@ export function markPaymentStatus({
       paymentStatus: canonicalStatus,
       checkoutSessionId: checkoutSessionId || booking.checkoutSessionId,
       paidAt: paidPaymentStatuses.has(canonicalStatus) ? booking.paidAt || now() : booking.paidAt,
+      allowPaidStateTransition: true,
     });
   }
 
@@ -868,6 +899,7 @@ export function upsertStripeCheckoutSession(session = {}, status = "payment_pend
       paymentIntentId: payment?.id || paymentId || booking.paymentIntentId,
       checkoutSessionId: session.id || booking.checkoutSessionId,
       paidAt: paidPaymentStatuses.has(canonicalStatus) ? booking.paidAt || now() : booking.paidAt,
+      allowPaidStateTransition: true,
     });
   }
 
@@ -903,6 +935,7 @@ export function adminUpdatePayment(idValue, patch = {}) {
     if (failedPaymentStatuses.has(payment.status) || refundedPaymentStatuses.has(payment.status)) {
       bookingPatch.status = "cancelled";
     }
+    bookingPatch.allowPaidStateTransition = true;
     updateBooking(payment.bookingId, bookingPatch);
   }
 

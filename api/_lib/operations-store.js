@@ -205,6 +205,29 @@ export async function getStoredCustomerContext(email = "") {
   return { bookings, payments, customer, available: operations.available };
 }
 
+export async function findPaidDeposit({ bookingId = "", email = "", vehicle = "", pickup = "" } = {}) {
+  if (!operationsStoreConfigured()) return null;
+  const operations = await listStoredOperations();
+  const cleanEmail = String(email || "").trim().toLowerCase();
+  const booking = operations.bookings.find((item) => {
+    if (bookingId && item.id === bookingId) return item.paymentStatus === "deposit_paid";
+    const sameClient = cleanEmail && String(item.customerEmail || "").toLowerCase() === cleanEmail;
+    const sameVehicle = !vehicle || item.vehicleSlug === vehicle;
+    const samePickup = !pickup || item.pickup === pickup;
+    return sameClient && sameVehicle && samePickup && item.paymentStatus === "deposit_paid";
+  });
+  const payment = operations.payments.find((item) => {
+    if (booking?.id && item.bookingId === booking.id && item.status === "deposit_paid") return true;
+    if (bookingId && item.bookingId === bookingId && item.status === "deposit_paid") return true;
+    const sameClient = cleanEmail && String(item.customerEmail || "").toLowerCase() === cleanEmail;
+    const sameVehicle = !vehicle || item.vehicleSlug === vehicle || booking?.vehicleSlug === vehicle;
+    const samePickup = !pickup || item.pickup === pickup || booking?.pickup === pickup;
+    return !bookingId && sameClient && sameVehicle && samePickup && item.status === "deposit_paid";
+  });
+  if (!booking && !payment) return null;
+  return { booking, payment };
+}
+
 export async function saveAccountRecord(user = {}) {
   const email = String(user.email || "").trim().toLowerCase();
   if (!operationsStoreConfigured() || !email) return { saved: false, reason: "operations_store_not_configured" };

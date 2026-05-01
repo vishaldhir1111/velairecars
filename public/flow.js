@@ -360,6 +360,64 @@ function loadBackendBooking() {
   }
 }
 
+function mergeUniqueById(items = []) {
+  const map = new Map();
+  items.filter(Boolean).forEach((item) => {
+    const key = item.id || item.bookingId || item.checkoutSessionId || JSON.stringify(item);
+    map.set(key, { ...(map.get(key) || {}), ...item });
+  });
+  return [...map.values()];
+}
+
+function isDepositPaidState({ reservation = loadReservation(), booking = loadBackendBooking(), payments = [] } = {}) {
+  return (
+    reservation.paymentStatus === "deposit_paid" ||
+    (reservation.status === "confirmed" && Boolean(reservation.paidAt)) ||
+    booking?.paymentStatus === "deposit_paid" ||
+    (booking?.status === "confirmed" && Boolean(booking?.paidAt)) ||
+    payments.some((payment) => payment?.status === "deposit_paid" || payment?.paymentStatus === "deposit_paid")
+  );
+}
+
+function savePaidState({ booking = null, payment = null } = {}) {
+  const reservation = loadReservation();
+  const paid = reservation.paymentStatus === "deposit_paid" || booking?.paymentStatus === "deposit_paid" || payment?.status === "deposit_paid";
+  if (booking?.id) saveBackendBooking(booking);
+  saveReservation({
+    bookingId: booking?.id || reservation.bookingId || "",
+    reference: booking?.reference || reservation.reference || "",
+    status: paid ? booking?.status || reservation.status || "confirmed" : booking?.status || reservation.status || "payment_pending",
+    paymentStatus: paid ? "deposit_paid" : booking?.paymentStatus || payment?.status || "deposit_paid",
+    paymentIntentId: payment?.id || reservation.paymentIntentId || "",
+    checkoutSessionId: booking?.checkoutSessionId || payment?.checkoutSessionId || reservation.checkoutSessionId || "",
+    paidAt: paid ? booking?.paidAt || payment?.paidAt || reservation.paidAt || new Date().toISOString() : reservation.paidAt || "",
+  });
+}
+
+function paymentStateFromResult(result = {}) {
+  const bookings = [result.booking, ...(result.bookings || [])].filter(Boolean);
+  const payments = [result.payment, ...(result.payments || [])].filter(Boolean);
+  const booking = bookings.find((item) => item.paymentStatus === "deposit_paid") || bookings[0] || null;
+  const payment = payments.find((item) => item.status === "deposit_paid") || payments[0] || null;
+  return {
+    paid: isDepositPaidState({ booking, payments }),
+    booking,
+    payment,
+    bookings,
+    payments,
+  };
+}
+
+async function fetchAccountPaymentState(email = "") {
+  const cleanEmail = String(email || "").trim();
+  if (!cleanEmail) return { paid: isDepositPaidState(), booking: loadBackendBooking(), payment: null, bookings: [], payments: [] };
+  const result = await optionalApiRequest(`/api/account?email=${encodeURIComponent(cleanEmail)}`, { method: "GET" }, null);
+  if (!result) return { paid: isDepositPaidState(), booking: loadBackendBooking(), payment: null, bookings: [], payments: [] };
+  const state = paymentStateFromResult(result);
+  if (state.paid) savePaidState({ booking: state.booking, payment: state.payment });
+  return state;
+}
+
 function loadAdminToken() {
   try {
     return window.localStorage.getItem(adminTokenStorageKey) || "";
@@ -528,6 +586,9 @@ async function syncBookingToBackend(status = "draft") {
     saveBackendBooking(result.booking);
     saveReservation({ bookingId: result.booking.id, reference: result.booking.reference });
   }
+  if (result?.protected === "deposit_already_paid" || result?.payment?.status === "deposit_paid" || result?.booking?.paymentStatus === "deposit_paid") {
+    savePaidState({ booking: result.booking, payment: result.payment });
+  }
   return result?.booking || null;
 }
 
@@ -557,13 +618,22 @@ async function createPaymentIntent() {
 async function createPaymentCheckout() {
   const reservation = loadReservation();
   const booking = loadBackendBooking() || (await syncBookingToBackend("payment_pending"));
-  const result = await apiRequest("/api/payments/checkout", {
-    method: "POST",
-    body: JSON.stringify({
-      bookingId: booking?.id || reservation.bookingId || "",
-      reservation,
-    }),
-  });
+  let result;
+  try {
+    result = await apiRequest("/api/payments/checkout", {
+      method: "POST",
+      body: JSON.stringify({
+        bookingId: booking?.id || reservation.bookingId || "",
+        reservation,
+      }),
+    });
+  } catch (error) {
+    if (error.status === 409 && error.payload?.error === "deposit_already_paid") {
+      savePaidState({ booking: error.payload.booking, payment: error.payload.payment });
+      error.alreadyPaid = true;
+    }
+    throw error;
+  }
 
   if (result?.paymentIntent) {
     saveReservation({
@@ -741,6 +811,13 @@ function updateSummary() {
   const vehicle = selectedVehicle(slug);
   const days = Math.max(Number.parseInt(reservation.days || "2", 10), 1);
   const location = reservation.formattedAddress || reservation.location || "Delivery location pending";
+  const depositPaid = isDepositPaidState({ reservation, booking: backendBooking, payments: [] });
+  const resolvedPaymentStatus = depositPaid
+    ? "deposit_paid"
+    : reservation.paymentStatus || backendBooking?.paymentStatus || "payment_pending";
+  const resolvedReservationStatus = depositPaid
+    ? backendBooking?.status || reservation.status || "confirmed"
+    : reservation.status || backendBooking?.status || "payment_pending";
 
   bindText("vehicleName", vehicle.name);
   bindText("vehicleShortName", vehicle.shortName);
@@ -756,8 +833,8 @@ function updateSummary() {
   bindText("rentalDays", displayDays(days));
   bindText("handoverLocation", location);
   bindText("reference", reservation.reference || backendBooking?.reference || referenceFor(slug));
-  bindText("reservationStatus", humanStatus(reservation.status || backendBooking?.status || "payment_pending"));
-  bindText("paymentStatus", humanStatus(reservation.paymentStatus || backendBooking?.paymentStatus || "payment_pending"));
+  bindText("reservationStatus", humanStatus(resolvedReservationStatus));
+  bindText("paymentStatus", humanStatus(resolvedPaymentStatus));
   bindVehicleMedia(vehicle);
   updateSelectedLocationPanel(reservation);
 }
@@ -1693,6 +1770,37 @@ function renderReceipts(receipts = []) {
     .join("");
 }
 
+function renderAccountPaymentState(bookings = [], payments = []) {
+  const paid = isDepositPaidState({ booking: strongestBooking(bookings) || loadBackendBooking(), payments });
+  const statusLabel = paid ? "Deposit Paid" : "Deposit Pending";
+  const detail = paid
+    ? "Payment confirmed by Stripe. Your booking is now in Velaire concierge review."
+    : "Secure the reservation deposit through Stripe Checkout to move this booking into concierge review.";
+  bindAccountText("cardSummary", statusLabel);
+  bindAccountText("cardName", detail);
+
+  const paidMarkup = `
+    <span class="status-pill status-deposit-paid">Deposit paid</span>
+    <a class="secondary-button" href="#overview">View booking details</a>
+  `;
+  const unpaidMarkup = `
+    <a class="primary-button" href="payment.html">Secure deposit</a>
+    <a class="secondary-button" href="ai.html">Ask concierge</a>
+  `;
+
+  document.querySelectorAll("[data-account-primary-actions]").forEach((node) => {
+    node.innerHTML = paid
+      ? `<span class="status-pill status-deposit-paid">Payment confirmed</span><a class="secondary-button" href="#overview">View booking details</a><a class="secondary-button" href="ai.html">Ask concierge</a>`
+      : unpaidMarkup;
+  });
+  document.querySelectorAll("[data-account-payment-actions], [data-account-checkout-actions]").forEach((node) => {
+    node.innerHTML = paid ? paidMarkup : unpaidMarkup;
+  });
+
+  const paymentSummary = document.querySelector("[data-account-payment-summary]");
+  if (paymentSummary) paymentSummary.textContent = detail;
+}
+
 function renderSavedLocations(account = loadAccount()) {
   const target = document.querySelector("[data-saved-locations]");
   if (!target) return;
@@ -1826,7 +1934,10 @@ function mergeBackendAccount(user) {
 }
 
 async function hydrateAccountFromBackend() {
-  const result = await optionalApiRequest("/api/account", { method: "GET" }, null);
+  const account = loadAccount();
+  const email = account.email || loadReservation().email || "";
+  const accountPath = email ? `/api/account?email=${encodeURIComponent(email)}` : "/api/account";
+  const result = await optionalApiRequest(accountPath, { method: "GET" }, null);
   if (!result) {
     const localBooking = loadBackendBooking();
     const localBookings = localBooking ? [localBooking] : [];
@@ -1835,15 +1946,24 @@ async function hydrateAccountFromBackend() {
     renderBookingHistory(localBookings);
     renderPaymentHistory([]);
     renderReceipts([]);
+    renderAccountPaymentState(localBookings, []);
     return;
   }
   mergeBackendAccount(result.user);
-  const bookings = result.bookings || [];
-  renderClientReadiness(loadAccount(), bookings, result.payments || []);
+  const bookings = mergeUniqueById([...(result.bookings || []), loadBackendBooking()]);
+  const payments = result.payments || [];
+  const paidPayment = payments.find((payment) => payment.status === "deposit_paid");
+  const paidBooking = bookings.find((booking) => booking.paymentStatus === "deposit_paid") || strongestBooking(bookings);
+  if (paidPayment || paidBooking?.paymentStatus === "deposit_paid") {
+    savePaidState({ booking: paidBooking, payment: paidPayment });
+  }
+  renderClientReadiness(loadAccount(), bookings, payments);
   renderCurrentReservation(bookings);
   renderBookingHistory(bookings);
-  renderPaymentHistory(result.payments || []);
+  renderPaymentHistory(payments);
   renderReceipts(result.receipts || []);
+  renderAccountPaymentState(bookings, payments);
+  updateSummary();
 }
 
 function renderAdminMetrics(summary = {}) {
@@ -2951,8 +3071,23 @@ function setupPayment() {
   const form = document.querySelector("form");
   const providerStatus = document.querySelector("[data-payment-provider-status]");
   const paymentAlert = document.querySelector("[data-payment-alert]");
+  const paidPanel = document.querySelector("[data-payment-paid-panel]");
   const submitButton = form?.querySelector('button[type="submit"]');
   const params = new URLSearchParams(window.location.search);
+
+  function renderPaidPaymentState({ booking = loadBackendBooking(), payment = null } = {}) {
+    savePaidState({ booking, payment });
+    if (providerStatus) providerStatus.textContent = "Deposit already paid. No further checkout is required.";
+    if (paymentAlert) paymentAlert.hidden = true;
+    if (paidPanel) paidPanel.hidden = false;
+    if (submitButton) {
+      submitButton.disabled = true;
+      submitButton.textContent = "Deposit paid";
+    }
+    form?.classList.add("is-payment-confirmed");
+    updateSummary();
+  }
+
   if (params.get("payment") === "cancelled") {
     saveReservation({ status: "payment_pending", paymentStatus: "cancelled" });
     if (providerStatus) providerStatus.textContent = "Checkout was cancelled. No deposit has been taken.";
@@ -2964,8 +3099,25 @@ function setupPayment() {
     if (submitButton) submitButton.textContent = "Retry secure deposit checkout";
   }
 
+  if (isDepositPaidState()) {
+    renderPaidPaymentState();
+  } else {
+    const email = loadReservation().email || loadAccount().email || "";
+    fetchAccountPaymentState(email)
+      .then((state) => {
+        if (state.paid) renderPaidPaymentState({ booking: state.booking, payment: state.payment });
+      })
+      .catch(() => {
+        // The page remains usable offline; the submit handler still checks the server before redirecting.
+      });
+  }
+
   form?.addEventListener("submit", async (event) => {
     event.preventDefault();
+    if (isDepositPaidState()) {
+      renderPaidPaymentState();
+      return;
+    }
     if (submitButton) {
       submitButton.disabled = true;
       submitButton.textContent = "Preparing secure Checkout...";
@@ -2980,6 +3132,11 @@ function setupPayment() {
       if (providerStatus) providerStatus.textContent = "Redirecting to secure Stripe Checkout.";
       window.location.href = checkout.checkoutUrl;
     } catch (error) {
+      if (error.alreadyPaid) {
+        renderPaidPaymentState({ booking: error.payload?.booking, payment: error.payload?.payment });
+        showFlowToast("Deposit is already paid for this reservation.");
+        return;
+      }
       if (providerStatus) providerStatus.textContent = "Secure Stripe Checkout could not be started.";
       if (paymentAlert) {
         paymentAlert.hidden = false;
@@ -2989,8 +3146,9 @@ function setupPayment() {
       }
     } finally {
       if (submitButton) {
-        submitButton.disabled = false;
-        submitButton.textContent = "Create secure deposit session";
+        const paid = isDepositPaidState();
+        submitButton.disabled = paid;
+        submitButton.textContent = paid ? "Deposit paid" : "Create secure deposit session";
       }
     }
   });
@@ -3025,6 +3183,7 @@ async function setupSuccess() {
   const result = await verifyCheckoutSession(sessionId);
   const status = result?.paymentStatus || result?.payment?.status || "payment_pending";
   if (status === "deposit_paid") {
+    savePaidState({ booking: result?.booking, payment: result?.payment });
     saveReservation({ status: "confirmed", paymentStatus: "deposit_paid", confirmedAt: new Date().toISOString() });
     if (title) title.textContent = "Deposit paid. Your Velaire reservation is confirmed.";
     if (message) {

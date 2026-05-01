@@ -142,6 +142,14 @@ if (!read("api/payments/checkout.js").includes("createStripeCheckoutSession")) {
   throw new Error("api/payments/checkout.js is not wired to Stripe Checkout");
 }
 
+if (!read("api/payments/checkout.js").includes("deposit_already_paid")) {
+  throw new Error("api/payments/checkout.js must prevent duplicate deposits for already-paid bookings");
+}
+
+if (!read("api/bookings.js").includes("deposit_already_paid")) {
+  throw new Error("api/bookings.js must protect paid bookings from stale payment-pending syncs");
+}
+
 if (!read("api/payments/session.js").includes("retrieveStripeCheckoutSession")) {
   throw new Error("api/payments/session.js is missing Checkout Session verification");
 }
@@ -168,6 +176,14 @@ if (!read("public/account.html").includes("data-receipt-list") || !read("public/
 
 if (!read("public/account.html").includes("data-client-readiness") || !read("public/flow.js").includes("renderClientReadiness")) {
   throw new Error("Premium private client readiness panel is missing from the account portal");
+}
+
+if (
+  !read("public/flow.js").includes("renderAccountPaymentState") ||
+  !read("public/flow.js").includes("fetchAccountPaymentState") ||
+  !read("public/payment.html").includes("data-payment-paid-panel")
+) {
+  throw new Error("Paid-deposit account/payment state handling is missing");
 }
 
 for (const forbidden of [

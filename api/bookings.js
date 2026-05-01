@@ -1,6 +1,6 @@
 import { allowMethods, publicError, readJson, sendJson } from "./_lib/http.js";
 import { notifyClientAndAdmin } from "./_lib/notifications.js";
-import { saveOperationsRecords } from "./_lib/operations-store.js";
+import { findPaidDeposit, saveOperationsRecords } from "./_lib/operations-store.js";
 import { createBooking, currentUser, listBookings, updateBooking } from "./_lib/store.js";
 import { customersFromBookings } from "./_lib/stripe-operations.js";
 
@@ -21,6 +21,26 @@ export default async function handler(req, res) {
     const body = await readJson(req);
 
     if (req.method === "PATCH") {
+      const reservation = body.patch?.reservation || {};
+      const paidDeposit = await findPaidDeposit({
+        bookingId: body.id,
+        email: reservation.email,
+        vehicle: reservation.vehicle,
+        pickup: reservation.pickup,
+      });
+      if (paidDeposit) {
+        sendJson(res, 200, {
+          booking: paidDeposit.booking || {
+            id: body.id,
+            status: "confirmed",
+            paymentStatus: "deposit_paid",
+            paidAt: paidDeposit.payment?.paidAt || new Date().toISOString(),
+          },
+          payment: paidDeposit.payment,
+          protected: "deposit_already_paid",
+        });
+        return;
+      }
       const booking = updateBooking(body.id, body.patch || {});
       if (!booking) {
         sendJson(res, 404, { error: "booking_not_found", message: "Booking not found." });
@@ -38,9 +58,25 @@ export default async function handler(req, res) {
       return;
     }
 
+    const reservation = body.reservation || body;
+    const paidDeposit = await findPaidDeposit({
+      email: reservation.email,
+      vehicle: reservation.vehicle,
+      pickup: reservation.pickup,
+    });
+    if (paidDeposit?.booking || paidDeposit?.payment) {
+      sendJson(res, 200, {
+        authenticated: Boolean(user),
+        booking: paidDeposit.booking || null,
+        payment: paidDeposit.payment || null,
+        protected: "deposit_already_paid",
+      });
+      return;
+    }
+
     const booking = createBooking({
       userId: user?.id || null,
-      reservation: body.reservation || body,
+      reservation,
       status: body.status || "draft",
     });
     await saveOperationsRecords({ booking, customers: customersFromBookings([booking]) });

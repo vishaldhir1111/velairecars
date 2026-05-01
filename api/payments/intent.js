@@ -25,6 +25,11 @@ export default async function handler(req, res) {
       message: "Deposit intent created. Create a Stripe Checkout session to take payment.",
     });
   } catch (error) {
-    sendJson(res, error.status || 500, { error: "payment_intent_failed", message: publicError(error) });
+    sendJson(res, error.status || 500, {
+      error: error.code || "payment_intent_failed",
+      message: publicError(error),
+      booking: error.booking,
+      payment: error.payment,
+    });
   }
 }
