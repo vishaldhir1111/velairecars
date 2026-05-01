@@ -1,6 +1,12 @@
 import { allowMethods, publicError, readJson, sendJson, sessionCookie } from "../_lib/http.js";
-import { getAuthUserRecord } from "../_lib/operations-store.js";
-import { authenticateAuthUserRecord, authenticateUser, createSession } from "../_lib/store.js";
+import { getAuthUserRecord, getStoredAccountRecord, saveAccountRecord, saveAuthUserRecord } from "../_lib/operations-store.js";
+import {
+  authenticateAuthUserRecord,
+  authenticateUser,
+  createSession,
+  getAuthUserRecordForPersistence,
+  registerUser,
+} from "../_lib/store.js";
 
 export default async function handler(req, res) {
   if (!allowMethods(req, res, ["POST"])) return;
@@ -11,9 +17,24 @@ export default async function handler(req, res) {
     try {
       user = authenticateUser(body);
     } catch (memoryError) {
+      const noMemoryAccount = /No Velaire account found/i.test(memoryError.publicMessage || memoryError.message || "");
+      if (!noMemoryAccount) throw memoryError;
       const storedUser = await getAuthUserRecord(body.email);
-      if (!storedUser) throw memoryError;
-      user = authenticateAuthUserRecord(storedUser, body.password);
+      if (storedUser) {
+        user = authenticateAuthUserRecord(storedUser, body.password);
+      } else {
+        const storedAccount = await getStoredAccountRecord(body.email);
+        if (!storedAccount) throw memoryError;
+        user = registerUser({
+          email: body.email,
+          password: body.password,
+          phone: storedAccount.phone || "",
+          profile: storedAccount.profile || {},
+        });
+        const authRecord = getAuthUserRecordForPersistence(user.email);
+        await saveAccountRecord(user);
+        await saveAuthUserRecord(authRecord);
+      }
     }
     const session = createSession(user.id);
     res.setHeader("Set-Cookie", sessionCookie(req, session.token));

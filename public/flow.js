@@ -736,7 +736,9 @@ function configureLoginExperience({ journeyMode = loginJourneyMode(), authMode =
   const progress = document.querySelector("[data-login-progress]");
   const submit = document.querySelector("[data-login-submit]");
   const fullName = document.querySelector('input[name="fullName"]');
+  const phone = document.querySelector('input[name="phone"]');
   const password = document.querySelector('input[name="password"]');
+  const creatingAccess = authMode === "new";
 
   if (kicker) kicker.textContent = bookingJourney ? "Step 2 of 4" : "Private client access";
   if (title) title.textContent = bookingJourney ? "Continue through the Client Lounge." : "Enter the Velaire Client Lounge.";
@@ -745,18 +747,29 @@ function configureLoginExperience({ journeyMode = loginJourneyMode(), authMode =
       ? "Sign in or create your Velaire profile so concierge can attach this reservation to the right private client account."
       : "Sign in to manage reservations, verification, saved handover details and concierge preferences in one polished private space.";
   }
-  if (panelTitle) panelTitle.textContent = authMode === "new" ? "Create private client access." : "Welcome back to Velaire.";
+  if (panelTitle) panelTitle.textContent = creatingAccess ? "Create private client access." : "Login to your account.";
   if (progress) progress.hidden = !bookingJourney;
-  if (submit) submit.textContent = bookingJourney ? "Continue to reservation" : "Open Client Lounge";
-  if (fullName) fullName.required = authMode === "new" || bookingJourney;
+  if (submit) submit.textContent = creatingAccess ? "Sign up" : "Login";
+  document.querySelectorAll("[data-signup-field]").forEach((field) => {
+    field.hidden = !creatingAccess;
+    field.querySelectorAll("input, select, textarea").forEach((input) => {
+      input.disabled = !creatingAccess;
+    });
+  });
+  if (fullName) fullName.required = creatingAccess;
+  if (phone) phone.required = false;
   if (password) {
-    password.autocomplete = authMode === "new" ? "new-password" : "current-password";
-    password.placeholder = authMode === "new" ? "Create a secure password" : "Enter password";
+    password.autocomplete = creatingAccess ? "new-password" : "current-password";
+    password.placeholder = creatingAccess ? "Create a secure password" : "Enter password";
   }
 
   document.querySelectorAll("[data-auth-mode]").forEach((button) => {
     button.classList.toggle("is-active", button.dataset.authMode === authMode);
   });
+}
+
+function hasAccountAccess(context = null) {
+  return Boolean(context?.accountAccessExists || context?.authAccountExists);
 }
 
 function renderLoginState({ tone = "default", title = "", message = "", actions = "" } = {}) {
@@ -780,7 +793,15 @@ function clearLoginState() {
   target.classList.remove("is-warning", "is-success");
 }
 
-async function ensureBackendAccount({ email, password, phone, fullName, accountExists = false, authAccountExists = false }) {
+async function ensureBackendAccount({
+  email,
+  password,
+  phone,
+  fullName,
+  accountExists = false,
+  authAccountExists = false,
+  mode = "auto",
+}) {
   const cleanEmail = String(email || "").trim();
   if (!cleanEmail) return null;
 
@@ -790,7 +811,7 @@ async function ensureBackendAccount({ email, password, phone, fullName, accountE
       body: JSON.stringify({ email: cleanEmail, password }),
     });
   } catch {
-    if (accountExists && authAccountExists) {
+    if (mode === "returning" || accountExists || authAccountExists) {
       const error = new Error("A Velaire account already exists for this email. Enter the account password to continue.");
       error.status = 401;
       throw error;
@@ -3465,7 +3486,7 @@ function setupLogin() {
       });
       return;
     }
-    if (context.authAccountExists) {
+    if (hasAccountAccess(context)) {
       authMode = "returning";
       configureLoginExperience({ journeyMode, authMode });
       renderLoginState({
@@ -3491,11 +3512,12 @@ function setupLogin() {
     event.preventDefault();
     clearLoginState();
     const data = new FormData(form);
-    const fullName = data.get("fullName") || "";
+    const creatingAccess = authMode === "new";
+    const fullName = creatingAccess ? data.get("fullName") || "" : "";
     const email = data.get("email") || "";
-    const phone = data.get("phone") || "";
+    const phone = creatingAccess ? data.get("phone") || "" : "";
     const password = data.get("password") || "";
-    if (journeyMode === "booking") {
+    if (journeyMode === "booking" && creatingAccess) {
       saveReservation({
         name: fullName,
         fullName,
@@ -3504,18 +3526,25 @@ function setupLogin() {
         clientIntent: "reservation",
       });
     }
-    saveAccount({
-      fullName,
-      email: data.get("email") || "",
-      phone: data.get("phone") || "",
-    });
+    saveAccount(creatingAccess ? { fullName, email, phone } : { email });
     const submitButton = form.querySelector('button[type="submit"]');
     if (submitButton) {
       submitButton.disabled = true;
-      submitButton.textContent = "Checking client record...";
+      submitButton.textContent = creatingAccess ? "Creating access..." : "Logging in...";
     }
     try {
       const context = await fetchAccountContext(email);
+      const accountAccessExists = hasAccountAccess(context);
+      if (creatingAccess && accountAccessExists) {
+        authMode = "returning";
+        configureLoginExperience({ journeyMode, authMode });
+        renderLoginState({
+          tone: "warning",
+          title: "Account already exists",
+          message: "This email is already connected to a Velaire account. Login with your password to continue.",
+        });
+        return;
+      }
       const existingBooking = matchingActiveVehicleBooking(context?.bookings || []);
       if (journeyMode === "booking" && existingBooking) {
         const authResult = await ensureBackendAccount({
@@ -3524,7 +3553,8 @@ function setupLogin() {
           password,
           fullName,
           accountExists: Boolean(context?.exists),
-          authAccountExists: Boolean(context?.authAccountExists),
+          authAccountExists: accountAccessExists,
+          mode: "returning",
         });
         if (authResult?.user) mergeAuthenticatedUser(authResult.user);
         saveBackendBooking(existingBooking);
@@ -3560,7 +3590,8 @@ function setupLogin() {
         password,
         fullName,
         accountExists: Boolean(context?.exists),
-        authAccountExists: Boolean(context?.authAccountExists),
+        authAccountExists: accountAccessExists,
+        mode: creatingAccess ? "new" : "returning",
       });
       if (authResult?.user) mergeAuthenticatedUser(authResult.user);
       await syncAccountToBackend(loadAccount());
@@ -3586,7 +3617,7 @@ function setupLogin() {
     } finally {
       if (submitButton) {
         submitButton.disabled = false;
-        submitButton.textContent = journeyMode === "booking" ? "Continue to reservation" : "Open Client Lounge";
+        submitButton.textContent = authMode === "new" ? "Sign up" : "Login";
       }
     }
   });
