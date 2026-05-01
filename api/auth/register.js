@@ -18,6 +18,7 @@ export default async function handler(req, res) {
     const storedAccount = await getStoredAccountRecord(body.email);
     const storedContext = storedAccount ? { customer: null } : await getStoredCustomerContext(body.email);
     const storedCustomer = storedContext.customer || null;
+    const storedActivityExists = Boolean(storedCustomer || storedContext.bookings?.length || storedContext.payments?.length);
     const existingPublicUser = existingUser || (existingAuthUser ? {
       id: existingAuthUser.id,
       email: existingAuthUser.email,
@@ -41,11 +42,20 @@ export default async function handler(req, res) {
       createdAt: storedAccount.createdAt,
       updatedAt: storedAccount.updatedAt,
     } : null);
-    if (existingPublicUser) {
+    if (existingPublicUser || storedActivityExists) {
       sendJson(res, 409, {
         error: "account_exists",
         message: "A Velaire account already exists for this email. Sign in to continue the reservation.",
-        user: existingPublicUser,
+        user: existingPublicUser || {
+          id: `stored_${String(body.email || "").trim().toLowerCase()}`,
+          email: String(body.email || "").trim().toLowerCase(),
+          phone: storedCustomer?.phone || "",
+          profile: { fullName: storedCustomer?.fullName || "" },
+          preferences: {},
+          verification: { status: storedCustomer?.verificationStatus || "not_submitted", documents: {} },
+          paymentMethod: null,
+          favourites: [],
+        },
       });
       return;
     }

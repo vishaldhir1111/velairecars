@@ -756,6 +756,9 @@ function configureLoginExperience({ journeyMode = loginJourneyMode(), authMode =
       input.disabled = !creatingAccess;
     });
   });
+  document.querySelectorAll("[data-signup-extra]").forEach((item) => {
+    item.hidden = !creatingAccess;
+  });
   if (fullName) fullName.required = creatingAccess;
   if (phone) phone.required = false;
   if (password) {
@@ -770,6 +773,10 @@ function configureLoginExperience({ journeyMode = loginJourneyMode(), authMode =
 
 function hasAccountAccess(context = null) {
   return Boolean(context?.accountAccessExists || context?.authAccountExists);
+}
+
+function emailExistsInVelaire(context = null) {
+  return Boolean(context?.exists || context?.accountAccessExists || context?.authAccountExists || context?.customerActivityExists);
 }
 
 function renderLoginState({ tone = "default", title = "", message = "", actions = "" } = {}) {
@@ -810,11 +817,15 @@ async function ensureBackendAccount({
       method: "POST",
       body: JSON.stringify({ email: cleanEmail, password }),
     });
-  } catch {
+  } catch (error) {
     if (mode === "returning" || accountExists || authAccountExists) {
-      const error = new Error("A Velaire account already exists for this email. Enter the account password to continue.");
-      error.status = 401;
-      throw error;
+      const signInError = new Error(
+        /password did not match/i.test(error.message || "")
+          ? error.message
+          : "A Velaire account already exists for this email. Enter the account password to continue.",
+      );
+      signInError.status = 401;
+      throw signInError;
     }
     return optionalApiRequest(
       "/api/auth/register",
@@ -3464,7 +3475,17 @@ function setupLogin() {
     const email = form.elements.email.value.trim();
     if (!email) return;
     const context = await fetchAccountContext(email);
-    if (!context?.exists) {
+    if (!context) {
+      authMode = "returning";
+      configureLoginExperience({ journeyMode, authMode });
+      renderLoginState({
+        tone: "warning",
+        title: "Account check unavailable",
+        message: "Enter your password to sign in, or choose Create access only if this email is new to Velaire.",
+      });
+      return;
+    }
+    if (!emailExistsInVelaire(context)) {
       authMode = "new";
       configureLoginExperience({ journeyMode, authMode });
       renderLoginState({
@@ -3474,23 +3495,21 @@ function setupLogin() {
       });
       return;
     }
-    const accountAccessExists = hasAccountAccess(context);
     const existingBooking = journeyMode === "booking" ? matchingActiveVehicleBooking(context.bookings || []) : null;
     if (existingBooking) {
-      authMode = accountAccessExists ? "returning" : "new";
+      authMode = "returning";
       configureLoginExperience({ journeyMode, authMode });
       renderLoginState({
-        tone: accountAccessExists ? "warning" : "success",
+        tone: "warning",
         title: "Existing Velaire reservation found",
-        message: accountAccessExists
-          ? existingBooking.paymentStatus === "deposit_paid"
+        message:
+          existingBooking.paymentStatus === "deposit_paid"
             ? "This vehicle is already secured for this client. Login and we will open the booking details."
-            : "This client already has an active reservation for the selected vehicle. Login and we will continue that booking."
-          : "This email has reservation activity but no Client Lounge access yet. Create access to connect and manage the booking.",
+            : "This client already has an active reservation for the selected vehicle. Login and we will continue that booking.",
       });
       return;
     }
-    if (accountAccessExists) {
+    if (emailExistsInVelaire(context)) {
       authMode = "returning";
       configureLoginExperience({ journeyMode, authMode });
       renderLoginState({
@@ -3538,8 +3557,18 @@ function setupLogin() {
     }
     try {
       const context = await fetchAccountContext(email);
-      const accountAccessExists = hasAccountAccess(context);
-      if (creatingAccess && accountAccessExists) {
+      if (!context) {
+        authMode = "returning";
+        configureLoginExperience({ journeyMode, authMode });
+        renderLoginState({
+          tone: "warning",
+          title: "Account check unavailable",
+          message: "We could not verify this email safely. Please login if you already have access, or try again before creating access.",
+        });
+        return;
+      }
+      const knownEmailExists = emailExistsInVelaire(context);
+      if (creatingAccess && knownEmailExists) {
         authMode = "returning";
         configureLoginExperience({ journeyMode, authMode });
         renderLoginState({
@@ -3551,25 +3580,14 @@ function setupLogin() {
       }
       const existingBooking = matchingActiveVehicleBooking(context?.bookings || []);
       if (journeyMode === "booking" && existingBooking) {
-        if (!accountAccessExists && !creatingAccess) {
-          authMode = "new";
-          configureLoginExperience({ journeyMode, authMode });
-          renderLoginState({
-            tone: "success",
-            title: "Create access to continue",
-            message:
-              "This email already has reservation activity, but Client Lounge access has not been created yet. Add your name, phone and password to continue with the saved booking.",
-          });
-          return;
-        }
         const authResult = await ensureBackendAccount({
           email,
           phone,
           password,
           fullName,
-          accountExists: accountAccessExists,
-          authAccountExists: accountAccessExists,
-          mode: accountAccessExists ? "returning" : "new",
+          accountExists: knownEmailExists,
+          authAccountExists: hasAccountAccess(context),
+          mode: "returning",
         });
         if (authResult?.user) mergeAuthenticatedUser(authResult.user);
         saveBackendBooking(existingBooking);
@@ -3604,8 +3622,8 @@ function setupLogin() {
         phone,
         password,
         fullName,
-        accountExists: accountAccessExists,
-        authAccountExists: accountAccessExists,
+        accountExists: knownEmailExists,
+        authAccountExists: hasAccountAccess(context),
         mode: creatingAccess ? "new" : "returning",
       });
       if (authResult?.user) mergeAuthenticatedUser(authResult.user);
