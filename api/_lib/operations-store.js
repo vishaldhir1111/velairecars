@@ -1,6 +1,11 @@
 import { customersFromBookings, mergeCustomers, mergeOperations, recordsFromStripeSession } from "./stripe-operations.js";
+import { stripeConfigured, stripeRequest } from "./stripe.js";
 
 const defaultPrefix = "velaire:operations:guest-booking-v1";
+const stripeOperationsMetadataKey = "velaire_operations_config";
+const stripeVehicleOperationsKey = "fleet_ops";
+const stripeVehicleOperationsMaxChunks = 40;
+const stripeMetadataChunkSize = 440;
 
 function config() {
   const configuredPrefix = process.env.VELAIRE_STORE_PREFIX || defaultPrefix;
@@ -61,6 +66,94 @@ function parseValues(result) {
   if (!result) return [];
   const values = Array.isArray(result) ? result : Object.values(result);
   return values.map(parseJson).filter(Boolean);
+}
+
+function normaliseVehicleOperationRecord(record = {}) {
+  if (!record.slug) return null;
+  return {
+    slug: record.slug,
+    rate: Number(record.rate || 0),
+    deposit: Number(record.deposit || 0),
+    availabilityStatus: record.availabilityStatus || record.status || "active",
+    blockedRanges: Array.isArray(record.blockedRanges) ? record.blockedRanges : [],
+    updatedAt: record.updatedAt || new Date().toISOString(),
+  };
+}
+
+function mergeVehicleOperations(existing = [], incoming = []) {
+  const map = new Map();
+  [...existing, ...incoming].forEach((record) => {
+    const normalised = normaliseVehicleOperationRecord(record);
+    if (normalised) map.set(normalised.slug, { ...(map.get(normalised.slug) || {}), ...normalised });
+  });
+  return [...map.values()].sort((a, b) => String(a.slug).localeCompare(String(b.slug)));
+}
+
+function chunkString(value = "", size = stripeMetadataChunkSize) {
+  const chunks = [];
+  for (let index = 0; index < value.length; index += size) chunks.push(value.slice(index, index + size));
+  return chunks.length ? chunks : [""];
+}
+
+function readChunkedMetadata(metadata = {}, baseKey = stripeVehicleOperationsKey) {
+  const count = Number(metadata[`${baseKey}_chunks`] || 0);
+  if (!count) return "";
+  return Array.from({ length: count }, (_, index) => metadata[`${baseKey}_${index}`] || "").join("");
+}
+
+function writeChunkedMetadata(params, baseKey, value) {
+  const chunks = chunkString(value);
+  params.set(`metadata[${baseKey}_chunks]`, String(chunks.length));
+  chunks.forEach((chunk, index) => {
+    params.set(`metadata[${baseKey}_${index}]`, chunk);
+  });
+  for (let index = chunks.length; index < stripeVehicleOperationsMaxChunks; index += 1) {
+    params.set(`metadata[${baseKey}_${index}]`, "");
+  }
+}
+
+async function stripeOperationsProduct({ create = false } = {}) {
+  if (!stripeConfigured()) return null;
+  const products = await stripeRequest("/products?limit=100&active=true");
+  const existing = (products.data || []).find((product) => product.metadata?.[stripeOperationsMetadataKey] === "true");
+  if (existing || !create) return existing || null;
+
+  const params = new URLSearchParams();
+  params.set("name", "Velaire Cars Operations Data");
+  params.set("active", "true");
+  params.set(`metadata[${stripeOperationsMetadataKey}]`, "true");
+  params.set("metadata[purpose]", "vehicle_pricing_and_availability_sync");
+  return stripeRequest("/products", { method: "POST", body: params });
+}
+
+async function readStripeVehicleOperations() {
+  try {
+    const product = await stripeOperationsProduct({ create: false });
+    const raw = readChunkedMetadata(product?.metadata || {});
+    const parsed = parseJson(raw);
+    return Array.isArray(parsed) ? mergeVehicleOperations([], parsed) : [];
+  } catch {
+    return [];
+  }
+}
+
+async function saveStripeVehicleOperations(records = []) {
+  if (!stripeConfigured()) return { saved: false, reason: "stripe_not_configured" };
+  try {
+    const product = await stripeOperationsProduct({ create: true });
+    if (!product?.id) return { saved: false, reason: "stripe_operations_product_unavailable" };
+    const normalised = mergeVehicleOperations([], records);
+    const payload = JSON.stringify(normalised);
+    const params = new URLSearchParams();
+    params.set(`metadata[${stripeOperationsMetadataKey}]`, "true");
+    params.set("metadata[purpose]", "vehicle_pricing_and_availability_sync");
+    params.set("metadata[updated_at]", new Date().toISOString());
+    writeChunkedMetadata(params, stripeVehicleOperationsKey, payload);
+    await stripeRequest(`/products/${encodeURIComponent(product.id)}`, { method: "POST", body: params });
+    return { saved: true, vehicleOperations: normalised, source: "stripe_metadata" };
+  } catch (error) {
+    return { saved: false, reason: error.publicMessage || error.message || "stripe_vehicle_operations_write_failed" };
+  }
 }
 
 async function hsetJson(hash, field, value) {
@@ -188,29 +281,41 @@ export async function getNotificationRecord(notificationId = "") {
 }
 
 export async function saveVehicleOperationsRecord(record = {}) {
-  if (!operationsStoreConfigured() || !record.slug) return { saved: false, reason: "operations_store_not_configured" };
-  try {
-    const vehicleOperation = {
-      slug: record.slug,
-      rate: Number(record.rate || 0),
-      deposit: Number(record.deposit || 0),
-      availabilityStatus: record.availabilityStatus || record.status || "active",
-      blockedRanges: Array.isArray(record.blockedRanges) ? record.blockedRanges : [],
-      updatedAt: record.updatedAt || new Date().toISOString(),
-    };
-    await hsetJson(key("vehicle-operations"), vehicleOperation.slug, vehicleOperation);
-    return { saved: true, vehicleOperation };
-  } catch (error) {
-    return { saved: false, reason: error.publicMessage || error.message || "vehicle_operations_store_write_failed" };
+  const vehicleOperation = normaliseVehicleOperationRecord(record);
+  if (!vehicleOperation) return { saved: false, reason: "vehicle_operation_record_incomplete" };
+
+  const current = await listStoredVehicleOperations();
+  const next = mergeVehicleOperations(current, [vehicleOperation]);
+
+  if (operationsStoreConfigured()) {
+    try {
+      await hsetJson(key("vehicle-operations"), vehicleOperation.slug, vehicleOperation);
+      const stripeMirror = await saveStripeVehicleOperations(next);
+      return {
+        saved: true,
+        vehicleOperation,
+        source: "operations_store",
+        mirror: stripeMirror.saved ? "stripe_metadata" : stripeMirror.reason,
+      };
+    } catch (error) {
+      const stripeFallback = await saveStripeVehicleOperations(next);
+      if (stripeFallback.saved) return { saved: true, vehicleOperation, source: "stripe_metadata", fallbackReason: error.message };
+      return { saved: false, reason: error.publicMessage || error.message || stripeFallback.reason || "vehicle_operations_store_write_failed" };
+    }
   }
+
+  const stripeResult = await saveStripeVehicleOperations(next);
+  if (stripeResult.saved) return { saved: true, vehicleOperation, source: "stripe_metadata" };
+  return { saved: false, reason: stripeResult.reason || "operations_store_not_configured" };
 }
 
 export async function listStoredVehicleOperations() {
-  if (!operationsStoreConfigured()) return [];
+  const stripeVehicleOperations = await readStripeVehicleOperations();
   try {
-    return hvalsJson(key("vehicle-operations"));
+    if (!operationsStoreConfigured()) return stripeVehicleOperations;
+    return mergeVehicleOperations(await hvalsJson(key("vehicle-operations")), stripeVehicleOperations);
   } catch {
-    return [];
+    return stripeVehicleOperations;
   }
 }
 
@@ -357,9 +462,9 @@ export async function listStoredOperations() {
       payments: [],
       customers: [],
       notifications: [],
-      vehicleOperations: [],
-      available: false,
-      reason: "operations_store_not_configured",
+      vehicleOperations: await listStoredVehicleOperations(),
+      available: stripeConfigured(),
+      reason: stripeConfigured() ? "stripe_metadata_vehicle_operations" : "operations_store_not_configured",
     };
   }
 
@@ -369,7 +474,7 @@ export async function listStoredOperations() {
       hvalsJson(key("payments")),
       hvalsJson(key("customers")),
       hvalsJson(key("notifications")),
-      hvalsJson(key("vehicle-operations")),
+      listStoredVehicleOperations(),
     ]);
     return {
       bookings: mergeOperations([], bookings),

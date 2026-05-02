@@ -1,5 +1,6 @@
 import { allowMethods, readJson, sendJson } from "./_lib/http.js";
 import { listStoredOperations } from "./_lib/operations-store.js";
+import { listStripeOperations, mergeOperations } from "./_lib/stripe-operations.js";
 import { checkVehicleAvailability, mergeVehicleOperationOverrides } from "./_lib/store.js";
 
 export default async function handler(req, res) {
@@ -10,13 +11,14 @@ export default async function handler(req, res) {
   const vehicle = body.vehicle || query.vehicle || "lamborghini-urus";
   const pickup = body.pickup || query.pickup || "";
   const returnDate = body.return || query.return || "";
-  const storedOperations = await listStoredOperations();
+  const [storedOperations, stripeOperations] = await Promise.all([listStoredOperations(), listStripeOperations()]);
   mergeVehicleOperationOverrides(storedOperations.vehicleOperations || []);
+  const bookings = mergeOperations(storedOperations.bookings || [], stripeOperations.bookings || []);
   const availability = checkVehicleAvailability({
     vehicleSlug: vehicle,
     pickup,
     returnDate,
-    externalBookings: storedOperations.bookings || [],
+    externalBookings: bookings,
   });
 
   sendJson(res, 200, {
@@ -28,5 +30,6 @@ export default async function handler(req, res) {
     deposit: availability.vehicle.deposit,
     dailyRate: availability.vehicle.rate,
     currency: "GBP",
+    source: storedOperations.available ? "operations-store" : "stripe-metadata",
   });
 }

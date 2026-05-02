@@ -257,9 +257,14 @@ for (const forbidden of [
   }
 }
 
-for (const match of read("public/flow.js").matchAll(/^  "([^"]+)": \{/gm)) {
-  if (!read("public/booking.html").includes(`value="${match[1]}"`)) {
-    throw new Error(`flow.js vehicle ${match[1]} is not present in booking.html`);
+const bookingMarkup = read("public/booking.html");
+if (!bookingMarkup.includes("data-live-fleet-grid")) {
+  throw new Error("booking.html must render vehicle choices from live Operations fleet data");
+}
+
+for (const staleRate of ["£195/day", "£895/day", "£495/day", "£295/day", "£175/day"]) {
+  if (bookingMarkup.includes(staleRate)) {
+    throw new Error(`booking.html still contains a hardcoded stale vehicle rate: ${staleRate}`);
   }
 }
 

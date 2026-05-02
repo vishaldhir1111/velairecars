@@ -1395,11 +1395,62 @@ function updateBookingVehicleCards() {
   }
 }
 
+function orderedFleetVehicles() {
+  return Object.values(vehicles);
+}
+
+function renderBookingFleetChoices(selectedSlugValue = selectedSlug()) {
+  const grid = document.querySelector("[data-live-fleet-grid]");
+  if (!grid) return;
+  const availableVehicles = orderedFleetVehicles();
+  if (!availableVehicles.length) {
+    grid.innerHTML = `
+      <article class="choice-card choice-card-loading">
+        <span class="choice-name">Fleet unavailable</span>
+        <small>Operations data could not be loaded. Please refresh before taking a reservation.</small>
+        <strong>Live data required</strong>
+      </article>
+    `;
+    return;
+  }
+
+  const selectedExists = availableVehicles.some((vehicle) => vehicle.slug === selectedSlugValue);
+  const selected = selectedExists ? selectedSlugValue : availableVehicles[0].slug;
+  grid.innerHTML = availableVehicles
+    .map((vehicle) => {
+      const isOffline = vehicle.availability?.status === "offline";
+      const isChecked = vehicle.slug === selected && !isOffline;
+      return `
+        <label class="choice-card${isOffline ? " is-disabled" : ""}" data-vehicle-card aria-disabled="${String(isOffline)}">
+          <input type="radio" name="vehicle" value="${escapeHtml(vehicle.slug)}" ${isChecked ? "checked" : ""} ${
+            isOffline ? "disabled" : ""
+          } />
+          <span
+            class="choice-visual flow-choice-photo vehicle-model vehicle-model-mini vehicle-model-${escapeHtml(
+              vehicle.visualClass,
+            )} vehicle-model-${escapeHtml(vehicle.modelType || "saloon")}"
+            data-vehicle-model
+            role="img"
+            aria-label="3D studio mockup of ${escapeHtml(vehicle.visualLabel || vehicle.name)}"
+          ></span>
+          <span class="choice-name">${escapeHtml(vehicle.shortName || vehicle.name)}</span>
+          <small>${escapeHtml(isOffline ? "Temporarily unavailable" : vehicle.finish || vehicle.category)}</small>
+          <strong>${money(vehicle.rate)}/day</strong>
+        </label>
+      `;
+    })
+    .join("");
+
+  hydrateVehicleModels(grid);
+  updateBookingVehicleCards();
+}
+
 async function hydrateOperationalFleet() {
   if (operationalFleetPromise) return operationalFleetPromise;
   operationalFleetPromise = optionalApiRequest("/api/fleet", { method: "GET" }, null)
     .then((result) => {
       (result?.fleet || []).forEach(mergeOperationalVehicle);
+      if (document.body.dataset.page === "booking") renderBookingFleetChoices();
       updateBookingVehicleCards();
       updateSummary();
       return result;
@@ -3745,11 +3796,6 @@ async function setupAccount() {
 
 function setupBooking() {
   const form = document.querySelector("form");
-  hydrateOperationalFleet().then(() => {
-    updateBookingVehicleCards();
-    updateSummary();
-    checkAvailability();
-  });
   const params = new URLSearchParams(window.location.search);
   const requestedVehicle = params.get("vehicle") || "";
   let reservation = loadReservation();
@@ -3806,12 +3852,26 @@ function setupBooking() {
     persistDraft.availabilityTimer = window.setTimeout(checkAvailability, 360);
   }
 
-  document.querySelectorAll('input[name="vehicle"]').forEach((input) => {
-    input.addEventListener("change", () => {
-      refreshCards();
-      persistDraft();
+  function bindVehicleChoiceEvents() {
+    document.querySelectorAll('input[name="vehicle"]').forEach((input) => {
+      if (input.dataset.bound === "true") return;
+      input.dataset.bound = "true";
+      input.addEventListener("change", () => {
+        refreshCards();
+        persistDraft();
+      });
     });
-  });
+  }
+
+  function initialiseLiveFleetChoices() {
+    const currentSlug = loadReservation().vehicle || selectedSlug();
+    renderBookingFleetChoices(currentSlug);
+    const liveRadio = document.querySelector(`input[name="vehicle"][value="${currentSlug}"]`);
+    if (liveRadio && !liveRadio.disabled) liveRadio.checked = true;
+    bindVehicleChoiceEvents();
+    refreshCards();
+    persistDraft();
+  }
 
   form?.addEventListener("input", persistDraft);
   form?.addEventListener("submit", async (event) => {
@@ -3827,8 +3887,24 @@ function setupBooking() {
     }
   });
 
-  refreshCards();
-  persistDraft();
+  hydrateOperationalFleet().then((result) => {
+    if (!result?.fleet?.length) {
+      const target = document.querySelector("[data-availability-text]");
+      const submitButton = form?.querySelector('button[type="submit"]');
+      if (target) {
+        target.innerHTML = `<span aria-hidden="true"></span>Live Operations fleet data could not be loaded. Refresh before creating a reservation.`;
+        target.classList.add("is-unavailable");
+      }
+      if (submitButton) {
+        submitButton.disabled = true;
+        submitButton.textContent = "Live fleet data required";
+      }
+      showFlowToast("Live Operations fleet data is required before reserving.", "warning");
+      return;
+    }
+    initialiseLiveFleetChoices();
+    checkAvailability();
+  });
   setupElegantDatePicker(form);
   setupMapboxDeliveryPicker(form);
 }
@@ -4256,4 +4332,4 @@ if (page === "success") setupSuccess();
 if (page === "account") setupAccount();
 if (page === "ai") setupConciergeAssistant();
 if (page === "admin") setupAdmin();
-updateSummary();
+if (page !== "booking") updateSummary();

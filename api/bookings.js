@@ -15,7 +15,7 @@ import {
   mergeVehicleOperationOverrides,
   updateBooking,
 } from "./_lib/store.js";
-import { customersFromBookings, mergeOperations } from "./_lib/stripe-operations.js";
+import { customersFromBookings, listStripeOperations, mergeOperations } from "./_lib/stripe-operations.js";
 
 function reservationForSignedInUser(reservation = {}, user = null) {
   if (!user) return reservation;
@@ -62,8 +62,10 @@ export default async function handler(req, res) {
 
   try {
     const body = await readJson(req);
-    const storedOperations = await listStoredOperations();
+    const [storedOperations, stripeOperations] = await Promise.all([listStoredOperations(), listStripeOperations()]);
     mergeVehicleOperationOverrides(storedOperations.vehicleOperations || []);
+    const externalBookings = mergeOperations(storedOperations.bookings || [], stripeOperations.bookings || []);
+    const externalPayments = mergeOperations(storedOperations.payments || [], stripeOperations.payments || []);
 
     if (req.method === "PATCH") {
       const reservation = reservationForSignedInUser(body.patch?.reservation || {}, user);
@@ -96,7 +98,7 @@ export default async function handler(req, res) {
       const booking = updateBooking(body.id, {
         ...(body.patch || {}),
         reservation,
-        externalBookings: storedOperations.bookings || [],
+        externalBookings,
         ...(user?.id ? { userId: user.id } : {}),
       });
       if (!booking) {
@@ -144,6 +146,15 @@ export default async function handler(req, res) {
       pickup: reservation.pickup,
       returnDate: reservation.return,
     });
+    const cleanEmail = String(reservation.email || "").trim().toLowerCase();
+    const externalActiveBooking = activeReservation?.booking
+      ? null
+      : externalBookings.find((booking) => {
+          const status = String(booking.status || "").toLowerCase();
+          if (["cancelled", "completed", "rejected"].includes(status)) return false;
+          const sameClient = cleanEmail && String(booking.customerEmail || "").toLowerCase() === cleanEmail;
+          return sameClient && booking.vehicleSlug === reservation.vehicle && booking.pickup === reservation.pickup && booking.return === reservation.return;
+        });
     const localActiveBooking = activeReservation?.booking
       ? null
       : findMatchingActiveBooking({
@@ -153,17 +164,22 @@ export default async function handler(req, res) {
           pickup: reservation.pickup,
           returnDate: reservation.return,
         });
-    if (activeReservation?.booking || localActiveBooking) {
+    if (activeReservation?.booking || externalActiveBooking || localActiveBooking) {
+      const matchedBooking = activeReservation?.booking || externalActiveBooking || localActiveBooking;
+      const matchedPayment =
+        activeReservation?.payment ||
+        externalPayments.find((payment) => payment.bookingId === matchedBooking?.id) ||
+        null;
       const booking = await attachStoredBookingToUser({
-        booking: activeReservation?.booking || localActiveBooking,
-        payment: activeReservation?.payment || null,
+        booking: matchedBooking,
+        payment: matchedPayment,
         reservation,
         user,
       });
       sendJson(res, 200, {
         authenticated: Boolean(user),
         booking,
-        payment: activeReservation?.payment || null,
+        payment: matchedPayment,
         protected: "reservation_already_exists",
         message: "An active Velaire reservation already exists for this client and vehicle.",
       });
@@ -174,7 +190,7 @@ export default async function handler(req, res) {
       userId: user?.id || null,
       reservation,
       status: body.status || "draft",
-      externalBookings: storedOperations.bookings || [],
+      externalBookings,
     });
     await saveOperationsRecords({ booking, customers: customersFromBookings([booking]) });
     if (booking.status === "pending") {

@@ -1,5 +1,6 @@
 import { allowMethods, publicError, readJson, sendJson } from "../_lib/http.js";
 import { listStoredOperations } from "../_lib/operations-store.js";
+import { listStripeOperations, mergeOperations } from "../_lib/stripe-operations.js";
 import { createPaymentIntent, mergeVehicleOperationOverrides } from "../_lib/store.js";
 import { stripeConfigured } from "../_lib/stripe.js";
 
@@ -16,12 +17,13 @@ export default async function handler(req, res) {
       return;
     }
 
-    const storedOperations = await listStoredOperations();
+    const [storedOperations, stripeOperations] = await Promise.all([listStoredOperations(), listStripeOperations()]);
     mergeVehicleOperationOverrides(storedOperations.vehicleOperations || []);
+    const externalBookings = mergeOperations(storedOperations.bookings || [], stripeOperations.bookings || []);
     const paymentIntent = createPaymentIntent({
       bookingId: body.bookingId,
       reservation: body.reservation || {},
-      externalBookings: storedOperations.bookings || [],
+      externalBookings,
     });
 
     sendJson(res, 201, {
