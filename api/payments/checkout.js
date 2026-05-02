@@ -1,6 +1,12 @@
 import { allowMethods, publicError, readJson, sendJson } from "../_lib/http.js";
-import { findPaidDeposit, saveStripeOperationsSession } from "../_lib/operations-store.js";
-import { attachCheckoutToPayment, createPaymentIntent, listAllBookings, listPayments } from "../_lib/store.js";
+import { findPaidDeposit, listStoredOperations, saveStripeOperationsSession } from "../_lib/operations-store.js";
+import {
+  attachCheckoutToPayment,
+  createPaymentIntent,
+  listAllBookings,
+  listPayments,
+  mergeVehicleOperationOverrides,
+} from "../_lib/store.js";
 import { createStripeCheckoutSession, stripeConfigured } from "../_lib/stripe.js";
 import { listStripeOperations } from "../_lib/stripe-operations.js";
 
@@ -78,6 +84,8 @@ export default async function handler(req, res) {
     }
 
     const reservation = body.reservation || {};
+    const storedOperations = await listStoredOperations();
+    mergeVehicleOperationOverrides(storedOperations.vehicleOperations || []);
     const paidDeposit = await existingPaidDeposit({ bookingId: body.bookingId, reservation });
     if (paidDeposit) {
       sendJson(res, 409, {
@@ -92,6 +100,7 @@ export default async function handler(req, res) {
     const paymentIntent = createPaymentIntent({
       bookingId: body.bookingId,
       reservation,
+      externalBookings: storedOperations.bookings || [],
     });
 
     const session = await createStripeCheckoutSession(req, paymentIntent, reservation);

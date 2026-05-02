@@ -154,10 +154,14 @@ function publicPayment(payment) {
   return {
     id: payment.id,
     bookingId: payment.bookingId || "",
-    bookingReference: booking?.reference || "",
-    vehicleName: booking?.vehicleName || "",
-    customerEmail: booking?.customerEmail || "",
-    customerPhone: booking?.customerPhone || "",
+    bookingReference: booking?.reference || payment.bookingReference || "",
+    vehicleSlug: booking?.vehicleSlug || payment.vehicleSlug || "",
+    vehicleName: booking?.vehicleName || payment.vehicleName || "",
+    customerName: booking?.customerName || payment.customerName || "",
+    customerEmail: booking?.customerEmail || payment.customerEmail || "",
+    customerPhone: booking?.customerPhone || payment.customerPhone || "",
+    pickup: booking?.pickup || payment.pickup || "",
+    return: booking?.return || payment.return || "",
     amount: payment.amount,
     currency: payment.currency || "GBP",
     status: payment.status || "not_started",
@@ -207,6 +211,42 @@ function getVehicleOperations(slug) {
     db.vehicleOperations.push(record);
   }
   return record;
+}
+
+export function mergeVehicleOperationOverrides(records = []) {
+  for (const item of records || []) {
+    if (!item?.slug) continue;
+    const record = getVehicleOperations(item.slug);
+    Object.assign(record, {
+      rate: Number(item.rate || record.rate),
+      deposit: Number(item.deposit || record.deposit),
+      availabilityStatus: item.availabilityStatus || item.status || record.availabilityStatus || "active",
+      blockedRanges: Array.isArray(item.blockedRanges) ? item.blockedRanges : record.blockedRanges || [],
+      updatedAt: item.updatedAt || record.updatedAt || now(),
+    });
+  }
+  return db.vehicleOperations;
+}
+
+export function vehicleOperationsRecord(slug) {
+  const record = getVehicleOperations(slug);
+  return {
+    slug: record.slug,
+    rate: Number(record.rate || 0),
+    deposit: Number(record.deposit || 0),
+    availabilityStatus: record.availabilityStatus || "active",
+    blockedRanges: record.blockedRanges || [],
+    updatedAt: record.updatedAt || now(),
+  };
+}
+
+function combinedBookings(externalBookings = []) {
+  const map = new Map();
+  [...db.bookings.map(publicBooking), ...(externalBookings || [])].filter(Boolean).forEach((booking) => {
+    const key = booking.id || `${booking.customerEmail || ""}:${booking.vehicleSlug || ""}:${booking.pickup || ""}:${booking.return || ""}`;
+    map.set(key, { ...(map.get(key) || {}), ...booking });
+  });
+  return [...map.values()];
 }
 
 function operationalVehicle(slug) {
@@ -641,12 +681,12 @@ export function updateAccount(userId, patch = {}) {
   return publicUser(user);
 }
 
-export function listOperationalVehicles() {
+export function listOperationalVehicles({ externalBookings = [] } = {}) {
   return fleetData.map((vehicle) => {
     const operations = getVehicleOperations(vehicle.slug);
-    const relatedBookings = db.bookings
+    const relatedBookings = combinedBookings(externalBookings)
       .filter((booking) => booking.vehicleSlug === vehicle.slug && isBlockingBookingStatus(booking.status))
-      .map(publicBooking);
+      .map((booking) => (booking.timeline ? booking : publicBooking(booking)));
 
     return {
       ...vehicle,
@@ -677,6 +717,7 @@ export function checkVehicleAvailability({
   returnDate,
   excludeBookingId = null,
   includeDrafts = false,
+  externalBookings = [],
 } = {}) {
   const vehicle = operationalVehicle(vehicleSlug);
   const requestedRange = normaliseRange(pickup, returnDate);
@@ -706,7 +747,7 @@ export function checkVehicleAvailability({
     }
   }
 
-  for (const booking of db.bookings) {
+  for (const booking of combinedBookings(externalBookings)) {
     if (booking.id === excludeBookingId || booking.vehicleSlug !== vehicle.slug) continue;
     if (!includeDrafts && !isBlockingBookingStatus(booking.status)) continue;
     if (rangesOverlap(requestedRange, bookingRange(booking))) {
@@ -738,8 +779,8 @@ export function checkVehicleAvailability({
   };
 }
 
-function assertAvailabilityForBooking({ vehicleSlug, pickup, returnDate, excludeBookingId = null }) {
-  const availability = checkVehicleAvailability({ vehicleSlug, pickup, returnDate, excludeBookingId });
+function assertAvailabilityForBooking({ vehicleSlug, pickup, returnDate, excludeBookingId = null, externalBookings = [] }) {
+  const availability = checkVehicleAvailability({ vehicleSlug, pickup, returnDate, excludeBookingId, externalBookings });
   if (!availability.available) {
     const error = new Error(availability.message);
     error.status = 409;
@@ -750,7 +791,7 @@ function assertAvailabilityForBooking({ vehicleSlug, pickup, returnDate, exclude
   return availability;
 }
 
-export function createBooking({ userId = null, reservation = {}, status = "draft" }) {
+export function createBooking({ userId = null, reservation = {}, status = "draft", externalBookings = [] }) {
   const canonicalStatus = normaliseBookingStatus(status, "draft");
   const totals = calculateOperationalTotals({
     vehicleSlug: reservation.vehicle,
@@ -764,6 +805,7 @@ export function createBooking({ userId = null, reservation = {}, status = "draft
       vehicleSlug: vehicle.slug,
       pickup: reservation.pickup,
       returnDate: reservation.return,
+      externalBookings,
     });
   }
   const booking = {
@@ -805,7 +847,7 @@ export function updateBooking(idValue, patch = {}) {
   const booking = db.bookings.find((item) => item.id === idValue);
   if (!booking) return null;
 
-  const { reservation, allowPaidStateTransition = false, ...bookingPatch } = patch;
+  const { reservation, allowPaidStateTransition = false, externalBookings = [], ...bookingPatch } = patch;
   const wasDepositPaid = isDepositPaidStatus(booking.paymentStatus);
   const incomingPaymentStatus = bookingPatch.paymentStatus ? normalisePaymentStatus(bookingPatch.paymentStatus) : "";
   const incomingBookingStatus = bookingPatch.status ? normaliseBookingStatus(bookingPatch.status) : "";
@@ -828,6 +870,7 @@ export function updateBooking(idValue, patch = {}) {
         pickup: reservation.pickup || booking.pickup,
         returnDate: reservation.return || booking.return,
         excludeBookingId: booking.id,
+        externalBookings,
       });
     }
     Object.assign(booking, {
@@ -856,6 +899,7 @@ export function updateBooking(idValue, patch = {}) {
       pickup: booking.pickup,
       returnDate: booking.return,
       excludeBookingId: booking.id,
+      externalBookings,
     });
   }
 
@@ -895,8 +939,11 @@ export function findMatchingActiveBooking({ userId = "", email = "", vehicleSlug
   return booking ? publicBooking(booking) : null;
 }
 
-export function createPaymentIntent({ bookingId, reservation = {} }) {
-  const booking = db.bookings.find((item) => item.id === bookingId);
+export function createPaymentIntent({ bookingId, reservation = {}, externalBookings = [] }) {
+  const booking =
+    db.bookings.find((item) => item.id === bookingId) ||
+    (externalBookings || []).find((item) => item.id === bookingId) ||
+    null;
   const existingPaidPayment = db.payments.find(
     (item) => item.bookingId === booking?.id && paidPaymentStatuses.has(normalisePaymentStatus(item.status)),
   );
@@ -935,6 +982,14 @@ export function createPaymentIntent({ bookingId, reservation = {} }) {
     payment = {
       id: id("pi"),
       bookingId: booking?.id || null,
+      bookingReference: booking?.reference || reservation.reference || "",
+      vehicleSlug: booking?.vehicleSlug || reservation.vehicle || "",
+      vehicleName: booking?.vehicleName || totals.vehicle?.name || reservation.vehicleName || "",
+      customerName: booking?.customerName || reservation.name || reservation.fullName || "",
+      customerEmail: booking?.customerEmail || reservation.email || "",
+      customerPhone: booking?.customerPhone || reservation.phone || "",
+      pickup: booking?.pickup || reservation.pickup || "",
+      return: booking?.return || reservation.return || "",
       amount: totals.deposit,
       amountPaid: 0,
       currency: totals.currency || "GBP",
@@ -946,7 +1001,7 @@ export function createPaymentIntent({ bookingId, reservation = {} }) {
     };
     db.payments.push(payment);
   }
-  if (booking) {
+  if (booking && db.bookings.some((item) => item.id === booking.id)) {
     updateBooking(booking.id, {
       status: "payment_pending",
       paymentStatus: payment.status,

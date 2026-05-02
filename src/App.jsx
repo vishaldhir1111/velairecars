@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { conciergeFleetKnowledge, conciergePromptChips, fleet } from "./data/fleet.js";
 
 const favouriteStorageKey = "velaireFavouriteCars";
@@ -60,6 +60,32 @@ function formatCurrency(value) {
 
 function reserveLink(car) {
   return `booking.html?vehicle=${car.slug}`;
+}
+
+function mergeOperationalFleet(baseFleet, operationalFleet = []) {
+  const operationalBySlug = new Map(operationalFleet.map((car) => [car.slug, car]));
+  return baseFleet.map((car) => {
+    const operational = operationalBySlug.get(car.slug);
+    if (!operational) return car;
+    return {
+      ...car,
+      name: operational.name || car.name,
+      year: operational.year || car.year,
+      category: operational.category || car.category,
+      finish: operational.finish || car.finish,
+      paint: operational.paint || car.paint,
+      interior: operational.interior || car.interior,
+      rate: Number(operational.rate || car.rate),
+      deposit: Number(operational.deposit || car.deposit),
+      availability: operational.availability || car.availability,
+      asset: {
+        ...car.asset,
+        modelPath: operational.modelPath || car.asset.modelPath,
+        fallbackImagePath: operational.fallbackImagePath || car.asset.fallbackImagePath,
+        modelAvailable: Boolean(operational.modelAvailable ?? car.asset.modelAvailable),
+      },
+    };
+  });
 }
 
 function conciergeVehicleLabel(vehicle) {
@@ -293,6 +319,7 @@ function VehiclePhoto({ car, size = "card" }) {
 }
 
 function App() {
+  const [fleetVehicles, setFleetVehicles] = useState(fleet);
   const [selectedCar, setSelectedCar] = useState(fleet[0]);
   const [isConciergeOpen, setIsConciergeOpen] = useState(false);
   const [conciergeInput, setConciergeInput] = useState("");
@@ -304,6 +331,27 @@ function App() {
         "Welcome to the Velaire concierge. Tell me the occasion, passenger count, location and the impression you want to create. I can recommend, compare and upsell from the Velaire fleet.",
     },
   ]);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/fleet")
+      .then((response) => {
+        if (!response.ok) throw new Error("Fleet endpoint unavailable");
+        return response.json();
+      })
+      .then((result) => {
+        if (cancelled || !Array.isArray(result.fleet)) return;
+        const nextFleet = mergeOperationalFleet(fleet, result.fleet);
+        setFleetVehicles(nextFleet);
+        setSelectedCar((current) => nextFleet.find((car) => car.slug === current.slug) || nextFleet[0]);
+      })
+      .catch(() => {
+        if (!cancelled) setFleetVehicles(fleet);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   async function askConcierge(question) {
     const clean = question.trim();
@@ -415,7 +463,7 @@ function App() {
           </div>
 
           <div className="fleet-grid">
-            {fleet.map((car) => (
+            {fleetVehicles.map((car) => (
               <article className="fleet-card" key={car.slug}>
                 <div className="fleet-media">
                   <VehiclePhoto car={car} />

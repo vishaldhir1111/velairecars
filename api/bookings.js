@@ -1,7 +1,20 @@
 import { allowMethods, publicError, readJson, sendJson } from "./_lib/http.js";
 import { notifyClientAndAdmin } from "./_lib/notifications.js";
-import { findActiveReservation, findPaidDeposit, getStoredCustomerContext, saveOperationsRecords } from "./_lib/operations-store.js";
-import { createBooking, currentUser, findMatchingActiveBooking, listBookings, updateBooking } from "./_lib/store.js";
+import {
+  findActiveReservation,
+  findPaidDeposit,
+  getStoredCustomerContext,
+  listStoredOperations,
+  saveOperationsRecords,
+} from "./_lib/operations-store.js";
+import {
+  createBooking,
+  currentUser,
+  findMatchingActiveBooking,
+  listBookings,
+  mergeVehicleOperationOverrides,
+  updateBooking,
+} from "./_lib/store.js";
 import { customersFromBookings, mergeOperations } from "./_lib/stripe-operations.js";
 
 function reservationForSignedInUser(reservation = {}, user = null) {
@@ -49,6 +62,8 @@ export default async function handler(req, res) {
 
   try {
     const body = await readJson(req);
+    const storedOperations = await listStoredOperations();
+    mergeVehicleOperationOverrides(storedOperations.vehicleOperations || []);
 
     if (req.method === "PATCH") {
       const reservation = reservationForSignedInUser(body.patch?.reservation || {}, user);
@@ -81,6 +96,7 @@ export default async function handler(req, res) {
       const booking = updateBooking(body.id, {
         ...(body.patch || {}),
         reservation,
+        externalBookings: storedOperations.bookings || [],
         ...(user?.id ? { userId: user.id } : {}),
       });
       if (!booking) {
@@ -158,6 +174,7 @@ export default async function handler(req, res) {
       userId: user?.id || null,
       reservation,
       status: body.status || "draft",
+      externalBookings: storedOperations.bookings || [],
     });
     await saveOperationsRecords({ booking, customers: customersFromBookings([booking]) });
     if (booking.status === "pending") {

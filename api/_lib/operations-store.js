@@ -187,6 +187,33 @@ export async function getNotificationRecord(notificationId = "") {
   return hgetJson(key("notifications"), notificationId);
 }
 
+export async function saveVehicleOperationsRecord(record = {}) {
+  if (!operationsStoreConfigured() || !record.slug) return { saved: false, reason: "operations_store_not_configured" };
+  try {
+    const vehicleOperation = {
+      slug: record.slug,
+      rate: Number(record.rate || 0),
+      deposit: Number(record.deposit || 0),
+      availabilityStatus: record.availabilityStatus || record.status || "active",
+      blockedRanges: Array.isArray(record.blockedRanges) ? record.blockedRanges : [],
+      updatedAt: record.updatedAt || new Date().toISOString(),
+    };
+    await hsetJson(key("vehicle-operations"), vehicleOperation.slug, vehicleOperation);
+    return { saved: true, vehicleOperation };
+  } catch (error) {
+    return { saved: false, reason: error.publicMessage || error.message || "vehicle_operations_store_write_failed" };
+  }
+}
+
+export async function listStoredVehicleOperations() {
+  if (!operationsStoreConfigured()) return [];
+  try {
+    return hvalsJson(key("vehicle-operations"));
+  } catch {
+    return [];
+  }
+}
+
 export async function listStoredNotifications() {
   if (!operationsStoreConfigured()) return [];
   return hvalsJson(key("notifications"));
@@ -330,23 +357,26 @@ export async function listStoredOperations() {
       payments: [],
       customers: [],
       notifications: [],
+      vehicleOperations: [],
       available: false,
       reason: "operations_store_not_configured",
     };
   }
 
   try {
-    const [bookings, payments, customers, notifications] = await Promise.all([
+    const [bookings, payments, customers, notifications, vehicleOperations] = await Promise.all([
       hvalsJson(key("bookings")),
       hvalsJson(key("payments")),
       hvalsJson(key("customers")),
       hvalsJson(key("notifications")),
+      hvalsJson(key("vehicle-operations")),
     ]);
     return {
       bookings: mergeOperations([], bookings),
       payments: mergeOperations([], payments),
       customers: mergeCustomers([], customers),
       notifications,
+      vehicleOperations,
       available: true,
       reason: "",
     };
@@ -356,6 +386,7 @@ export async function listStoredOperations() {
       payments: [],
       customers: [],
       notifications: [],
+      vehicleOperations: [],
       available: false,
       reason: error.publicMessage || error.message || "operations_store_unavailable",
     };

@@ -1,5 +1,6 @@
 import { allowMethods, readJson, sendJson } from "./_lib/http.js";
-import { checkVehicleAvailability } from "./_lib/store.js";
+import { listStoredOperations } from "./_lib/operations-store.js";
+import { checkVehicleAvailability, mergeVehicleOperationOverrides } from "./_lib/store.js";
 
 export default async function handler(req, res) {
   if (!allowMethods(req, res, ["GET", "POST"])) return;
@@ -9,7 +10,14 @@ export default async function handler(req, res) {
   const vehicle = body.vehicle || query.vehicle || "lamborghini-urus";
   const pickup = body.pickup || query.pickup || "";
   const returnDate = body.return || query.return || "";
-  const availability = checkVehicleAvailability({ vehicleSlug: vehicle, pickup, returnDate });
+  const storedOperations = await listStoredOperations();
+  mergeVehicleOperationOverrides(storedOperations.vehicleOperations || []);
+  const availability = checkVehicleAvailability({
+    vehicleSlug: vehicle,
+    pickup,
+    returnDate,
+    externalBookings: storedOperations.bookings || [],
+  });
 
   sendJson(res, 200, {
     vehicle: availability.vehicle.slug,

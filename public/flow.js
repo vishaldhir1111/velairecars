@@ -112,6 +112,7 @@ const UK_BOUNDS = {
 };
 const LONDON_CENTER = { lat: 51.5074, lng: -0.1278 };
 let mapboxLoaderPromise;
+let operationalFleetPromise;
 let adminState = {
   bookings: [],
   payments: [],
@@ -1175,6 +1176,7 @@ async function verifyCheckoutSession(sessionId) {
 async function checkAvailability() {
   const reservation = loadReservation();
   const target = document.querySelector("[data-availability-text]");
+  const submitButton = document.querySelector('body[data-page="booking"] button[type="submit"]');
   if (!target) return null;
 
   const result = await optionalApiRequest(
@@ -1187,9 +1189,21 @@ async function checkAvailability() {
   );
 
   if (result?.message) {
+    const vehicle = vehicles[reservation.vehicle || selectedSlug()];
+    if (vehicle) {
+      if (Number.isFinite(Number(result.dailyRate))) vehicle.rate = Number(result.dailyRate);
+      if (Number.isFinite(Number(result.deposit))) vehicle.deposit = Number(result.deposit);
+      updateBookingVehicleCards();
+      updateSummary();
+    }
     target.innerHTML = `<span aria-hidden="true"></span>${result.message}`;
     target.classList.toggle("is-unavailable", result.available === false);
     target.classList.toggle("is-available", result.available === true);
+    if (submitButton) {
+      submitButton.disabled = result.available === false;
+      submitButton.textContent =
+        result.available === false ? "Choose available dates" : "Continue to secure deposit";
+    }
   }
 
   return result;
@@ -1335,6 +1349,80 @@ function updateSummary() {
   updateSelectedLocationPanel(reservation);
 }
 
+function mergeOperationalVehicle(vehicle = {}) {
+  const current = vehicles[vehicle.slug];
+  if (!current) return;
+  current.name = vehicle.name || current.name;
+  current.shortName = vehicle.shortName || current.shortName || vehicle.name || current.name;
+  current.category = vehicle.category || current.category;
+  current.finish = vehicle.finish || current.finish;
+  current.paint = vehicle.paint || current.paint;
+  current.interior = vehicle.interior || current.interior;
+  current.rate = Number(vehicle.rate || vehicle.operations?.rate || current.rate);
+  current.deposit = Number(vehicle.deposit || vehicle.operations?.deposit || current.deposit);
+  current.modelType = vehicle.modelType || current.modelType;
+  current.modelPath = vehicle.modelPath || current.modelPath;
+  current.fallbackImagePath = vehicle.fallbackImagePath || current.fallbackImagePath;
+  current.modelAvailable = Boolean(vehicle.modelAvailable ?? current.modelAvailable);
+  current.availability = vehicle.availability || current.availability || {};
+}
+
+function updateBookingVehicleCards() {
+  document.querySelectorAll("[data-vehicle-card]").forEach((card) => {
+    const input = card.querySelector('input[name="vehicle"]');
+    const vehicle = vehicles[input?.value];
+    if (!input || !vehicle) return;
+    const name = card.querySelector(".choice-name");
+    const detail = card.querySelector("small");
+    const price = card.querySelector("strong");
+    const isOffline = vehicle.availability?.status === "offline";
+    if (name) name.textContent = vehicle.shortName || vehicle.name;
+    if (detail) detail.textContent = isOffline ? "Temporarily unavailable" : vehicle.finish || vehicle.category;
+    if (price) price.textContent = `${money(vehicle.rate)}/day`;
+    input.disabled = isOffline;
+    card.classList.toggle("is-disabled", isOffline);
+    card.setAttribute("aria-disabled", String(isOffline));
+  });
+
+  const checked = document.querySelector('input[name="vehicle"]:checked');
+  if (checked?.disabled) {
+    const fallback = document.querySelector('input[name="vehicle"]:not(:disabled)');
+    if (fallback) {
+      checked.checked = false;
+      fallback.checked = true;
+      saveBookingDraft({ vehicle: fallback.value });
+    }
+  }
+}
+
+async function hydrateOperationalFleet() {
+  if (operationalFleetPromise) return operationalFleetPromise;
+  operationalFleetPromise = optionalApiRequest("/api/fleet", { method: "GET" }, null)
+    .then((result) => {
+      (result?.fleet || []).forEach(mergeOperationalVehicle);
+      updateBookingVehicleCards();
+      updateSummary();
+      return result;
+    })
+    .catch(() => null);
+  return operationalFleetPromise;
+}
+
+function selectedVehicleAvailability() {
+  return selectedVehicle().availability || {};
+}
+
+function dateIsOperationallyBlocked(isoDate = "") {
+  const availability = selectedVehicleAvailability();
+  if (availability.status === "offline") return true;
+  const ranges = [
+    ...(availability.blockedRanges || []),
+    ...(availability.pendingBookings || []),
+    ...(availability.confirmedBookings || []),
+  ];
+  return ranges.some((range) => rangeCoversIso(range, isoDate));
+}
+
 function updateSelectedLocationPanel(reservation = loadReservation()) {
   const panel = document.getElementById("selected-location-panel");
   if (!panel) return;
@@ -1478,14 +1566,18 @@ function setupElegantDatePicker(form) {
       day.setDate(gridStart.getDate() + index);
       const iso = formatIsoDate(day);
       const isMuted = day.getMonth() !== visibleMonth.getMonth();
-      const isDisabled = day < minDate;
+      const isBlocked = dateIsOperationallyBlocked(iso);
+      const isDisabled = day < minDate || isBlocked;
       const isSelected = iso === selected;
       const isToday = iso === todayIso;
       return `
         <button
-          class="calendar-day${isMuted ? " is-muted" : ""}${isSelected ? " is-selected" : ""}${isToday ? " is-today" : ""}"
+          class="calendar-day${isMuted ? " is-muted" : ""}${isSelected ? " is-selected" : ""}${isToday ? " is-today" : ""}${
+            isBlocked ? " is-blocked" : ""
+          }"
           type="button"
           data-date="${iso}"
+          title="${isBlocked ? "Unavailable through Velaire operations" : ""}"
           ${isDisabled ? "disabled" : ""}
         >
           ${day.getDate()}
@@ -3653,6 +3745,11 @@ async function setupAccount() {
 
 function setupBooking() {
   const form = document.querySelector("form");
+  hydrateOperationalFleet().then(() => {
+    updateBookingVehicleCards();
+    updateSummary();
+    checkAvailability();
+  });
   const params = new URLSearchParams(window.location.search);
   const requestedVehicle = params.get("vehicle") || "";
   let reservation = loadReservation();
@@ -4149,6 +4246,7 @@ async function setupSuccess() {
 const page = document.body.dataset.page;
 runGuestBookingCleanSlate();
 hydrateVehicleModels();
+if (["booking", "payment", "success", "ai"].includes(page)) hydrateOperationalFleet();
 if (page === "account") setupFlowAuthNavigation();
 showSignedOutMessage();
 if (page === "booking") setupBooking();

@@ -1,13 +1,17 @@
 import { allowMethods, sendJson } from "./_lib/http.js";
-import { listOperationalVehicles } from "./_lib/store.js";
+import { listStoredOperations } from "./_lib/operations-store.js";
+import { listOperationalVehicles, mergeVehicleOperationOverrides } from "./_lib/store.js";
 
 export default async function handler(req, res) {
   if (!allowMethods(req, res, ["GET"])) return;
 
+  const storedOperations = await listStoredOperations();
+  mergeVehicleOperationOverrides(storedOperations.vehicleOperations || []);
+
   sendJson(res, 200, {
-    fleet: listOperationalVehicles(),
+    fleet: listOperationalVehicles({ externalBookings: storedOperations.bookings || [] }),
     meta: {
-      source: "src/data/fleet.js",
+      source: storedOperations.available ? "operations-store-plus-src-fleet" : "runtime-store-plus-src-fleet",
       availabilityMode: "operations-managed-request-to-confirm",
       modelStatus: "3d-ready-with-studio-fallbacks",
     },

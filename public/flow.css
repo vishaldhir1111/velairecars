@@ -942,6 +942,12 @@ h2 {
   box-shadow: 0 10px 24px rgba(215, 161, 140, 0.16);
 }
 
+.calendar-day.is-blocked {
+  border-color: rgba(235, 118, 91, 0.32);
+  background: rgba(235, 118, 91, 0.1);
+  color: rgba(255, 178, 159, 0.72);
+}
+
 .calendar-day:disabled {
   cursor: not-allowed;
   color: rgba(248, 242, 236, 0.18);
@@ -987,6 +993,19 @@ h2 {
 
 .choice-card.is-selected::after {
   border-color: rgba(240, 198, 180, 0.42);
+}
+
+.choice-card.is-disabled {
+  cursor: not-allowed;
+  opacity: 0.56;
+  filter: saturate(0.72);
+}
+
+.choice-card.is-disabled:hover,
+.choice-card.is-disabled:focus-within {
+  border-color: rgba(248, 242, 236, 0.12);
+  box-shadow: none;
+  transform: none;
 }
 
 .choice-card input {
