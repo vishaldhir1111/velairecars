@@ -1040,6 +1040,16 @@ function readBookingForm(form) {
 
   return {
     vehicle: vehicleSlug,
+    fullName: data.get("fullName") || data.get("name") || "",
+    name: data.get("fullName") || data.get("name") || "",
+    email: data.get("email") || "",
+    phone: data.get("phone") || "",
+    billingAddress1: data.get("billingAddress1") || "",
+    billingAddress2: data.get("billingAddress2") || "",
+    billingTown: data.get("billingTown") || "",
+    billingCity: data.get("billingCity") || "",
+    billingPostcode: data.get("billingPostcode") || "",
+    billingCountry: data.get("billingCountry") || "United Kingdom",
     pickup,
     pickupTime: data.get("pickup-time") || "",
     return: returnDate,
@@ -2008,6 +2018,15 @@ function setupBooking() {
   setFieldValue(form, "lat", reservation.lat);
   setFieldValue(form, "lng", reservation.lng);
   setFieldValue(form, "handover-notes", reservation.handoverNotes);
+  setFieldValue(form, "fullName", reservation.fullName || reservation.name);
+  setFieldValue(form, "email", reservation.email);
+  setFieldValue(form, "phone", reservation.phone);
+  setFieldValue(form, "billingAddress1", reservation.billingAddress1);
+  setFieldValue(form, "billingAddress2", reservation.billingAddress2);
+  setFieldValue(form, "billingTown", reservation.billingTown);
+  setFieldValue(form, "billingCity", reservation.billingCity);
+  setFieldValue(form, "billingPostcode", reservation.billingPostcode);
+  setFieldValue(form, "billingCountry", reservation.billingCountry);
 
   function refreshCards() {
     document.querySelectorAll("[data-vehicle-card]").forEach((card) => {
@@ -2042,7 +2061,7 @@ function setupBooking() {
     event.preventDefault();
     saveReservation(readBookingForm(form));
     await syncBookingToBackend("draft");
-    navigateTo(form.getAttribute("action") || "login.html");
+    navigateTo(form.getAttribute("action") || "payment.html");
   });
 
   hydrateFleetPricing().finally(() => {

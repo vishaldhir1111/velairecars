@@ -200,16 +200,7 @@ function saveFavouriteCars(slugs) {
 }
 
 async function syncFavouriteCars(slugs) {
-  try {
-    await fetch("/api/account", {
-      method: "PATCH",
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ favourites: slugs }),
-    });
-  } catch {
-    // Favourites remain local until the visitor signs in or the API is available.
-  }
+  window.localStorage.setItem(favouriteStorageKey, JSON.stringify(slugs));
 }
 
 function VehicleModelParts() {
@@ -367,7 +358,6 @@ function App() {
           <a href="#fleet">Fleet</a>
           <a href="#experience">Experience</a>
           <a href="#booking">Reserve</a>
-          <a href="account.html">Account</a>
         </nav>
 
         <a className="nav-cta" href="booking.html">
@@ -611,7 +601,6 @@ function App() {
         <div className="footer-column">
           <strong>Reserve</strong>
           <a href="booking.html">Booking</a>
-          <a href="login.html">Client login</a>
           <a href="payment.html">Payment</a>
         </div>
       </footer>
@@ -677,10 +666,7 @@ function App() {
 
           <div className="concierge-reserve-row">
             <a className="primary-button" href="booking.html">
-              Start reservation
-            </a>
-            <a className="secondary-button" href="account.html#concierge">
-              Client lounge
+              Start guest reservation
             </a>
           </div>
         </div>

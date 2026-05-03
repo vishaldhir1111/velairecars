@@ -482,6 +482,18 @@ h2 {
   font-weight: 850;
 }
 
+.guest-details-card {
+  display: grid;
+  gap: 16px;
+  border: 1px solid rgba(215, 161, 140, 0.2);
+  border-radius: 18px;
+  background:
+    linear-gradient(145deg, rgba(215, 161, 140, 0.09), rgba(248, 242, 236, 0.025)),
+    rgba(4, 4, 4, 0.3);
+  padding: 18px;
+  box-shadow: inset 0 1px 0 rgba(248, 242, 236, 0.06);
+}
+
 .field {
   display: grid;
   gap: 8px;
@@ -750,12 +762,32 @@ h2 {
 }
 
 .admin-shell {
-  max-width: 1240px;
+  max-width: none;
 }
 
 .admin-stage {
   display: grid;
-  gap: 24px;
+  grid-template-columns: minmax(0, 1fr) minmax(340px, 0.38fr);
+  align-items: start;
+  gap: 18px;
+  min-height: auto;
+  width: min(1540px, 100%);
+}
+
+.admin-stage .flow-intro {
+  position: static;
+  max-width: none;
+  padding-bottom: 0;
+}
+
+.admin-stage .flow-intro h1 {
+  max-width: 920px;
+  font-size: clamp(3.2rem, 4.6vw, 5.7rem);
+  line-height: 0.96;
+}
+
+.admin-stage .flow-intro p:not(.eyebrow) {
+  max-width: 760px;
 }
 
 .admin-token-panel {
@@ -769,8 +801,9 @@ h2 {
 
 .admin-overview-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 14px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  align-self: stretch;
 }
 
 .admin-overview-grid article,
@@ -785,7 +818,10 @@ h2 {
 }
 
 .admin-overview-grid article {
-  padding: 18px;
+  display: grid;
+  min-height: 104px;
+  align-content: center;
+  padding: 16px;
 }
 
 .admin-overview-grid span,
@@ -799,11 +835,24 @@ h2 {
   display: block;
   margin-top: 8px;
   color: var(--ivory);
-  font-size: 2rem;
+  font-size: clamp(1.55rem, 2vw, 2rem);
 }
 
 .admin-section {
   padding: 22px;
+}
+
+.admin-fleet-section,
+.admin-bookings-section {
+  grid-column: 1 / -1;
+}
+
+.admin-customers-section {
+  grid-column: 1;
+}
+
+.admin-payments-section {
+  grid-column: 2;
 }
 
 .admin-vehicle-list,
@@ -1012,6 +1061,74 @@ h2 {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+}
+
+@media (min-width: 1321px) {
+  .admin-vehicle-card {
+    display: grid;
+    grid-template-columns: minmax(210px, 0.42fr) minmax(330px, 0.72fr) minmax(380px, 0.86fr);
+    grid-template-areas:
+      "heading pricing block"
+      "blocks blocks blocks";
+    align-items: start;
+    gap: 16px;
+  }
+
+  .admin-card-heading {
+    grid-area: heading;
+    grid-template-columns: 1fr;
+    gap: 12px;
+    margin-bottom: 0;
+    padding-top: 4px;
+  }
+
+  .admin-card-heading h3 {
+    font-size: clamp(1.15rem, 1.4vw, 1.55rem);
+    line-height: 1.12;
+  }
+
+  .admin-rate-badge {
+    width: fit-content;
+  }
+
+  .admin-vehicle-actions {
+    display: contents;
+  }
+
+  .admin-pricing-form {
+    grid-area: pricing;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-pricing-form .admin-field:nth-of-type(3),
+  .admin-pricing-form .admin-submit {
+    grid-column: 1 / -1;
+  }
+
+  .admin-block-form {
+    grid-area: block;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-block-form .admin-field:nth-of-type(3),
+  .admin-block-form .admin-submit {
+    grid-column: 1 / -1;
+  }
+
+  .admin-inline-form {
+    gap: 10px;
+    padding: 14px;
+  }
+
+  .admin-control-heading {
+    min-height: 58px;
+  }
+
+  .admin-block-list {
+    grid-area: blocks;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    margin-top: 0;
+  }
 }
 
 .choice-card {
@@ -2978,6 +3095,21 @@ h2 {
 
   .admin-vehicle-actions {
     grid-template-columns: 1fr;
+  }
+
+  .admin-stage .flow-intro h1 {
+    font-size: clamp(3.4rem, 7vw, 6rem);
+  }
+
+  .admin-overview-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .admin-fleet-section,
+  .admin-bookings-section,
+  .admin-customers-section,
+  .admin-payments-section {
+    grid-column: 1 / -1;
   }
 }
 

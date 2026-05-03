@@ -24,7 +24,6 @@
           <a href="/#fleet">Fleet</a>
           <a href="/#experience">Experience</a>
           <a href="booking.html">Reserve</a>
-          <a href="account.html">Account</a>
         </div>
         <a class="flow-back" href="/">Home</a>
       </nav>
@@ -58,7 +57,7 @@
           </p>
           <div class="step-row" aria-label="Booking progress">
             <span class="step active">Car</span>
-            <span class="step">Account</span>
+            <span class="step">Details</span>
             <span class="step">Reserve</span>
             <span class="step">Confirm</span>
           </div>
@@ -75,7 +74,7 @@
         </div>
 
         <div class="flow-workspace booking-workspace">
-          <form class="flow-panel booking-panel form-grid" action="login.html">
+          <form class="flow-panel booking-panel form-grid" action="payment.html">
             <div class="panel-heading">
               <p class="eyebrow">Vehicle selection</p>
               <h2>Choose your arrival.</h2>
@@ -142,6 +141,60 @@
                 <small>Shadow Edition compact performance</small>
                 <strong>£175/day</strong>
               </label>
+            </div>
+
+            <div class="guest-details-card">
+              <div class="panel-heading compact-heading">
+                <p class="eyebrow">Guest reservation</p>
+                <h2>Your details.</h2>
+                <span>No account or password required. Your concierge uses these details to prepare the handover.</span>
+              </div>
+
+              <div class="form-grid two-column">
+                <label class="field">
+                  Full name
+                  <input type="text" name="fullName" placeholder="Full name" autocomplete="name" required />
+                </label>
+                <label class="field">
+                  Email address
+                  <input type="email" name="email" placeholder="you@example.com" autocomplete="email" required />
+                </label>
+                <label class="field">
+                  Mobile number
+                  <input type="tel" name="phone" placeholder="+44" autocomplete="tel" required />
+                </label>
+                <label class="field">
+                  Country
+                  <select name="billingCountry" autocomplete="country-name">
+                    <option>United Kingdom</option>
+                    <option>Ireland</option>
+                    <option>United States</option>
+                    <option>United Arab Emirates</option>
+                    <option>European Union</option>
+                    <option>Other</option>
+                  </select>
+                </label>
+                <label class="field">
+                  Address first line
+                  <input type="text" name="billingAddress1" placeholder="House number and street" autocomplete="address-line1" />
+                </label>
+                <label class="field">
+                  Address second line
+                  <input type="text" name="billingAddress2" placeholder="Apartment, building or company" autocomplete="address-line2" />
+                </label>
+                <label class="field">
+                  Town
+                  <input type="text" name="billingTown" placeholder="Town" autocomplete="address-level3" />
+                </label>
+                <label class="field">
+                  City
+                  <input type="text" name="billingCity" placeholder="City" autocomplete="address-level2" />
+                </label>
+                <label class="field">
+                  Postcode
+                  <input type="text" name="billingPostcode" placeholder="Postcode" autocomplete="postal-code" />
+                </label>
+              </div>
             </div>
 
             <div class="form-grid two-column">
@@ -273,7 +326,7 @@
               </label>
             </div>
 
-            <button class="primary-button full-width" type="submit">Continue to account</button>
+            <button class="primary-button full-width" type="submit">Continue to secure deposit</button>
           </form>
 
           <aside class="flow-panel vehicle-summary" aria-label="Vehicle reservation summary">
