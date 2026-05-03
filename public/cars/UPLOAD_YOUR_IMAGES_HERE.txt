@@ -1,13 +1,13 @@
-Optional Velaire Cars image slots
+Optional Velaire Cars studio media slots
 
-The active fleet presentation uses premium CSS studio fallbacks until exact GLB/GLTF models are
-added in public/models. If you want photographic fallback images, upload legally usable files with
-these exact names:
+The active fleet presentation uses premium 3D-style studio visuals from this folder until exact
+GLB/GLTF models are added in public/models. To replace a studio visual, upload a legally usable
+asset with the same filename:
 
-- hero-tesla.png
-- lamborghini-urus-2021-orange.png
-- range-rover-svr.png
-- bmw-m440i-convertible-2022-sky-blue.png
-- bmw-m140i-black-2019.jpg
+- studio-tesla-model-3-performance-2020.png
+- studio-lamborghini-urus-2021-orange.png
+- studio-range-rover-sport-svr-2021.png
+- studio-bmw-m440i-convertible-2022-sky-blue.png
+- studio-bmw-m140i-shadow-edition-2019.png
 
 The active image and model paths are defined in src/data/fleet.js and mirrored in flow.js.

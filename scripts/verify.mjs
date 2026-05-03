@@ -72,6 +72,28 @@ if (!app.includes("/api/fleet?ts=") || !app.includes("mergeOperationsFleet") || 
 if (app.includes("hero-reserve") || app.includes("Quick reserve") || read("src/styles.css").includes(".hero-reserve")) {
   throw new Error("Homepage quick reserve form should not be present");
 }
+if (
+  !app.includes("vehicle-media-image") ||
+  !read("flow.js").includes("vehiclePhotoMarkup") ||
+  !read("src/data/fleet.js").includes("studio-3d-render") ||
+  !read("src/data/fleet.js").includes("/cars/studio-lamborghini-urus-2021-orange.png") ||
+  !read("src/data/fleet.js").includes("/cars/studio-bmw-m440i-convertible-2022-sky-blue.png") ||
+  read("src/data/fleet.js").includes("commons.wikimedia.org")
+) {
+  throw new Error("Fleet media must use the local premium 3D-style studio visual assets");
+}
+
+for (const asset of [
+  "public/cars/studio-tesla-model-3-performance-2020.png",
+  "public/cars/studio-lamborghini-urus-2021-orange.png",
+  "public/cars/studio-range-rover-sport-svr-2021.png",
+  "public/cars/studio-bmw-m440i-convertible-2022-sky-blue.png",
+  "public/cars/studio-bmw-m140i-shadow-edition-2019.png",
+]) {
+  if (!fs.existsSync(path.join(root, asset))) {
+    throw new Error(`Missing studio fleet media asset: ${asset}`);
+  }
+}
 
 const vite = read("vite.config.js");
 for (const page of ["booking.html", "login.html", "account.html", "admin.html", "payment.html", "success.html"]) {

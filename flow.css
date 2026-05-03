@@ -1398,12 +1398,43 @@ h2 {
   isolation: isolate;
 }
 
+.flow-vehicle-photo.has-photo {
+  --studio-scale: 1.4;
+  --studio-hover-scale: 1.46;
+  background:
+    radial-gradient(ellipse at 50% 78%, rgba(248, 242, 236, 0.16), transparent 42%),
+    radial-gradient(circle at 52% 34%, rgba(248, 242, 236, 0.2), transparent 31%),
+    radial-gradient(circle at 78% 20%, rgba(215, 161, 140, 0.15), transparent 34%),
+    linear-gradient(145deg, #1e1917 0%, #11100f 56%, #070606 100%);
+}
+
+.summary-media:not(.compact-media) .flow-vehicle-photo.has-photo {
+  --studio-scale: 1.18;
+  --studio-hover-scale: 1.22;
+}
+
+.compact-media .flow-vehicle-photo.has-photo,
+.vehicle-model-mini.has-photo {
+  --studio-scale: 1.22;
+  --studio-hover-scale: 1.27;
+}
+
 .flow-vehicle-photo::before {
   position: absolute;
   inset: 18px;
+  z-index: 1;
   border: 1px solid rgba(248, 242, 236, 0.08);
   border-radius: var(--radius);
   content: "";
+  pointer-events: none;
+}
+
+.flow-vehicle-photo.has-photo::before {
+  inset: 14px;
+  border-color: rgba(248, 242, 236, 0.13);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.055), transparent 36%),
+    linear-gradient(315deg, rgba(215, 161, 140, 0.08), transparent 42%);
 }
 
 .flow-vehicle-photo::after {
@@ -1412,8 +1443,21 @@ h2 {
   bottom: 22%;
   left: 12%;
   height: 1px;
+  z-index: 1;
   background: linear-gradient(90deg, transparent, rgba(248, 242, 236, 0.42), transparent);
   content: "";
+  pointer-events: none;
+}
+
+.flow-vehicle-photo.has-photo::after {
+  right: 13%;
+  bottom: 14%;
+  left: 13%;
+  height: 40px;
+  border-radius: 999px;
+  background: radial-gradient(ellipse at center, rgba(248, 242, 236, 0.26), rgba(215, 161, 140, 0.12) 36%, transparent 72%);
+  filter: blur(11px);
+  opacity: 0.84;
 }
 
 .vehicle-model {
@@ -1440,6 +1484,49 @@ h2 {
   --model-door-left: 50%;
   --model-body-radius: 44px 72px 24px 26px;
   --model-cabin-shape: polygon(5% 100%, 25% 12%, 72% 10%, 94% 100%);
+}
+
+.vehicle-media-image {
+  position: relative;
+  z-index: 3;
+  display: block;
+  width: min(102%, 660px);
+  height: 190px;
+  object-fit: contain;
+  object-position: center;
+  filter: saturate(1.06) contrast(1.08) brightness(1.02) drop-shadow(0 28px 38px rgba(0, 0, 0, 0.44));
+  transform: translateY(var(--model-lift, 0)) scale(var(--studio-scale, 1));
+  transition: filter 220ms ease, transform 220ms ease;
+  will-change: transform;
+}
+
+.vehicle-model-mini .vehicle-media-image {
+  width: 100%;
+  height: 108px;
+}
+
+.summary-media:not(.compact-media) .flow-vehicle-photo .vehicle-media-image {
+  height: 230px;
+}
+
+.compact-media .flow-vehicle-photo .vehicle-media-image {
+  height: 158px;
+}
+
+.choice-card:hover .vehicle-media-image,
+.choice-card:focus-within .vehicle-media-image,
+.choice-card.is-selected .vehicle-media-image,
+.flow-vehicle-photo:hover .vehicle-media-image,
+.vehicle-summary:hover .vehicle-media-image,
+.order-review:hover .vehicle-media-image,
+.client-proof:hover .vehicle-media-image,
+.success-vehicle-card:hover .vehicle-media-image {
+  filter: saturate(1.1) contrast(1.08) drop-shadow(0 28px 38px rgba(0, 0, 0, 0.42));
+  transform: translateY(calc(var(--model-lift, 0px) - 4px)) scale(var(--studio-hover-scale, 1.025));
+}
+
+.vehicle-model.has-photo .vehicle-model-scene {
+  display: none;
 }
 
 .vehicle-model-scene {
@@ -1786,7 +1873,7 @@ h2 {
   --model-accent: #8d827b;
 }
 
-.flow-vehicle-photo img {
+.flow-vehicle-photo img:not(.vehicle-media-image) {
   position: relative;
   z-index: 2;
   width: 100%;
@@ -1798,11 +1885,11 @@ h2 {
   transition: filter 200ms ease, transform 200ms ease;
 }
 
-.flow-vehicle-photo:hover img,
-.vehicle-summary:hover .flow-vehicle-photo img,
-.order-review:hover .flow-vehicle-photo img,
-.client-proof:hover .flow-vehicle-photo img,
-.success-vehicle-card:hover .flow-vehicle-photo img {
+.flow-vehicle-photo:hover img:not(.vehicle-media-image),
+.vehicle-summary:hover .flow-vehicle-photo img:not(.vehicle-media-image),
+.order-review:hover .flow-vehicle-photo img:not(.vehicle-media-image),
+.client-proof:hover .flow-vehicle-photo img:not(.vehicle-media-image),
+.success-vehicle-card:hover .flow-vehicle-photo img:not(.vehicle-media-image) {
   filter: saturate(1.08) contrast(1.08);
   transform: scale(1.035);
 }
@@ -1811,7 +1898,7 @@ h2 {
   min-height: 180px;
 }
 
-.compact-media .flow-vehicle-photo img {
+.compact-media .flow-vehicle-photo img:not(.vehicle-media-image) {
   max-height: 150px;
 }
 

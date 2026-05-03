@@ -11,7 +11,7 @@ const vehicles = {
     visualClass: "tesla-model-3-performance",
     modelType: "saloon",
     modelPath: "/models/tesla-model-3-performance-2020-white.glb",
-    fallbackImagePath: "/cars/hero-tesla.png",
+    fallbackImagePath: "/cars/studio-tesla-model-3-performance-2020.png",
     modelAvailable: false,
     visualLabel: "Tesla Model 3 Performance 2020, white exterior and white interior",
     description:
@@ -29,7 +29,7 @@ const vehicles = {
     visualClass: "lamborghini-urus",
     modelType: "suv",
     modelPath: "/models/lamborghini-urus-2021-orange.glb",
-    fallbackImagePath: "/cars/lamborghini-urus-2021-orange.png",
+    fallbackImagePath: "/cars/studio-lamborghini-urus-2021-orange.png",
     modelAvailable: false,
     visualLabel: "Lamborghini Urus 2021, orange exterior",
     description:
@@ -47,7 +47,7 @@ const vehicles = {
     visualClass: "range-rover-sport-svr",
     modelType: "suv",
     modelPath: "/models/range-rover-sport-svr-2021.glb",
-    fallbackImagePath: "/cars/range-rover-svr.png",
+    fallbackImagePath: "/cars/studio-range-rover-sport-svr-2021.png",
     modelAvailable: false,
     visualLabel: "Range Rover Sport SVR 2021, performance SUV",
     description:
@@ -65,7 +65,7 @@ const vehicles = {
     visualClass: "bmw-m440i-convertible",
     modelType: "convertible",
     modelPath: "/models/bmw-m440i-convertible-2022-sky-blue.glb",
-    fallbackImagePath: "/cars/bmw-m440i-convertible-2022-sky-blue.png",
+    fallbackImagePath: "/cars/studio-bmw-m440i-convertible-2022-sky-blue.png",
     modelAvailable: false,
     visualLabel: "BMW M440i Convertible 2022, sky blue wrap",
     description:
@@ -83,7 +83,7 @@ const vehicles = {
     visualClass: "bmw-m140i-shadow-edition",
     modelType: "hatch",
     modelPath: "/models/bmw-m140i-shadow-edition-2019.glb",
-    fallbackImagePath: "/cars/bmw-m140i-black-2019.jpg",
+    fallbackImagePath: "/cars/studio-bmw-m140i-shadow-edition-2019.png",
     modelAvailable: false,
     visualLabel: "BMW M140i Shadow Edition 2019",
     description:
@@ -647,10 +647,26 @@ function vehicleModelMarkup() {
   `;
 }
 
+function vehiclePhotoMarkup(src = "", alt = "") {
+  if (!src) return "";
+  return `<img class="vehicle-media-image" src="${escapeHtml(src)}" alt="${escapeHtml(alt)}" loading="lazy" decoding="async" />`;
+}
+
 function hydrateVehicleModels(root = document) {
-  root.querySelectorAll("[data-vehicle-model]").forEach((node) => {
+  const nodes = root.matches?.("[data-vehicle-model]") ? [root] : [...root.querySelectorAll("[data-vehicle-model]")];
+  nodes.forEach((node) => {
+    const imagePath = node.dataset.fallbackImage || "";
+    const label = node.getAttribute("aria-label") || "Velaire fleet vehicle";
+    const existingImage = node.querySelector(".vehicle-media-image");
+    if (imagePath && !existingImage) {
+      node.insertAdjacentHTML("afterbegin", vehiclePhotoMarkup(imagePath, label));
+    } else if (imagePath && existingImage?.getAttribute("src") !== imagePath) {
+      existingImage.setAttribute("src", imagePath);
+      existingImage.setAttribute("alt", label);
+    }
+    node.classList.toggle("has-photo", Boolean(imagePath));
     if (!node.querySelector(".vehicle-model-scene")) {
-      node.insertAdjacentHTML("afterbegin", vehicleModelMarkup());
+      node.insertAdjacentHTML("beforeend", vehicleModelMarkup());
     }
   });
 }
@@ -668,10 +684,11 @@ function bindVehicleMedia(vehicle) {
       `vehicle-model-${vehicle.visualClass}`,
       `vehicle-model-${vehicle.modelType || "saloon"}`,
     );
-    node.setAttribute("aria-label", `3D studio mockup of ${vehicle.visualLabel}`);
+    node.setAttribute("aria-label", `Premium 3D studio visual of ${vehicle.visualLabel}`);
     node.dataset.modelPath = vehicle.modelPath || "";
     node.dataset.fallbackImage = vehicle.fallbackImagePath || "";
-    node.dataset.modelStatus = vehicle.modelAvailable ? "glb-active" : "studio-fallback";
+    node.dataset.modelStatus = vehicle.modelAvailable ? "glb-active" : "studio-3d-render";
+    hydrateVehicleModels(node);
   });
 
   hydrateVehicleModels();
@@ -742,6 +759,11 @@ function mergeFleetVehicle(vehicle = {}) {
   current.finish = vehicle.finish || current.finish;
   current.paint = vehicle.paint || current.paint;
   current.interior = vehicle.interior || current.interior;
+  current.modelType = vehicle.modelType || current.modelType;
+  current.modelPath = vehicle.modelPath || current.modelPath;
+  current.fallbackImagePath = vehicle.fallbackImagePath || current.fallbackImagePath;
+  current.modelAvailable = Boolean(vehicle.modelAvailable || current.modelAvailable);
+  current.visualLabel = vehicle.visualLabel || vehicle.alt || current.visualLabel;
   current.rate = Number(vehicle.rate || current.rate);
   current.deposit = Number(vehicle.deposit || current.deposit);
   current.availability = vehicle.availability || current.availability || {};
@@ -759,6 +781,14 @@ function updateBookingVehicleCards() {
     if (name) name.textContent = vehicle.shortName || vehicle.name;
     if (detail) detail.textContent = isOffline ? "Temporarily unavailable" : vehicle.finish || vehicle.category;
     if (price) price.textContent = `${money(vehicle.rate)}/day`;
+    const media = card.querySelector("[data-vehicle-model]");
+    if (media) {
+      media.setAttribute("aria-label", `Premium 3D studio visual of ${vehicle.visualLabel}`);
+      media.dataset.modelPath = vehicle.modelPath || "";
+      media.dataset.fallbackImage = vehicle.fallbackImagePath || "";
+      media.dataset.modelStatus = vehicle.modelAvailable ? "glb-active" : "studio-3d-render";
+      hydrateVehicleModels(media);
+    }
     input.disabled = isOffline;
     card.classList.toggle("is-disabled", isOffline);
     card.setAttribute("aria-disabled", String(isOffline));

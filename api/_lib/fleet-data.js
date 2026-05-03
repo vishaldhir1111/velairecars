@@ -17,6 +17,8 @@ export const fleetData = fleet.map((vehicle) => ({
   modelPath: vehicle.asset.modelPath,
   fallbackImagePath: vehicle.asset.fallbackImagePath,
   modelAvailable: vehicle.asset.modelAvailable,
+  viewerMode: vehicle.asset.viewerMode,
+  alt: vehicle.asset.alt,
   availability: {
     status: "request-to-confirm",
     leadTimeHours: vehicle.slug === "lamborghini-urus" ? 24 : 12,
