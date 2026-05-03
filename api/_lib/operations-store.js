@@ -114,7 +114,7 @@ function normaliseState(raw = null) {
     ...fallback,
     ...state,
     vehicleOperations: [...vehicleOperationMap.values()],
-    bookings: Array.isArray(state.bookings) ? state.bookings : [],
+    bookings: Array.isArray(state.bookings) ? state.bookings.map(normaliseBookingRecord) : [],
     payments: Array.isArray(state.payments) ? state.payments : [],
     customers: Array.isArray(state.customers) ? state.customers : [],
     leads: Array.isArray(state.leads) ? state.leads : [],
@@ -215,38 +215,72 @@ function vehicleOperations(state, slug) {
   return record;
 }
 
-function publicBooking(booking = {}) {
+function publicVehicleForTotals(vehicle = {}) {
   return {
-    id: booking.id,
-    reference: booking.reference,
-    userId: booking.userId || null,
-    customerName: booking.customerName || "",
-    customerEmail: booking.customerEmail || "",
-    customerPhone: booking.customerPhone || "",
-    vehicleSlug: booking.vehicleSlug,
-    vehicleName: booking.vehicleName,
-    status: booking.status || "draft",
-    paymentStatus: booking.paymentStatus || "not_started",
-    paymentIntentId: booking.paymentIntentId || "",
-    pickup: booking.pickup || "",
-    pickupTime: booking.pickupTime || "",
-    return: booking.return || "",
-    returnTime: booking.returnTime || "",
-    location: booking.location || "",
-    placeId: booking.placeId || "",
-    lat: booking.lat || "",
-    lng: booking.lng || "",
-    handoverNotes: booking.handoverNotes || "",
-    billingAddress1: booking.billingAddress1 || "",
-    billingAddress2: booking.billingAddress2 || "",
-    billingTown: booking.billingTown || "",
-    billingCity: booking.billingCity || "",
-    billingPostcode: booking.billingPostcode || "",
-    billingCountry: booking.billingCountry || "",
-    totals: booking.totals || {},
-    timeline: booking.timeline || [],
-    createdAt: booking.createdAt,
-    updatedAt: booking.updatedAt,
+    slug: vehicle.slug || "",
+    name: vehicle.name || "",
+    year: vehicle.year || "",
+    category: vehicle.category || "",
+    finish: vehicle.finish || "",
+    paint: vehicle.paint || "",
+    interior: vehicle.interior || "",
+    rate: Number(vehicle.rate || 0),
+    deposit: Number(vehicle.deposit || 0),
+  };
+}
+
+function publicTotals(totals = {}) {
+  const vehicle = totals.vehicle ? publicVehicleForTotals(totals.vehicle) : null;
+  return {
+    days: Number(totals.days || 0),
+    hireEstimate: Number(totals.hireEstimate || 0),
+    deposit: Number(totals.deposit || 0),
+    currency: totals.currency || "GBP",
+    ...(vehicle?.slug ? { vehicle } : {}),
+  };
+}
+
+function normaliseBookingRecord(booking = {}) {
+  return {
+    ...booking,
+    totals: publicTotals(booking.totals || {}),
+    timeline: Array.isArray(booking.timeline) ? booking.timeline : [],
+  };
+}
+
+function publicBooking(booking = {}) {
+  const safeBooking = normaliseBookingRecord(booking);
+  return {
+    id: safeBooking.id,
+    reference: safeBooking.reference,
+    userId: safeBooking.userId || null,
+    customerName: safeBooking.customerName || "",
+    customerEmail: safeBooking.customerEmail || "",
+    customerPhone: safeBooking.customerPhone || "",
+    vehicleSlug: safeBooking.vehicleSlug,
+    vehicleName: safeBooking.vehicleName,
+    status: safeBooking.status || "draft",
+    paymentStatus: safeBooking.paymentStatus || "not_started",
+    paymentIntentId: safeBooking.paymentIntentId || "",
+    pickup: safeBooking.pickup || "",
+    pickupTime: safeBooking.pickupTime || "",
+    return: safeBooking.return || "",
+    returnTime: safeBooking.returnTime || "",
+    location: safeBooking.location || "",
+    placeId: safeBooking.placeId || "",
+    lat: safeBooking.lat || "",
+    lng: safeBooking.lng || "",
+    handoverNotes: safeBooking.handoverNotes || "",
+    billingAddress1: safeBooking.billingAddress1 || "",
+    billingAddress2: safeBooking.billingAddress2 || "",
+    billingTown: safeBooking.billingTown || "",
+    billingCity: safeBooking.billingCity || "",
+    billingPostcode: safeBooking.billingPostcode || "",
+    billingCountry: safeBooking.billingCountry || "",
+    totals: safeBooking.totals,
+    timeline: safeBooking.timeline,
+    createdAt: safeBooking.createdAt,
+    updatedAt: safeBooking.updatedAt,
   };
 }
 
@@ -419,7 +453,7 @@ export function totalsForReservation(state, reservation = {}) {
   const vehicle = operationalVehicleFromState(state, reservation.vehicle);
   const days = calculateDays(reservation.pickup, reservation.return, reservation.days);
   return {
-    vehicle,
+    vehicle: publicVehicleForTotals(vehicle),
     days,
     hireEstimate: vehicle.rate * days,
     deposit: vehicle.deposit,
