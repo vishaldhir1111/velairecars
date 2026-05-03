@@ -1,45 +1,32 @@
+import { adminAllowed } from "../_lib/admin-auth.js";
 import { allowMethods, publicError, readJson, sendJson } from "../_lib/http.js";
-import { adminAllowed, adminMode } from "../_lib/admin-auth.js";
-import { notifyClientAndAdmin } from "../_lib/notifications.js";
-import { listStoredOperations } from "../_lib/operations-store.js";
-import { adminUpdatePayment, listPayments } from "../_lib/store.js";
-import { listStripeOperations, mergeOperations } from "../_lib/stripe-operations.js";
+import { loadOperationsState, updatePaymentRecord } from "../_lib/operations-store.js";
 
 export default async function handler(req, res) {
   if (!allowMethods(req, res, ["GET", "PATCH"])) return;
 
   if (!adminAllowed(req)) {
-    sendJson(res, 401, { error: "admin_unauthorised", message: "Admin token required." });
+    sendJson(res, 401, { error: "admin_unauthorised", message: "Operations password required." });
     return;
   }
 
   if (req.method === "GET") {
-    const [storedOperations, stripeOperations] = await Promise.all([listStoredOperations(), listStripeOperations()]);
+    const state = await loadOperationsState();
     sendJson(res, 200, {
-      payments: mergeOperations(mergeOperations(listPayments(), storedOperations.payments), stripeOperations.payments),
-      storedOperations,
-      stripeOperations,
-      mode: adminMode(),
+      payments: state.payments || [],
+      meta: state.meta,
     });
     return;
   }
 
   try {
     const body = await readJson(req);
-    const payment = adminUpdatePayment(body.id, body.patch || {});
+    const { payment, persistence } = await updatePaymentRecord(body.id, body.patch || {});
     if (!payment) {
-      sendJson(res, 404, { error: "payment_not_found", message: "Payment record not found." });
+      sendJson(res, 404, { error: "payment_not_found", message: "Payment not found." });
       return;
     }
-    if (["failed", "cancelled"].includes(payment.status)) {
-      await notifyClientAndAdmin({
-        clientType: payment.status === "cancelled" ? "payment_cancelled" : "payment_failed",
-        adminType: payment.status === "cancelled" ? "admin_payment_cancelled" : "admin_payment_failed",
-        payment,
-        note: "Payment state was updated from the Velaire operations portal.",
-      });
-    }
-    sendJson(res, 200, { payment });
+    sendJson(res, 200, { payment, persistence });
   } catch (error) {
     sendJson(res, error.status || 500, { error: "admin_payment_update_failed", message: publicError(error) });
   }

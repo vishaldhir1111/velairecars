@@ -95,6 +95,7 @@ const storageKey = "velaireReservation";
 const accountStorageKey = "velaireAccount";
 const backendBookingKey = "velaireBackendBooking";
 const favouriteStorageKey = "velaireFavouriteCars";
+const adminTokenStorageKey = "velaireAdminToken";
 const defaultVehicle = Object.keys(vehicles)[0] || "";
 const MAPBOX_TOKEN = "pk.eyJ1IjoidmlzaGFsZGhpcjExMTEiLCJhIjoiY21vampwYm54MGQzejJwczFzMHcwN3h2dSJ9.M-zV1ypGN1rPPTgEk0iWgg";
 const MAPBOX_GL_VERSION = "v3.10.0";
@@ -226,6 +227,21 @@ function money(value) {
     currency: "GBP",
     maximumFractionDigits: 0,
   }).format(value);
+}
+
+function escapeHtml(value = "") {
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function humanStatus(value = "") {
+  return String(value || "pending")
+    .replaceAll("_", " ")
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
 function loadReservation() {
@@ -360,6 +376,24 @@ function loadBackendBooking() {
   }
 }
 
+function loadAdminToken() {
+  try {
+    return window.localStorage.getItem(adminTokenStorageKey) || "";
+  } catch {
+    return "";
+  }
+}
+
+function saveAdminToken(token) {
+  const clean = String(token || "").trim();
+  if (!clean) {
+    window.localStorage.removeItem(adminTokenStorageKey);
+    return "";
+  }
+  window.localStorage.setItem(adminTokenStorageKey, clean);
+  return clean;
+}
+
 function showFlowToast(message, tone = "default") {
   let toast = document.querySelector(".flow-toast");
   if (!toast) {
@@ -377,13 +411,18 @@ function showFlowToast(message, tone = "default") {
 }
 
 async function apiRequest(path, options = {}) {
+  const headers = {
+    "Content-Type": "application/json",
+    ...(options.headers || {}),
+  };
+  if (path.startsWith("/api/admin")) {
+    const adminToken = loadAdminToken();
+    if (adminToken) headers["x-velaire-admin-token"] = adminToken;
+  }
   const response = await fetch(path, {
     credentials: "include",
     ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...(options.headers || {}),
-    },
+    headers,
   });
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
@@ -2014,6 +2053,239 @@ function setupBooking() {
   setupMapboxDeliveryPicker(form);
 }
 
+let adminState = { bookings: [], vehicles: [], customers: [], payments: [] };
+
+function renderAdminCounts(counts = {}) {
+  document.querySelectorAll("[data-admin-count]").forEach((node) => {
+    node.textContent = String(counts[node.dataset.adminCount] || 0);
+  });
+}
+
+function renderAdminVehicles(vehiclesList = []) {
+  const target = document.querySelector("[data-admin-vehicles]");
+  if (!target) return;
+  if (!vehiclesList.length) {
+    target.innerHTML = `<article class="admin-empty">No vehicle operations data found.</article>`;
+    return;
+  }
+  target.innerHTML = vehiclesList
+    .map((vehicle) => {
+      const blocks = vehicle.availability?.blockedRanges || [];
+      return `
+        <article class="admin-vehicle-card">
+          <div class="admin-card-heading">
+            <div>
+              <span class="eyebrow">${escapeHtml(vehicle.category || "Vehicle")}</span>
+              <h3>${escapeHtml(vehicle.name)} ${escapeHtml(vehicle.year || "")}</h3>
+            </div>
+            <strong>${money(vehicle.rate)}/day</strong>
+          </div>
+          <form class="admin-inline-form" data-admin-vehicle-form data-slug="${escapeHtml(vehicle.slug)}">
+            <label>Daily rate <input type="number" name="rate" min="0" value="${Number(vehicle.rate || 0)}" /></label>
+            <label>Deposit <input type="number" name="deposit" min="0" value="${Number(vehicle.deposit || 0)}" /></label>
+            <label>Status
+              <select name="availabilityStatus">
+                <option value="request-to-confirm" ${vehicle.availability?.status !== "offline" ? "selected" : ""}>Active</option>
+                <option value="offline" ${vehicle.availability?.status === "offline" ? "selected" : ""}>Offline</option>
+              </select>
+            </label>
+            <button type="submit">Save vehicle</button>
+          </form>
+          <form class="admin-inline-form" data-admin-block-form data-slug="${escapeHtml(vehicle.slug)}">
+            <label>Block from <input type="date" name="start" required /></label>
+            <label>Block until <input type="date" name="end" required /></label>
+            <label>Reason <input name="reason" placeholder="Service, detailing, owner hold" /></label>
+            <button type="submit">Block dates</button>
+          </form>
+          <div class="admin-block-list">
+            ${
+              blocks.length
+                ? blocks
+                    .map(
+                      (block) => `
+                        <span>
+                          ${escapeHtml(block.start)} to ${escapeHtml(block.end)} · ${escapeHtml(block.reason || "Operations block")}
+                          <button type="button" data-admin-remove-block data-slug="${escapeHtml(vehicle.slug)}" data-block-id="${escapeHtml(block.id)}">Remove</button>
+                        </span>
+                      `,
+                    )
+                    .join("")
+                : "<span>No blocked dates</span>"
+            }
+          </div>
+        </article>
+      `;
+    })
+    .join("");
+}
+
+function renderAdminBookings(bookings = []) {
+  const target = document.querySelector("[data-admin-bookings]");
+  if (!target) return;
+  if (!bookings.length) {
+    target.innerHTML = `<article class="admin-empty">No bookings yet. Guest reservations will appear here after customers reserve.</article>`;
+    return;
+  }
+  target.innerHTML = bookings
+    .map(
+      (booking) => `
+        <article class="admin-record-card">
+          <div>
+            <strong>${escapeHtml(booking.customerName || "Guest client")}</strong>
+            <span>${escapeHtml(booking.customerEmail || "No email")} · ${escapeHtml(booking.customerPhone || "No phone")}</span>
+          </div>
+          <div>
+            <strong>${escapeHtml(booking.vehicleName || booking.vehicleSlug)}</strong>
+            <span>${escapeHtml(booking.pickup || "Pickup pending")} to ${escapeHtml(booking.return || "Return pending")}</span>
+          </div>
+          <span class="status-pill">${humanStatus(booking.status)}</span>
+          <span class="status-pill">${humanStatus(booking.paymentStatus)}</span>
+          <div class="admin-action-row">
+            <button type="button" data-admin-booking-action="confirm" data-booking-id="${escapeHtml(booking.id)}">Confirm</button>
+            <button type="button" data-admin-booking-action="cancel" data-booking-id="${escapeHtml(booking.id)}">Cancel</button>
+            <button type="button" data-admin-booking-action="complete" data-booking-id="${escapeHtml(booking.id)}">Complete</button>
+          </div>
+        </article>
+      `,
+    )
+    .join("");
+}
+
+function renderAdminCustomers(customers = []) {
+  const target = document.querySelector("[data-admin-customers]");
+  if (!target) return;
+  target.innerHTML = customers.length
+    ? customers
+        .map(
+          (customer) => `
+            <article class="admin-record-card">
+              <strong>${escapeHtml(customer.fullName || "Guest client")}</strong>
+              <span>${escapeHtml(customer.email || "")} · ${escapeHtml(customer.phone || "")}</span>
+              <span>${Number(customer.totalBookings || 0)} bookings · ${money(Number(customer.hireValue || 0))} hire value</span>
+            </article>
+          `,
+        )
+        .join("")
+    : `<article class="admin-empty">No customer records yet.</article>`;
+}
+
+function renderAdminPayments(payments = []) {
+  const target = document.querySelector("[data-admin-payments]");
+  if (!target) return;
+  target.innerHTML = payments.length
+    ? payments
+        .map(
+          (payment) => `
+            <article class="admin-record-card">
+              <strong>${escapeHtml(payment.bookingReference || payment.bookingId || "Deposit record")}</strong>
+              <span>${escapeHtml(payment.vehicleName || "")} · ${escapeHtml(payment.customerEmail || "")}</span>
+              <span>${money(Number(payment.amount || 0))} · ${humanStatus(payment.status)}</span>
+            </article>
+          `,
+        )
+        .join("")
+    : `<article class="admin-empty">No payment records yet.</article>`;
+}
+
+async function refreshAdmin() {
+  const result = await apiRequest("/api/admin/summary", { method: "GET" });
+  const summary = result.summary || {};
+  adminState = {
+    bookings: summary.bookings || [],
+    vehicles: summary.vehicles || [],
+    customers: summary.customers || [],
+    payments: summary.payments || [],
+  };
+  renderAdminCounts(summary.counts || {});
+  renderAdminVehicles(adminState.vehicles);
+  renderAdminBookings(adminState.bookings);
+  renderAdminCustomers(adminState.customers);
+  renderAdminPayments(adminState.payments);
+  const status = document.querySelector("[data-admin-status]");
+  if (status) status.textContent = summary.meta?.available ? "Connected to Vercel KV operations storage." : "Using memory fallback. Check KV_REST_API_URL and KV_REST_API_TOKEN.";
+}
+
+function setupAdmin() {
+  const tokenForm = document.querySelector("[data-admin-token-form]");
+  const tokenInput = document.querySelector("[data-admin-token-input]");
+  if (tokenInput) tokenInput.value = loadAdminToken();
+
+  tokenForm?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    saveAdminToken(new FormData(tokenForm).get("adminToken"));
+    await refreshAdmin().catch((error) => showFlowToast(error.message || "Operations portal could not be loaded.", "warning"));
+  });
+
+  document.addEventListener("submit", async (event) => {
+    const vehicleForm = event.target.closest("[data-admin-vehicle-form]");
+    const blockForm = event.target.closest("[data-admin-block-form]");
+    if (!vehicleForm && !blockForm) return;
+    event.preventDefault();
+    const data = new FormData(event.target);
+    const slug = event.target.dataset.slug;
+    if (vehicleForm) {
+      await apiRequest("/api/admin/vehicles", {
+        method: "PATCH",
+        body: JSON.stringify({
+          slug,
+          patch: {
+            rate: data.get("rate"),
+            deposit: data.get("deposit"),
+            availabilityStatus: data.get("availabilityStatus"),
+          },
+        }),
+      });
+      showFlowToast("Vehicle pricing and availability saved.");
+    }
+    if (blockForm) {
+      await apiRequest("/api/admin/vehicles", {
+        method: "POST",
+        body: JSON.stringify({
+          slug,
+          block: {
+            start: data.get("start"),
+            end: data.get("end"),
+            reason: data.get("reason") || "Operations block",
+          },
+        }),
+      });
+      showFlowToast("Vehicle dates blocked.");
+    }
+    await refreshAdmin();
+  });
+
+  document.addEventListener("click", async (event) => {
+    const removeBlock = event.target.closest("[data-admin-remove-block]");
+    const bookingAction = event.target.closest("[data-admin-booking-action]");
+    if (removeBlock) {
+      await apiRequest("/api/admin/vehicles", {
+        method: "DELETE",
+        body: JSON.stringify({
+          slug: removeBlock.dataset.slug,
+          blockId: removeBlock.dataset.blockId,
+        }),
+      });
+      showFlowToast("Vehicle block removed.");
+      await refreshAdmin();
+    }
+    if (bookingAction) {
+      await apiRequest("/api/admin/bookings", {
+        method: "PATCH",
+        body: JSON.stringify({
+          id: bookingAction.dataset.bookingId,
+          action: bookingAction.dataset.adminBookingAction,
+        }),
+      });
+      showFlowToast(`Booking marked ${humanStatus(bookingAction.dataset.adminBookingAction)}.`);
+      await refreshAdmin();
+    }
+  });
+
+  if (loadAdminToken()) {
+    refreshAdmin().catch(() => {});
+  }
+}
+
 function setupLogin() {
   const form = document.querySelector("form");
   const reservation = loadReservation();
@@ -2062,4 +2334,5 @@ if (page === "booking") setupBooking();
 if (page === "login") setupLogin();
 if (page === "payment") setupPayment();
 if (page === "account") setupAccount();
+if (page === "admin") setupAdmin();
 updateSummary();

@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Velaire Cars private operations portal for bookings, customers, payments, pricing and availability."
+    />
+    <title>Operations Portal | Velaire Cars</title>
+    <link rel="stylesheet" href="flow.css" />
+  </head>
+  <body data-page="admin">
+    <main class="flow-shell admin-shell">
+      <nav class="flow-nav" aria-label="Operations navigation">
+        <a class="brand" href="/">
+          <span class="brand-mark">V</span>
+          <span class="brand-copy">
+            <strong>Velaire Cars</strong>
+            <small>Private operations</small>
+          </span>
+        </a>
+        <div class="flow-nav-links">
+          <a href="/">Website</a>
+          <a href="booking.html">Reservation flow</a>
+        </div>
+      </nav>
+
+      <section class="flow-stage admin-stage">
+        <div class="flow-intro">
+          <p class="eyebrow">Operations portal</p>
+          <h1>Control live pricing, availability and reservations.</h1>
+          <p>
+            Changes here are saved to the Vercel KV operations store and used by the public fleet,
+            reservation and availability APIs.
+          </p>
+          <form class="flow-panel admin-token-panel" data-admin-token-form>
+            <label class="field">
+              Portal password
+              <input name="adminToken" type="password" data-admin-token-input autocomplete="current-password" />
+            </label>
+            <button type="submit">Unlock operations</button>
+            <small data-admin-status>Enter the operations password to load live records.</small>
+          </form>
+        </div>
+
+        <div class="admin-overview-grid" aria-label="Operations metrics">
+          <article>
+            <span>Bookings</span>
+            <strong data-admin-count="bookings">0</strong>
+          </article>
+          <article>
+            <span>Customers</span>
+            <strong data-admin-count="customers">0</strong>
+          </article>
+          <article>
+            <span>Payments</span>
+            <strong data-admin-count="payments">0</strong>
+          </article>
+          <article>
+            <span>Vehicles</span>
+            <strong data-admin-count="vehicles">0</strong>
+          </article>
+        </div>
+
+        <section class="admin-section">
+          <div class="panel-heading">
+            <p class="eyebrow">Fleet operations</p>
+            <h2>Pricing and availability</h2>
+          </div>
+          <div class="admin-vehicle-list" data-admin-vehicles>
+            <article class="admin-empty">Unlock operations to load vehicles.</article>
+          </div>
+        </section>
+
+        <section class="admin-section">
+          <div class="panel-heading">
+            <p class="eyebrow">Reservations</p>
+            <h2>Bookings</h2>
+          </div>
+          <div class="admin-record-list" data-admin-bookings>
+            <article class="admin-empty">Unlock operations to load bookings.</article>
+          </div>
+        </section>
+
+        <section class="admin-section">
+          <div class="panel-heading">
+            <p class="eyebrow">Clients</p>
+            <h2>Customers</h2>
+          </div>
+          <div class="admin-record-list" data-admin-customers>
+            <article class="admin-empty">Unlock operations to load customers.</article>
+          </div>
+        </section>
+
+        <section class="admin-section">
+          <div class="panel-heading">
+            <p class="eyebrow">Deposits</p>
+            <h2>Payment records</h2>
+          </div>
+          <div class="admin-record-list" data-admin-payments>
+            <article class="admin-empty">Unlock operations to load payments.</article>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <script type="module" src="/flow.js"></script>
+  </body>
+</html>

@@ -1,12 +1,17 @@
+import { adminAllowed } from "../_lib/admin-auth.js";
 import { allowMethods, sendJson } from "../_lib/http.js";
-import { adminSummary } from "../_lib/store.js";
+import { operationsSummary } from "../_lib/operations-store.js";
 
 export default async function handler(req, res) {
   if (!allowMethods(req, res, ["GET"])) return;
 
+  if (!adminAllowed(req)) {
+    sendJson(res, 401, { error: "admin_unauthorised", message: "Operations password required." });
+    return;
+  }
+
   sendJson(res, 200, {
-    operationsMode: "scaffold",
-    summary: adminSummary(),
-    nextProductionStep: "Replace the in-memory store with Postgres, Neon, Supabase or another durable database.",
+    operationsMode: "vercel-kv",
+    summary: await operationsSummary(),
   });
 }

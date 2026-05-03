@@ -749,6 +749,141 @@ h2 {
   gap: 10px;
 }
 
+.admin-shell {
+  max-width: 1240px;
+}
+
+.admin-stage {
+  display: grid;
+  gap: 24px;
+}
+
+.admin-token-panel {
+  margin-top: 28px;
+  padding: 20px;
+}
+
+.admin-token-panel small {
+  color: rgba(248, 242, 236, 0.62);
+}
+
+.admin-overview-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.admin-overview-grid article,
+.admin-section,
+.admin-vehicle-card,
+.admin-record-card,
+.admin-empty {
+  border: 1px solid rgba(215, 161, 140, 0.18);
+  border-radius: 22px;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.035));
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.28);
+}
+
+.admin-overview-grid article {
+  padding: 18px;
+}
+
+.admin-overview-grid span,
+.admin-record-card span,
+.admin-block-list span {
+  color: rgba(248, 242, 236, 0.62);
+}
+
+.admin-overview-grid strong {
+  display: block;
+  margin-top: 8px;
+  color: var(--ivory);
+  font-size: 2rem;
+}
+
+.admin-section {
+  padding: 22px;
+}
+
+.admin-vehicle-list,
+.admin-record-list {
+  display: grid;
+  gap: 14px;
+}
+
+.admin-vehicle-card,
+.admin-record-card,
+.admin-empty {
+  padding: 18px;
+}
+
+.admin-card-heading,
+.admin-record-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) auto auto;
+  gap: 14px;
+  align-items: center;
+}
+
+.admin-card-heading {
+  grid-template-columns: 1fr auto;
+  margin-bottom: 16px;
+}
+
+.admin-card-heading h3 {
+  margin: 4px 0 0;
+}
+
+.admin-inline-form {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.admin-inline-form label {
+  color: rgba(248, 242, 236, 0.72);
+  font-size: 0.78rem;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.admin-inline-form input,
+.admin-inline-form select {
+  margin-top: 7px;
+}
+
+.admin-block-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.admin-block-list span,
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid rgba(215, 161, 140, 0.18);
+  border-radius: 999px;
+  padding: 8px 10px;
+  background: rgba(215, 161, 140, 0.08);
+}
+
+.admin-block-list button,
+.admin-action-row button {
+  min-height: 34px;
+  padding: 8px 10px;
+  font-size: 0.72rem;
+}
+
+.admin-action-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .choice-card {
   position: relative;
   display: grid;

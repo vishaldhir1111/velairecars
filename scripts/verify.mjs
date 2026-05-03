@@ -11,6 +11,7 @@ const requiredFiles = [
   "booking.html",
   "login.html",
   "account.html",
+  "admin.html",
   "payment.html",
   "success.html",
   "flow.css",
@@ -27,10 +28,17 @@ const requiredFiles = [
   "api/auth/session.js",
   "api/payments/intent.js",
   "api/admin/summary.js",
+  "api/admin/vehicles.js",
+  "api/admin/bookings.js",
+  "api/admin/payments.js",
+  "api/admin/customers.js",
   "api/_lib/fleet-data.js",
+  "api/_lib/admin-auth.js",
   "api/_lib/http.js",
+  "api/_lib/operations-store.js",
   "api/_lib/store.js",
   "vite.config.js",
+  "vercel.json",
   "package.json",
 ];
 
@@ -60,7 +68,7 @@ if (!app.includes('from "./data/fleet.js"')) {
 }
 
 const vite = read("vite.config.js");
-for (const page of ["booking.html", "login.html", "account.html", "payment.html", "success.html"]) {
+for (const page of ["booking.html", "login.html", "account.html", "admin.html", "payment.html", "success.html"]) {
   if (!vite.includes(page)) {
     throw new Error(`vite.config.js is missing ${page} as a build input`);
   }
@@ -73,7 +81,7 @@ for (const file of requiredFiles) {
   }
 }
 
-for (const page of ["booking.html", "login.html", "account.html", "payment.html", "success.html"]) {
+for (const page of ["booking.html", "login.html", "account.html", "admin.html", "payment.html", "success.html"]) {
   const html = read(page);
   if (!html.includes('href="flow.css"')) {
     throw new Error(`${page} does not load flow.css`);
@@ -95,12 +103,28 @@ if (
   !read("flow.js").includes("resolveSelectedVehicleSlug") ||
   !read("flow.js").includes("hydrateFleetPricing") ||
   !read("flow.js").includes("dateIsSelectedVehicleBlocked") ||
+  !read("flow.js").includes("setupAdmin") ||
   !read("api/availability.js").includes("vehicle_required")
 ) {
   throw new Error("Booking availability must use the selected vehicle slug and must not fall back to Lamborghini Urus");
 }
 
-for (const htmlFile of ["index.html", "booking.html", "login.html", "account.html", "payment.html", "success.html"]) {
+if (
+  !read("api/_lib/operations-store.js").includes("KV_REST_API_URL") ||
+  !read("api/_lib/operations-store.js").includes("KV_REST_API_TOKEN") ||
+  !read("api/_lib/operations-store.js").includes("KV_REST_API_READ_ONLY_TOKEN") ||
+  !read("api/_lib/operations-store.js").includes("REDIS_URL") ||
+  !read("api/_lib/operations-store.js").includes("KV_URL") ||
+  !read("api/fleet.js").includes("listOperationalVehicles") ||
+  !read("api/availability.js").includes("checkPersistedAvailability") ||
+  !read("api/bookings.js").includes("createBookingRecord") ||
+  !read("api/admin/vehicles.js").includes("updateVehicleOperationsRecord") ||
+  !read("vercel.json").includes('"/portal"')
+) {
+  throw new Error("Operations must use Vercel KV as the shared source of truth for admin and reservation data");
+}
+
+for (const htmlFile of ["index.html", "booking.html", "login.html", "account.html", "admin.html", "payment.html", "success.html"]) {
   const html = read(htmlFile);
   for (const match of html.matchAll(/(?:href|action|src)="([^"]+)"/g)) {
     const target = match[1];

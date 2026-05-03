@@ -1,5 +1,5 @@
 import { allowMethods, readJson, sendJson } from "./_lib/http.js";
-import { checkVehicleAvailability } from "./_lib/store.js";
+import { checkPersistedAvailability } from "./_lib/operations-store.js";
 
 export default async function handler(req, res) {
   if (!allowMethods(req, res, ["GET", "POST"])) return;
@@ -19,7 +19,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const availability = checkVehicleAvailability({ vehicleSlug: vehicle, pickup, returnDate });
+    const { availability, meta } = await checkPersistedAvailability({ vehicleSlug: vehicle, pickup, returnDate });
 
     sendJson(res, 200, {
       vehicle: availability.vehicle.slug,
@@ -30,6 +30,7 @@ export default async function handler(req, res) {
       deposit: availability.vehicle.deposit,
       dailyRate: availability.vehicle.rate,
       currency: "GBP",
+      source: meta.available ? "vercel-kv" : "memory-fallback",
     });
   } catch (error) {
     sendJson(res, error.status || 500, {
