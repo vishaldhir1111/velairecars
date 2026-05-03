@@ -1,142 +1,26 @@
 import { allowMethods, publicError, readJson, sendJson } from "./_lib/http.js";
-import { getAuthUserRecord, getStoredAccountRecord, getStoredCustomerContext, saveAccountRecord } from "./_lib/operations-store.js";
-import { currentUser, findUserByEmail, listBookings, updateAccount } from "./_lib/store.js";
-import { listStripeOperations, mergeOperations } from "./_lib/stripe-operations.js";
-
-function mergeStoredAccount(user, storedAccount) {
-  if (!storedAccount) return user;
-  return {
-    ...user,
-    phone: user.phone || storedAccount.phone || "",
-    profile: { ...(user.profile || {}), ...(storedAccount.profile || {}) },
-    preferences: { ...(user.preferences || {}), ...(storedAccount.preferences || {}) },
-    verification: { ...(user.verification || {}), ...(storedAccount.verification || {}) },
-    favourites: storedAccount.favourites?.length ? storedAccount.favourites : user.favourites,
-  };
-}
-
-function applyAccountPatch(user, patch = {}) {
-  return {
-    ...user,
-    phone: patch.phone ?? user.phone ?? "",
-    profile: { ...(user.profile || {}), ...(patch.profile || {}) },
-    preferences: { ...(user.preferences || {}), ...(patch.preferences || {}) },
-    verification: {
-      ...(user.verification || { status: "not_submitted", documents: {} }),
-      ...(patch.verification || {}),
-      documents: {
-        ...(user.verification?.documents || {}),
-        ...(patch.verification?.documents || {}),
-      },
-    },
-    paymentMethod: patch.paymentMethod === undefined ? user.paymentMethod || null : patch.paymentMethod,
-    favourites: Array.isArray(patch.favourites) ? patch.favourites : user.favourites || [],
-    updatedAt: new Date().toISOString(),
-  };
-}
-
-async function getCustomerPaymentContext(email = "") {
-  const cleanEmail = String(email || "").trim().toLowerCase();
-  const storedContext = await getStoredCustomerContext(cleanEmail);
-  const stripeOperations = await listStripeOperations();
-  if (!stripeOperations.available || !cleanEmail) return storedContext;
-
-  const stripeBookings = stripeOperations.bookings.filter((booking) => String(booking.customerEmail || "").toLowerCase() === cleanEmail);
-  const bookingIds = new Set([...storedContext.bookings, ...stripeBookings].map((booking) => booking.id));
-  const stripePayments = stripeOperations.payments.filter(
-    (payment) => bookingIds.has(payment.bookingId) || String(payment.customerEmail || "").toLowerCase() === cleanEmail,
-  );
-  return {
-    bookings: mergeOperations(storedContext.bookings, stripeBookings),
-    payments: mergeOperations(storedContext.payments, stripePayments),
-    customer:
-      storedContext.customer ||
-      stripeOperations.customers.find((item) => String(item.email || "").toLowerCase() === cleanEmail) ||
-      null,
-    available: storedContext.available || stripeOperations.available,
-  };
-}
+import { currentUser, listBookings, updateAccount } from "./_lib/store.js";
 
 export default async function handler(req, res) {
   if (!allowMethods(req, res, ["GET", "PATCH"])) return;
 
   const user = currentUser(req);
   if (!user) {
-    if (req.method === "GET" && req.query?.email) {
-      const email = String(req.query.email || "").trim().toLowerCase();
-      const storedAccount = await getStoredAccountRecord(email);
-      const registeredAccount = findUserByEmail(email);
-      const storedAuthAccount = registeredAccount ? null : await getAuthUserRecord(email);
-      const authAccount = registeredAccount || (storedAuthAccount ? {
-        id: storedAuthAccount.id,
-        email: storedAuthAccount.email,
-        phone: storedAuthAccount.phone || "",
-        profile: storedAuthAccount.profile || {},
-        preferences: storedAuthAccount.preferences || {},
-        verification: storedAuthAccount.verification || { status: "not_submitted", documents: {} },
-        favourites: storedAuthAccount.favourites || [],
-      } : null);
-      const storedContext = await getCustomerPaymentContext(email);
-      const accountProfileExists = Boolean(authAccount || storedAccount);
-      const customerActivityExists = Boolean(storedContext.customer || storedContext.bookings.length || storedContext.payments.length);
-      const activityExists = Boolean(accountProfileExists || customerActivityExists);
-      sendJson(res, 200, {
-        user: storedAccount || authAccount || {
-          id: `stored_${email}`,
-          email,
-          phone: storedContext.customer?.phone || "",
-          profile: { fullName: storedContext.customer?.fullName || "" },
-          preferences: {},
-          verification: { status: storedContext.customer?.verificationStatus || "not_submitted", documents: {} },
-          favourites: [],
-        },
-        bookings: storedContext.bookings,
-        payments: storedContext.payments,
-        receipts: storedContext.payments.filter((payment) => ["deposit_paid", "refunded"].includes(payment.status)),
-        storedCustomer: storedContext.customer,
-        exists: Boolean(authAccount || activityExists),
-        accountAccessExists: accountProfileExists,
-        authAccountExists: accountProfileExists,
-        customerActivityExists,
-        activityExists,
-        authenticated: false,
-      });
-      return;
-    }
     sendJson(res, 401, { error: "unauthenticated", message: "Sign in to access the Velaire client lounge." });
     return;
   }
 
   if (req.method === "GET") {
-    const storedAccount = await getStoredAccountRecord(user.email);
-    const accountUser = mergeStoredAccount(user, storedAccount);
-    const storedContext = await getCustomerPaymentContext(user.email);
     sendJson(res, 200, {
-      user: accountUser,
-      bookings: mergeOperations(listBookings(user.id), storedContext.bookings),
-      payments: storedContext.payments,
-      receipts: storedContext.payments.filter((payment) => ["deposit_paid", "refunded"].includes(payment.status)),
-      storedCustomer: storedContext.customer,
-      exists: true,
-      accountAccessExists: true,
-      authAccountExists: true,
-      activityExists: Boolean(storedContext.customer || storedContext.bookings.length || storedContext.payments.length),
-      authenticated: true,
+      user,
+      bookings: listBookings(user.id),
     });
     return;
   }
 
   try {
     const body = await readJson(req);
-    let updated;
-    try {
-      updated = updateAccount(user.id, body);
-    } catch (error) {
-      if (error.status !== 401) throw error;
-      const storedAccount = await getStoredAccountRecord(user.email);
-      updated = applyAccountPatch(mergeStoredAccount(user, storedAccount), body);
-    }
-    await saveAccountRecord(updated);
+    const updated = updateAccount(user.id, body);
     sendJson(res, 200, {
       user: updated,
       bookings: listBookings(user.id),

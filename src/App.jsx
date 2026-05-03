@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { conciergeFleetKnowledge, conciergePromptChips, fleet } from "./data/fleet.js";
 
 const favouriteStorageKey = "velaireFavouriteCars";
@@ -12,20 +12,20 @@ const trustItems = [
 
 const serviceCards = [
   {
-    title: "Concierge handover",
-    text: "Home, hotel, airport and event arrivals arranged with calm precision.",
+    title: "Concierge delivery",
+    text: "Home, hotel, airport and event handovers with a polished inspection process.",
   },
   {
-    title: "Prepared to present",
-    text: "Every vehicle is detailed, staged and ready to feel occasion-worthy.",
+    title: "Verified fleet",
+    text: "Every vehicle is inspected, photographed and prepared to a high showroom standard.",
   },
   {
-    title: "Effortless movement",
-    text: "A refined reserve-to-handover journey without rental-counter friction.",
+    title: "Clear reservation terms",
+    text: "Transparent daily rates, deposit guidance and availability messaging before you commit.",
   },
   {
-    title: "Discreet support",
-    text: "Considered help for timing changes, special occasions and extended drives.",
+    title: "Premium support",
+    text: "A client-focused team for itinerary changes, extensions and special occasions.",
   },
 ];
 
@@ -60,32 +60,6 @@ function formatCurrency(value) {
 
 function reserveLink(car) {
   return `booking.html?vehicle=${car.slug}`;
-}
-
-function mergeOperationalFleet(baseFleet, operationalFleet = []) {
-  const operationalBySlug = new Map(operationalFleet.map((car) => [car.slug, car]));
-  return baseFleet.map((car) => {
-    const operational = operationalBySlug.get(car.slug);
-    if (!operational) return car;
-    return {
-      ...car,
-      name: operational.name || car.name,
-      year: operational.year || car.year,
-      category: operational.category || car.category,
-      finish: operational.finish || car.finish,
-      paint: operational.paint || car.paint,
-      interior: operational.interior || car.interior,
-      rate: Number(operational.rate || car.rate),
-      deposit: Number(operational.deposit || car.deposit),
-      availability: operational.availability || car.availability,
-      asset: {
-        ...car.asset,
-        modelPath: operational.modelPath || car.asset.modelPath,
-        fallbackImagePath: operational.fallbackImagePath || car.asset.fallbackImagePath,
-        modelAvailable: Boolean(operational.modelAvailable ?? car.asset.modelAvailable),
-      },
-    };
-  });
 }
 
 function conciergeVehicleLabel(vehicle) {
@@ -226,7 +200,16 @@ function saveFavouriteCars(slugs) {
 }
 
 async function syncFavouriteCars(slugs) {
-  return slugs;
+  try {
+    await fetch("/api/account", {
+      method: "PATCH",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ favourites: slugs }),
+    });
+  } catch {
+    // Favourites remain local until the visitor signs in or the API is available.
+  }
 }
 
 function VehicleModelParts() {
@@ -319,7 +302,6 @@ function VehiclePhoto({ car, size = "card" }) {
 }
 
 function App() {
-  const [fleetVehicles, setFleetVehicles] = useState(fleet);
   const [selectedCar, setSelectedCar] = useState(fleet[0]);
   const [isConciergeOpen, setIsConciergeOpen] = useState(false);
   const [conciergeInput, setConciergeInput] = useState("");
@@ -331,27 +313,6 @@ function App() {
         "Welcome to the Velaire concierge. Tell me the occasion, passenger count, location and the impression you want to create. I can recommend, compare and upsell from the Velaire fleet.",
     },
   ]);
-
-  useEffect(() => {
-    let cancelled = false;
-    fetch("/api/fleet")
-      .then((response) => {
-        if (!response.ok) throw new Error("Fleet endpoint unavailable");
-        return response.json();
-      })
-      .then((result) => {
-        if (cancelled || !Array.isArray(result.fleet)) return;
-        const nextFleet = mergeOperationalFleet(fleet, result.fleet);
-        setFleetVehicles(nextFleet);
-        setSelectedCar((current) => nextFleet.find((car) => car.slug === current.slug) || nextFleet[0]);
-      })
-      .catch(() => {
-        if (!cancelled) setFleetVehicles(fleet);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   async function askConcierge(question) {
     const clean = question.trim();
@@ -406,8 +367,7 @@ function App() {
           <a href="#fleet">Fleet</a>
           <a href="#experience">Experience</a>
           <a href="#booking">Reserve</a>
-          <a href="ai.html">AI concierge</a>
-          <a href="terms.html">Terms</a>
+          <a href="account.html">Account</a>
         </nav>
 
         <a className="nav-cta" href="booking.html">
@@ -423,8 +383,9 @@ function App() {
               <p className="eyebrow">Luxury car rental, elevated</p>
               <h1>Velaire Cars</h1>
               <p className="hero-lede">
-                Exceptional cars for elegant arrivals, curated handovers and journeys that feel
-                composed from the first click.
+                Reserve exceptional vehicles with a seamless premium experience. Performance SUVs,
+                electric saloons, convertibles and driver-focused icons delivered with concierge
+                precision.
               </p>
               <div className="hero-actions">
                 <a className="primary-button" href="#fleet">
@@ -436,10 +397,37 @@ function App() {
               </div>
             </div>
 
-            <div className="hero-signature" aria-label="Velaire booking promise">
-              <span>Velaire standard</span>
-              <strong>Concierge handover, depart with class.</strong>
-            </div>
+            <form className="hero-reserve" action="booking.html" aria-label="Quick reservation">
+              <p className="eyebrow">Quick reserve</p>
+              <label>
+                Vehicle
+                <select name="vehicle" defaultValue={fleet[1].slug}>
+                  {fleet.map((car) => (
+                    <option value={car.slug} key={car.slug}>
+                      {car.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <div className="form-pair">
+                <label>
+                  Pickup
+                  <input type="date" name="pickup" />
+                </label>
+                <label>
+                  Time
+                  <input type="time" name="time" defaultValue="10:00" />
+                </label>
+              </div>
+              <label>
+                Delivery location
+                <input type="text" name="location" placeholder="Mayfair, Heathrow, hotel or venue" />
+              </label>
+              <button className="primary-button full-button" type="submit">
+                Check availability
+              </button>
+              <p className="form-note">Deposit guidance and concierge delivery shown before payment.</p>
+            </form>
           </div>
         </section>
 
@@ -463,7 +451,7 @@ function App() {
           </div>
 
           <div className="fleet-grid">
-            {fleetVehicles.map((car) => (
+            {fleet.map((car) => (
               <article className="fleet-card" key={car.slug}>
                 <div className="fleet-media">
                   <VehiclePhoto car={car} />
@@ -509,20 +497,17 @@ function App() {
             <VehiclePhoto car={selectedCar} size="large" />
           </div>
           <div className="detail-copy">
-            <p className="eyebrow">Velaire arrival</p>
-            <h2>Depart with class in the {selectedCar.name}.</h2>
-            <p>
-              {selectedCar.summary} Every booking is shaped around the arrival, the route and the
-              handover detail that makes the car feel effortless.
-            </p>
+            <p className="eyebrow">Selected experience</p>
+            <h2>{selectedCar.name}</h2>
+            <p>{selectedCar.summary}</p>
             <div className="detail-meta">
               <div>
                 <span>Daily rate</span>
                 <strong>{formatCurrency(selectedCar.rate)}</strong>
               </div>
               <div>
-                <span>Handover style</span>
-                <strong>Concierge</strong>
+                <span>Reserve deposit</span>
+                <strong>{formatCurrency(selectedCar.deposit)}</strong>
               </div>
               <div>
                 <span>Best for</span>
@@ -544,10 +529,10 @@ function App() {
         <section className="section service-section">
           <div className="section-heading">
             <p className="eyebrow">Why choose Velaire</p>
-            <h2>Concierge handover, depart with class.</h2>
+            <h2>A rental experience built like a private-client service.</h2>
             <p>
-              A polished luxury rental experience shaped around timing, presentation and a
-              memorable departure.
+              From first enquiry to final return, the flow is designed around confidence, clarity
+              and presentation.
             </p>
           </div>
           <div className="service-grid">
@@ -564,10 +549,10 @@ function App() {
         <section className="booking-band" id="booking">
           <div>
             <p className="eyebrow">Reserve with confidence</p>
-            <h2>Choose the car, set the handover, arrive composed.</h2>
+            <h2>Browse, select, reserve and arrive. No counter. No confusion.</h2>
             <p>
-              Select dates, choose a delivery point and let the journey move through a cleaner,
-              more considered reservation flow.
+              Choose dates, delivery location and vehicle preference. The booking flow keeps the
+              experience premium from first click to confirmation.
             </p>
           </div>
           <div className="booking-preview">
@@ -626,18 +611,8 @@ function App() {
         <div className="footer-column">
           <strong>Reserve</strong>
           <a href="booking.html">Booking</a>
+          <a href="login.html">Client login</a>
           <a href="payment.html">Payment</a>
-          <a href="deposit.html">Deposit policy</a>
-        </div>
-
-        <div className="footer-column">
-          <strong>Trust</strong>
-          <a href="terms.html">Terms</a>
-          <a href="privacy.html">Privacy</a>
-          <a href="cancellation.html">Cancellation</a>
-          <a href="insurance.html">Insurance</a>
-          <a href="requirements.html">Rental requirements</a>
-          <a href="deposit.html">Deposit policy</a>
         </div>
       </footer>
 
@@ -704,8 +679,8 @@ function App() {
             <a className="primary-button" href="booking.html">
               Start reservation
             </a>
-            <a className="secondary-button" href="ai.html">
-              AI concierge
+            <a className="secondary-button" href="account.html#concierge">
+              Client lounge
             </a>
           </div>
         </div>

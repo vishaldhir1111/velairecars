@@ -8,23 +8,11 @@ visual system.
 - `index.html` mounts the Vite app at `#root`.
 - `src/main.jsx` renders `src/App.jsx`.
 - `src/App.jsx` imports `src/styles.css`.
-- `public/booking.html`, `public/login.html`, `public/account.html`, `public/ai.html`,
-  `public/admin.html`, `public/payment.html` and `public/success.html` are static flow pages served at
-  `/booking.html`, `/login.html`, `/account.html`, `/ai.html`, `/portal`, `/payment.html` and
-  `/success.html`.
-- Customer reservations now use a premium guest-booking model. Booking collects full name, email,
-  phone, billing address, handover details and dates directly, then continues to Stripe Checkout
-  without customer login or account creation.
-- `vercel.json` rewrites `/portal` to the operations page while keeping clean URLs enabled.
-- `public/terms.html`, `public/privacy.html`, `public/cancellation.html`, `public/insurance.html`,
-  `public/requirements.html` and `public/deposit.html` are the legal and trust pages served at
-  `/terms.html`, `/privacy.html`, `/cancellation.html`, `/insurance.html`, `/requirements.html`
-  and `/deposit.html`.
-- `public/flow.css` styles the static booking flow pages.
-- `public/flow.js` keeps the booking flow working locally with `localStorage` and syncs to `/api/*`
-  when deployed on Vercel.
-- Nexa typography is configured in `src/styles.css` and `public/flow.css`, with font files in
-  `public/Nexa-ExtraLight.ttf` and `public/Nexa-Heavy.ttf`.
+- `vite.config.js` also includes `booking.html`, `login.html`, `account.html`, `payment.html` and
+  `success.html` as static page entries.
+- `flow.css` styles the static booking flow pages.
+- `flow.js` keeps the booking flow working locally with `localStorage` and syncs to `/api/*` when
+  deployed on Vercel.
 
 ## Fleet
 
@@ -42,74 +30,20 @@ presentation uses premium studio 3D fallbacks with GLB/GLTF model slots under `p
 The `api/` folder contains Vercel-ready serverless endpoints:
 
 - `GET /api/fleet`
-- Legacy account/auth endpoints remain present for compatibility, but they are not part of the
-  customer booking funnel.
+- `POST /api/auth/register`
+- `POST /api/auth/login`
+- `POST /api/auth/logout`
+- `GET /api/auth/session`
 - `GET/PATCH /api/account`
 - `GET/POST/PATCH /api/bookings`
 - `GET/POST /api/availability`
 - `POST /api/payments/intent`
-- `POST /api/payments/checkout`
-- `GET/POST /api/payments/session`
-- `POST /api/payments/webhook`
-- `POST /api/notifications/reminders`
 - `POST /api/concierge`
 - `GET /api/admin/summary`
-- `GET/PATCH /api/admin/bookings`
-- `GET /api/admin/customers`
-- `GET/PATCH /api/admin/leads`
-- `GET /api/admin/notifications`
-- `GET/PATCH /api/admin/payments`
-- `GET/PATCH/POST/DELETE /api/admin/vehicles`
 
-The current backend keeps the live booking flow lightweight, but Stripe payment operations are now
-mirrored into an optional durable Vercel KV / Upstash Redis REST store through
-`api/_lib/operations-store.js`. Stripe Checkout is required for reservation deposits, with webhook
-and return-page verification. No raw card data is collected or stored by Velaire.
-
-## Operations And Trust
-
-- `/portal` is the premium operations dashboard for guest bookings, customers, vehicles,
-  concierge messages needing reply, deposits and payment status.
-- The durable operations store now uses a `guest-booking-v1` namespace so old account/customer test
-  records do not appear in the fresh guest-booking test state.
-- Availability is stored in `api/_lib/store.js` as blocked dates plus pending and confirmed booking
-  holds per vehicle. The admin vehicle cards include a 42-day availability calendar, and booking
-  creation plus admin updates check this state to reduce double-booking risk.
-- Phase 1 booking statuses are `pending`, `payment_pending`, `confirmed`, `cancelled` and
-  `completed`. Pending, payment-pending and confirmed bookings hold vehicle availability until an
-  admin cancels or completes the booking.
-- Phase 2 deposit statuses are `payment_pending`, `deposit_paid`, `failed`, `cancelled` and
-  `refunded`. A booking is only moved to paid/confirmed after Stripe returns a paid Checkout
-  Session through `/api/payments/session` or the Stripe webhook. The webhook writes booking,
-  payment and customer records into the operations store when Vercel KV / Upstash REST variables are
-  configured, and the Operations dashboard reads that same store.
-- Customer-facing account creation is disabled from the booking journey. Legacy account files and
-  endpoints remain only for compatibility while the live product uses guest reservation records.
-  Notification triggers cover booking requests, paid deposits, failed/cancelled payments, admin
-  approval/rejection/cancellation and handover reminders. Resend is used for email delivery when
-  `RESEND_API_KEY` is configured, and `/portal` includes a communications log from the operations
-  store.
-- Legal and trust pages are in `public/` and share the same Nexa, black and rose-gold flow design
-  system as the booking and operations experience. Have a solicitor review the policy copy before using
-  it as binding production legal wording.
-
-Set these environment variables in production:
-
-- `VELAIRE_ADMIN_TOKEN` or `VELAIRE_PORTAL_PASSWORD` protects the operations portal APIs. If neither
-  is set, the server-side default portal password is `AG23HS60`.
-- `VELAIRE_SESSION_SECRET` is only needed if legacy account endpoints are re-enabled later.
-- `STRIPE_SECRET_KEY` is required for Stripe Checkout session creation.
-- `STRIPE_WEBHOOK_SECRET` verifies Stripe webhook events.
-- `VELAIRE_SITE_URL` is optional and can force Stripe redirect URLs to `https://www.velairecars.com`.
-- `KV_REST_API_URL` and `KV_REST_API_TOKEN` enable durable Operations records on Vercel KV.
-- Alternatively, `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` can be used.
-- `VELAIRE_STORE_PREFIX` is optional. The app appends `guest-booking-v1` so the guest model starts
-  from a clean operations namespace.
-- `RESEND_API_KEY` enables transactional emails.
-- `VELAIRE_EMAIL_FROM` sets the sender, for example `Velaire Cars <reservations@velairecars.com>`.
-- `VELAIRE_EMAIL_REPLY_TO` is optional and sets the reply-to inbox for concierge replies.
-- `VELAIRE_ADMIN_EMAIL` receives optional internal booking/payment notifications.
-- `VELAIRE_REMINDER_WINDOW_HOURS` controls the handover reminder endpoint and defaults to `48`.
+The current backend uses an in-memory store scaffold so the flow is API-shaped without adding a
+database dependency. For production, replace `api/_lib/store.js` with a durable database adapter and
+connect `api/payments/intent.js` to Stripe or another payment provider. No raw card data is stored.
 
 ## Run
 

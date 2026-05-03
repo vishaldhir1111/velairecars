@@ -1,49 +1,23 @@
 import { allowMethods, publicError, readJson, sendJson } from "./_lib/http.js";
-import { notifyClientAndAdmin } from "./_lib/notifications.js";
-import {
-  findActiveReservation,
-  findPaidDeposit,
-  getStoredCustomerContext,
-  listStoredOperations,
-  saveOperationsRecords,
-} from "./_lib/operations-store.js";
-import {
-  createBooking,
-  currentUser,
-  findMatchingActiveBooking,
-  listBookings,
-  mergeVehicleOperationOverrides,
-  updateBooking,
-} from "./_lib/store.js";
-import { customersFromBookings, listStripeOperations, mergeOperations } from "./_lib/stripe-operations.js";
+import { vehicleSlugExists } from "./_lib/fleet-data.js";
+import { createBooking, currentUser, listBookings, updateBooking } from "./_lib/store.js";
 
-function reservationForSignedInUser(reservation = {}, user = null) {
-  if (!user) return reservation;
+function requireReservationVehicle(reservation = {}) {
+  const vehicle = String(reservation.vehicle || "").trim();
+  if (!vehicle) {
+    const error = new Error("Select a Velaire vehicle before reserving.");
+    error.status = 400;
+    throw error;
+  }
+  if (!vehicleSlugExists(vehicle)) {
+    const error = new Error("That Velaire vehicle could not be found. Please choose from the live fleet.");
+    error.status = 400;
+    throw error;
+  }
   return {
     ...reservation,
-    name: reservation.name || reservation.fullName || user.profile?.fullName || "",
-    fullName: reservation.fullName || reservation.name || user.profile?.fullName || "",
-    email: reservation.email || user.email || "",
-    phone: reservation.phone || user.phone || "",
+    vehicle,
   };
-}
-
-async function attachStoredBookingToUser({ booking, payment = null, reservation = {}, user = null } = {}) {
-  if (!booking || !user?.id) return booking;
-  const attachedBooking = {
-    ...booking,
-    userId: user.id,
-    customerName: booking.customerName || reservation.name || reservation.fullName || user.profile?.fullName || "",
-    customerEmail: booking.customerEmail || reservation.email || user.email || "",
-    customerPhone: booking.customerPhone || reservation.phone || user.phone || "",
-    updatedAt: new Date().toISOString(),
-  };
-  await saveOperationsRecords({
-    booking: attachedBooking,
-    payment,
-    customers: customersFromBookings([attachedBooking]),
-  });
-  return attachedBooking;
 }
 
 export default async function handler(req, res) {
@@ -52,154 +26,32 @@ export default async function handler(req, res) {
   const user = currentUser(req);
 
   if (req.method === "GET") {
-    const storedContext = user?.email ? await getStoredCustomerContext(user.email) : { bookings: [] };
     sendJson(res, 200, {
       authenticated: Boolean(user),
-      bookings: mergeOperations(listBookings(user?.id), storedContext.bookings || []),
+      bookings: listBookings(user?.id),
     });
     return;
   }
 
   try {
     const body = await readJson(req);
-    const [storedOperations, stripeOperations] = await Promise.all([listStoredOperations(), listStripeOperations()]);
-    mergeVehicleOperationOverrides(storedOperations.vehicleOperations || []);
-    const externalBookings = mergeOperations(storedOperations.bookings || [], stripeOperations.bookings || []);
-    const externalPayments = mergeOperations(storedOperations.payments || [], stripeOperations.payments || []);
 
     if (req.method === "PATCH") {
-      const reservation = reservationForSignedInUser(body.patch?.reservation || {}, user);
-      const paidDeposit = await findPaidDeposit({
-        bookingId: body.id,
-        email: reservation.email,
-        vehicle: reservation.vehicle,
-        pickup: reservation.pickup,
-        returnDate: reservation.return,
-      });
-      if (paidDeposit) {
-        const booking = await attachStoredBookingToUser({
-          booking: paidDeposit.booking,
-          payment: paidDeposit.payment,
-          reservation,
-          user,
-        });
-        sendJson(res, 200, {
-          booking: booking || {
-            id: body.id,
-            status: "confirmed",
-            paymentStatus: "deposit_paid",
-            paidAt: paidDeposit.payment?.paidAt || new Date().toISOString(),
-          },
-          payment: paidDeposit.payment,
-          protected: "deposit_already_paid",
-        });
-        return;
-      }
-      const booking = updateBooking(body.id, {
-        ...(body.patch || {}),
-        reservation,
-        externalBookings,
-        ...(user?.id ? { userId: user.id } : {}),
-      });
+      const patch = body.patch || {};
+      const booking = updateBooking(body.id, patch.reservation ? { ...patch, reservation: requireReservationVehicle(patch.reservation) } : patch);
       if (!booking) {
         sendJson(res, 404, { error: "booking_not_found", message: "Booking not found." });
         return;
-      }
-      await saveOperationsRecords({ booking, customers: customersFromBookings([booking]) });
-      if (body.patch?.status === "pending") {
-        await notifyClientAndAdmin({
-          clientType: "booking_created",
-          adminType: "admin_new_booking",
-          booking,
-        });
       }
       sendJson(res, 200, { booking });
       return;
     }
 
-    const reservation = reservationForSignedInUser(body.reservation || body, user);
-    const paidDeposit = await findPaidDeposit({
-      email: reservation.email,
-      vehicle: reservation.vehicle,
-      pickup: reservation.pickup,
-      returnDate: reservation.return,
-    });
-    if (paidDeposit?.booking || paidDeposit?.payment) {
-      const booking = await attachStoredBookingToUser({
-        booking: paidDeposit.booking,
-        payment: paidDeposit.payment,
-        reservation,
-        user,
-      });
-      sendJson(res, 200, {
-        authenticated: Boolean(user),
-        booking: booking || null,
-        payment: paidDeposit.payment || null,
-        protected: "deposit_already_paid",
-      });
-      return;
-    }
-
-    const activeReservation = await findActiveReservation({
-      email: reservation.email,
-      vehicle: reservation.vehicle,
-      pickup: reservation.pickup,
-      returnDate: reservation.return,
-    });
-    const cleanEmail = String(reservation.email || "").trim().toLowerCase();
-    const externalActiveBooking = activeReservation?.booking
-      ? null
-      : externalBookings.find((booking) => {
-          const status = String(booking.status || "").toLowerCase();
-          if (["cancelled", "completed", "rejected"].includes(status)) return false;
-          const sameClient = cleanEmail && String(booking.customerEmail || "").toLowerCase() === cleanEmail;
-          return sameClient && booking.vehicleSlug === reservation.vehicle && booking.pickup === reservation.pickup && booking.return === reservation.return;
-        });
-    const localActiveBooking = activeReservation?.booking
-      ? null
-      : findMatchingActiveBooking({
-          userId: user?.id || "",
-          email: reservation.email,
-          vehicleSlug: reservation.vehicle,
-          pickup: reservation.pickup,
-          returnDate: reservation.return,
-        });
-    if (activeReservation?.booking || externalActiveBooking || localActiveBooking) {
-      const matchedBooking = activeReservation?.booking || externalActiveBooking || localActiveBooking;
-      const matchedPayment =
-        activeReservation?.payment ||
-        externalPayments.find((payment) => payment.bookingId === matchedBooking?.id) ||
-        null;
-      const booking = await attachStoredBookingToUser({
-        booking: matchedBooking,
-        payment: matchedPayment,
-        reservation,
-        user,
-      });
-      sendJson(res, 200, {
-        authenticated: Boolean(user),
-        booking,
-        payment: matchedPayment,
-        protected: "reservation_already_exists",
-        message: "An active Velaire reservation already exists for this client and vehicle.",
-      });
-      return;
-    }
-
     const booking = createBooking({
       userId: user?.id || null,
-      reservation,
+      reservation: requireReservationVehicle(body.reservation || body),
       status: body.status || "draft",
-      externalBookings,
     });
-    await saveOperationsRecords({ booking, customers: customersFromBookings([booking]) });
-    if (booking.status === "pending") {
-      await notifyClientAndAdmin({
-        clientType: "booking_created",
-        adminType: "admin_new_booking",
-        booking,
-      });
-    }
     sendJson(res, 201, {
       authenticated: Boolean(user),
       booking,
