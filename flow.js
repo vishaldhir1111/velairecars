@@ -13,6 +13,7 @@ const vehicles = {
     modelPath: "/models/tesla-model-3-performance-2020-white.glb",
     fallbackImagePath: "/cars/studio-tesla-model-3-performance-2020.png",
     modelAvailable: false,
+    viewerMode: "studio-3d-render",
     visualLabel: "Tesla Model 3 Performance 2020, white exterior and white interior",
     description:
       "A white-on-white electric performance saloon with instant torque, a minimalist cabin and understated executive presence.",
@@ -31,6 +32,7 @@ const vehicles = {
     modelPath: "/models/lamborghini-urus-2021-orange.glb",
     fallbackImagePath: "/cars/studio-lamborghini-urus-2021-orange.png",
     modelAvailable: false,
+    viewerMode: "studio-3d-render",
     visualLabel: "Lamborghini Urus 2021, orange exterior",
     description:
       "An orange Lamborghini Urus with super SUV theatre, flagship presence and the kind of arrival that turns a booking into a moment.",
@@ -49,6 +51,7 @@ const vehicles = {
     modelPath: "/models/range-rover-sport-svr-2021.glb",
     fallbackImagePath: "/cars/studio-range-rover-sport-svr-2021.png",
     modelAvailable: false,
+    viewerMode: "studio-3d-render",
     visualLabel: "Range Rover Sport SVR 2021, performance SUV",
     description:
       "A performance Range Rover with supercharged V8 character, elevated comfort and the confidence expected from a premium SUV handover.",
@@ -67,6 +70,7 @@ const vehicles = {
     modelPath: "/models/bmw-m440i-convertible-2022-sky-blue.glb",
     fallbackImagePath: "/cars/studio-bmw-m440i-convertible-2022-sky-blue.png",
     modelAvailable: false,
+    viewerMode: "studio-3d-render",
     visualLabel: "BMW M440i Convertible 2022, sky blue wrap",
     description:
       "A sky-blue open-top grand tourer with M Performance pace, polished daily usability and a clean summer-event look.",
@@ -85,6 +89,7 @@ const vehicles = {
     modelPath: "/models/bmw-m140i-shadow-edition-2019.glb",
     fallbackImagePath: "/cars/studio-bmw-m140i-shadow-edition-2019.png",
     modelAvailable: false,
+    viewerMode: "studio-3d-render",
     visualLabel: "BMW M140i Shadow Edition 2019",
     description:
       "A compact performance favourite with B58 power, understated Shadow Edition styling and a focused premium cabin.",
@@ -293,6 +298,14 @@ function resolveSelectedVehicleSlug({ preferUrl = true, preferChecked = false, p
   return candidates.find((slug) => isKnownVehicleSlug(slug)) || "";
 }
 
+function syncVehicleQueryParam(slug = "") {
+  const selected = normaliseVehicleSlug(slug);
+  if (!selected || !window.history?.replaceState) return;
+  const url = new URL(window.location.href);
+  url.searchParams.set("vehicle", selected);
+  window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
+}
+
 function saveSelectedVehicleSlug(slug = "") {
   const selected = normaliseVehicleSlug(slug) || resolveSelectedVehicleSlug({ preferUrl: false, preferChecked: true });
   if (!selected) return loadReservation();
@@ -376,6 +389,18 @@ function loadBackendBooking() {
   }
 }
 
+function reusableDraftBooking(booking, reservation = loadReservation()) {
+  if (!booking?.id) return null;
+  const selectedVehicle = normaliseVehicleSlug(reservation.vehicle);
+  const bookingVehicle = normaliseVehicleSlug(booking.vehicleSlug);
+  const terminalStatuses = new Set(["confirmed", "completed", "cancelled", "rejected"]);
+  const settledPaymentStatuses = new Set(["deposit_paid", "paid", "refunded"]);
+  if (selectedVehicle && bookingVehicle && selectedVehicle !== bookingVehicle) return null;
+  if (terminalStatuses.has(String(booking.status || ""))) return null;
+  if (settledPaymentStatuses.has(String(booking.paymentStatus || ""))) return null;
+  return booking;
+}
+
 function loadAdminToken() {
   try {
     return window.localStorage.getItem(adminTokenStorageKey) || "";
@@ -438,9 +463,6 @@ async function optionalApiRequest(path, options = {}, fallback = null) {
   try {
     return await apiRequest(path, options);
   } catch (error) {
-    if (error.status !== 401) {
-      showFlowToast("Saved locally. Backend sync will resume once the API is available.", "warning");
-    }
     return fallback;
   }
 }
@@ -520,7 +542,7 @@ async function ensureBackendAccount({ email, password, phone }) {
 
 async function syncBookingToBackend(status = "draft", { strict = false } = {}) {
   const reservation = loadReservation();
-  const currentBooking = loadBackendBooking();
+  const currentBooking = reusableDraftBooking(loadBackendBooking(), reservation);
   const path = "/api/bookings";
   const options = currentBooking?.id
     ? {
@@ -547,8 +569,8 @@ async function syncBookingToBackend(status = "draft", { strict = false } = {}) {
 
 async function createPaymentIntent() {
   const reservation = loadReservation();
-  const booking = loadBackendBooking() || (await syncBookingToBackend("payment_review"));
-  const result = await optionalApiRequest(
+  const booking = reusableDraftBooking(loadBackendBooking(), reservation) || (await syncBookingToBackend("payment_review", { strict: true }));
+  const result = await apiRequest(
     "/api/payments/intent",
     {
       method: "POST",
@@ -557,7 +579,6 @@ async function createPaymentIntent() {
         reservation,
       }),
     },
-    null,
   );
   if (result?.paymentIntent) {
     saveReservation({
@@ -565,7 +586,10 @@ async function createPaymentIntent() {
       paymentStatus: result.paymentIntent.status,
     });
   }
-  return result?.paymentIntent || null;
+  if (!result?.paymentIntent) {
+    throw new Error("The secure deposit record could not be created. Please try again.");
+  }
+  return result.paymentIntent;
 }
 
 async function checkAvailability() {
@@ -608,6 +632,9 @@ function navigateTo(action) {
 }
 
 function selectedSlug() {
+  if (page === "booking") {
+    return resolveSelectedVehicleSlug({ preferUrl: false, preferChecked: true, preferStored: true }) || queryVehicleSlug();
+  }
   return resolveSelectedVehicleSlug({ preferUrl: true, preferChecked: true, preferStored: true });
 }
 
@@ -687,7 +714,7 @@ function bindVehicleMedia(vehicle) {
     node.setAttribute("aria-label", `Premium 3D studio visual of ${vehicle.visualLabel}`);
     node.dataset.modelPath = vehicle.modelPath || "";
     node.dataset.fallbackImage = vehicle.fallbackImagePath || "";
-    node.dataset.modelStatus = vehicle.modelAvailable ? "glb-active" : "studio-3d-render";
+    node.dataset.modelStatus = vehicle.modelAvailable ? "glb-active" : vehicle.viewerMode || "studio-3d-render";
     hydrateVehicleModels(node);
   });
 
@@ -726,7 +753,7 @@ function referenceFor(slug) {
 
 function updateSummary() {
   const reservation = loadReservation();
-  const slug = resolveSelectedVehicleSlug({ preferUrl: true, preferChecked: true, preferStored: true });
+  const slug = selectedSlug();
   if (slug && reservation.vehicle !== slug) saveReservation({ vehicle: slug });
   const vehicle = selectedVehicle(slug);
   const days = Math.max(Number.parseInt(reservation.days || "2", 10), 1);
@@ -763,6 +790,7 @@ function mergeFleetVehicle(vehicle = {}) {
   current.modelPath = vehicle.modelPath || current.modelPath;
   current.fallbackImagePath = vehicle.fallbackImagePath || current.fallbackImagePath;
   current.modelAvailable = Boolean(vehicle.modelAvailable || current.modelAvailable);
+  current.viewerMode = vehicle.viewerMode || current.viewerMode || "studio-3d-render";
   current.visualLabel = vehicle.visualLabel || vehicle.alt || current.visualLabel;
   current.rate = Number(vehicle.rate || current.rate);
   current.deposit = Number(vehicle.deposit || current.deposit);
@@ -786,7 +814,7 @@ function updateBookingVehicleCards() {
       media.setAttribute("aria-label", `Premium 3D studio visual of ${vehicle.visualLabel}`);
       media.dataset.modelPath = vehicle.modelPath || "";
       media.dataset.fallbackImage = vehicle.fallbackImagePath || "";
-      media.dataset.modelStatus = vehicle.modelAvailable ? "glb-active" : "studio-3d-render";
+      media.dataset.modelStatus = vehicle.modelAvailable ? "glb-active" : vehicle.viewerMode || "studio-3d-render";
       hydrateVehicleModels(media);
     }
     input.disabled = isOffline;
@@ -1064,7 +1092,7 @@ function readBookingForm(form) {
     normaliseVehicleSlug(data.get("vehicle")) ||
     checkedVehicleSlug() ||
     normaliseVehicleSlug(loadReservation().vehicle) ||
-    resolveSelectedVehicleSlug({ preferUrl: true, preferChecked: true, preferStored: true });
+    resolveSelectedVehicleSlug({ preferUrl: false, preferChecked: true, preferStored: true });
   const pickup = data.get("pickup") || "";
   const returnDate = data.get("return") || "";
   const days = calculateDays(pickup, returnDate) || Number.parseInt(loadReservation().days || "2", 10) || 2;
@@ -2040,6 +2068,7 @@ function setupBooking() {
   if (slug) reservation = saveSelectedVehicleSlug(slug);
   const radio = document.querySelector(`input[name="vehicle"][value="${slug}"]`);
   if (radio) radio.checked = true;
+  if (slug) syncVehicleQueryParam(slug);
 
   setFieldValue(form, "pickup", reservation.pickup);
   setFieldValue(form, "pickup-time", reservation.pickupTime);
@@ -2070,6 +2099,7 @@ function setupBooking() {
     const checked = document.querySelector('input[name="vehicle"]:checked');
     if (checked) {
       saveReservation({ vehicle: checked.value });
+      syncVehicleQueryParam(checked.value);
       updateSummary();
     }
   }

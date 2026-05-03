@@ -1,8 +1,6 @@
 import { useEffect, useState } from "react";
 import { conciergeFleetKnowledge, conciergePromptChips, fleet } from "./data/fleet.js";
 
-const favouriteStorageKey = "velaireFavouriteCars";
-
 const trustItems = [
   { value: "5", label: "Curated vehicles" },
   { value: "24/7", label: "Concierge support" },
@@ -216,22 +214,6 @@ function buildConciergeResponse(question) {
   )}/day. If you want an alternative, ${conciergeVehicleLabel(second)} gives you ${second.personality.toLowerCase()} ${pick.upsellAngle} Start a reservation and the concierge can confirm availability, handover and deposit terms.`;
 }
 
-function loadFavouriteCars() {
-  try {
-    return JSON.parse(window.localStorage.getItem(favouriteStorageKey)) || [];
-  } catch {
-    return [];
-  }
-}
-
-function saveFavouriteCars(slugs) {
-  window.localStorage.setItem(favouriteStorageKey, JSON.stringify(slugs));
-}
-
-async function syncFavouriteCars(slugs) {
-  window.localStorage.setItem(favouriteStorageKey, JSON.stringify(slugs));
-}
-
 function VehicleModelParts() {
   return (
     <div className="vehicle-model-scene" aria-hidden="true">
@@ -329,12 +311,73 @@ function VehiclePhoto({ car, size = "card" }) {
   );
 }
 
+function VehicleDetailModal({ car, onClose }) {
+  useEffect(() => {
+    function handleKeyDown(event) {
+      if (event.key === "Escape") onClose();
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
+
+  return (
+    <div
+      className="vehicle-modal-backdrop"
+      role="presentation"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
+    >
+      <article className="vehicle-modal" role="dialog" aria-modal="true" aria-labelledby="vehicle-modal-title">
+        <button className="modal-close" type="button" onClick={onClose} aria-label="Close vehicle details">
+          Close
+        </button>
+        <div className="vehicle-modal-media">
+          <VehiclePhoto car={car} size="large" />
+        </div>
+        <div className="vehicle-modal-copy">
+          <p className="eyebrow">Vehicle details</p>
+          <h2 id="vehicle-modal-title">{car.name}</h2>
+          <p>{car.summary}</p>
+          <div className="detail-meta">
+            <div>
+              <span>Daily rate</span>
+              <strong>{formatCurrency(car.rate)}</strong>
+            </div>
+            <div>
+              <span>Reserve deposit</span>
+              <strong>{formatCurrency(car.deposit)}</strong>
+            </div>
+            <div>
+              <span>Body style</span>
+              <strong>{car.category}</strong>
+            </div>
+          </div>
+          <ul className="detail-specs">
+            {car.specs.map((spec) => (
+              <li key={spec}>{spec}</li>
+            ))}
+          </ul>
+          <p className="best-for">{car.bestFor}</p>
+          <div className="vehicle-modal-actions">
+            <a className="primary-button" href={reserveLink(car)}>
+              Reserve this vehicle
+            </a>
+            <button className="secondary-button" type="button" onClick={onClose}>
+              Continue browsing
+            </button>
+          </div>
+        </div>
+      </article>
+    </div>
+  );
+}
+
 function App() {
   const [liveFleet, setLiveFleet] = useState(fleet);
-  const [selectedCarSlug, setSelectedCarSlug] = useState(fleet[0].slug);
+  const [detailCarSlug, setDetailCarSlug] = useState("");
   const [isConciergeOpen, setIsConciergeOpen] = useState(false);
   const [conciergeInput, setConciergeInput] = useState("");
-  const [favouriteCars, setFavouriteCars] = useState(loadFavouriteCars);
   const [conciergeMessages, setConciergeMessages] = useState([
     {
       role: "assistant",
@@ -342,7 +385,7 @@ function App() {
         "Welcome to the Velaire concierge. Tell me the occasion, passenger count, location and the impression you want to create. I can recommend, compare and upsell from the Velaire fleet.",
     },
   ]);
-  const selectedCar = liveFleet.find((car) => car.slug === selectedCarSlug) || liveFleet[0] || fleet[0];
+  const detailCar = liveFleet.find((car) => car.slug === detailCarSlug) || null;
 
   useEffect(() => {
     let isMounted = true;
@@ -358,7 +401,6 @@ function App() {
         if (!isMounted || !Array.isArray(result.fleet)) return;
         const nextFleet = mergeOperationsFleet(fleet, result.fleet);
         setLiveFleet(nextFleet);
-        setSelectedCarSlug((slug) => (nextFleet.some((car) => car.slug === slug) ? slug : nextFleet[0]?.slug || slug));
       } catch {
         // Keep the static fleet visible if the operations API is unavailable.
       }
@@ -398,15 +440,6 @@ function App() {
     }
   }
 
-  function toggleFavourite(slug) {
-    setFavouriteCars((current) => {
-      const next = current.includes(slug) ? current.filter((item) => item !== slug) : [...current, slug];
-      saveFavouriteCars(next);
-      syncFavouriteCars(next);
-      return next;
-    });
-  }
-
   return (
     <div className="site-shell">
       <header className="navbar" aria-label="Primary navigation">
@@ -420,7 +453,6 @@ function App() {
 
         <nav className="nav-links">
           <a href="#fleet">Fleet</a>
-          <a href="#experience">Experience</a>
           <a href="booking.html">Reserve</a>
         </nav>
 
@@ -493,16 +525,14 @@ function App() {
                     ))}
                   </ul>
                   <div className="card-actions">
-                    <button className="text-button" type="button" onClick={() => setSelectedCarSlug(car.slug)}>
-                      View details
-                    </button>
                     <button
-                      className={`text-button favourite-button ${favouriteCars.includes(car.slug) ? "is-saved" : ""}`}
+                      className="text-button"
                       type="button"
-                      onClick={() => toggleFavourite(car.slug)}
-                      aria-pressed={favouriteCars.includes(car.slug)}
+                      onClick={() => {
+                        setDetailCarSlug(car.slug);
+                      }}
                     >
-                      {favouriteCars.includes(car.slug) ? "Saved" : "Save"}
+                      View details
                     </button>
                     <a className="card-link" href={reserveLink(car)}>
                       Reserve
@@ -514,39 +544,7 @@ function App() {
           </div>
         </section>
 
-        <section className="detail-section" id="experience">
-          <div className="detail-media">
-            <VehiclePhoto car={selectedCar} size="large" />
-          </div>
-          <div className="detail-copy">
-            <p className="eyebrow">Selected experience</p>
-            <h2>{selectedCar.name}</h2>
-            <p>{selectedCar.summary}</p>
-            <div className="detail-meta">
-              <div>
-                <span>Daily rate</span>
-                <strong>{formatCurrency(selectedCar.rate)}</strong>
-              </div>
-              <div>
-                <span>Reserve deposit</span>
-                <strong>{formatCurrency(selectedCar.deposit)}</strong>
-              </div>
-              <div>
-                <span>Best for</span>
-                <strong>{selectedCar.category}</strong>
-              </div>
-            </div>
-            <ul className="detail-specs">
-              {selectedCar.specs.map((spec) => (
-                <li key={spec}>{spec}</li>
-              ))}
-            </ul>
-            <p className="best-for">{selectedCar.bestFor}</p>
-            <a className="primary-button" href={reserveLink(selectedCar)}>
-              Reserve this vehicle
-            </a>
-          </div>
-        </section>
+        {detailCar ? <VehicleDetailModal car={detailCar} onClose={() => setDetailCarSlug("")} /> : null}
 
         <section className="section service-section">
           <div className="section-heading">
@@ -626,7 +624,6 @@ function App() {
         <div className="footer-column">
           <strong>Explore</strong>
           <a href="#fleet">Fleet</a>
-          <a href="#experience">Experience</a>
           <a href="#reviews">Reviews</a>
         </div>
 

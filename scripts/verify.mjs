@@ -73,6 +73,21 @@ if (app.includes("hero-reserve") || app.includes("Quick reserve") || read("src/s
   throw new Error("Homepage quick reserve form should not be present");
 }
 if (
+  app.includes('href="#experience"') ||
+  app.includes("favourite-button") ||
+  read("booking.html").includes("/#experience") ||
+  read("payment.html").includes("/#experience") ||
+  read("success.html").includes("/#experience") ||
+  read("flow.js").includes("Saved locally. Backend sync will resume once the API is available.") ||
+  read("src/styles.css").includes("images.unsplash.com/photo-1503736334956") ||
+  read("flow.css").includes("images.unsplash.com/photo-1503736334956")
+) {
+  throw new Error("Removed customer-facing experience/save/local-sync UI must stay removed");
+}
+if (!read("src/styles.css").includes('/cars/hero-g63-cinematic.png') || !read("flow.css").includes('/cars/hero-g63-cinematic.png')) {
+  throw new Error("Homepage and flow backgrounds must use the local Mercedes G63 AMG asset");
+}
+if (
   !app.includes("vehicle-media-image") ||
   !read("flow.js").includes("vehiclePhotoMarkup") ||
   !read("src/data/fleet.js").includes("studio-3d-render") ||

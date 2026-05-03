@@ -46,8 +46,8 @@ body::before {
   background:
     linear-gradient(90deg, rgba(5, 5, 5, 0.96), rgba(5, 5, 5, 0.72) 42%, rgba(5, 5, 5, 0.22)),
     linear-gradient(180deg, rgba(5, 5, 5, 0.1), rgba(5, 5, 5, 0.96)),
-    url("https://images.unsplash.com/photo-1503736334956-4c8f8e92946d?auto=format&fit=crop&w=1900&q=84");
-  background-position: center;
+    url("/cars/hero-g63-cinematic.png");
+  background-position: center right;
   background-size: cover;
   content: "";
   transform: scale(1.02);
