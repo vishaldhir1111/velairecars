@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { conciergeFleetKnowledge, conciergePromptChips, fleet } from "./data/fleet.js";
 
 const favouriteStorageKey = "velaireFavouriteCars";
@@ -60,6 +60,35 @@ function formatCurrency(value) {
 
 function reserveLink(car) {
   return `booking.html?vehicle=${car.slug}`;
+}
+
+function mergeOperationsFleet(baseFleet, operationsFleet = []) {
+  const operationsBySlug = new Map(operationsFleet.map((vehicle) => [vehicle.slug, vehicle]));
+  return baseFleet.map((car) => {
+    const live = operationsBySlug.get(car.slug);
+    if (!live) return car;
+    return {
+      ...car,
+      name: live.name || car.name,
+      year: live.year || car.year,
+      category: live.category || car.category,
+      finish: live.finish || car.finish,
+      paint: live.paint || car.paint,
+      interior: live.interior || car.interior,
+      specs: live.specs || car.specs,
+      bestFor: live.bestFor || car.bestFor,
+      summary: live.summary || car.summary,
+      rate: Number.isFinite(Number(live.rate)) ? Number(live.rate) : car.rate,
+      deposit: Number.isFinite(Number(live.deposit)) ? Number(live.deposit) : car.deposit,
+      availability: live.availability || car.availability || {},
+      asset: {
+        ...car.asset,
+        modelPath: live.modelPath || car.asset.modelPath,
+        fallbackImagePath: live.fallbackImagePath || car.asset.fallbackImagePath,
+        modelAvailable: Boolean(live.modelAvailable || car.asset.modelAvailable),
+      },
+    };
+  });
 }
 
 function conciergeVehicleLabel(vehicle) {
@@ -293,7 +322,8 @@ function VehiclePhoto({ car, size = "card" }) {
 }
 
 function App() {
-  const [selectedCar, setSelectedCar] = useState(fleet[0]);
+  const [liveFleet, setLiveFleet] = useState(fleet);
+  const [selectedCarSlug, setSelectedCarSlug] = useState(fleet[0].slug);
   const [isConciergeOpen, setIsConciergeOpen] = useState(false);
   const [conciergeInput, setConciergeInput] = useState("");
   const [favouriteCars, setFavouriteCars] = useState(loadFavouriteCars);
@@ -304,6 +334,32 @@ function App() {
         "Welcome to the Velaire concierge. Tell me the occasion, passenger count, location and the impression you want to create. I can recommend, compare and upsell from the Velaire fleet.",
     },
   ]);
+  const selectedCar = liveFleet.find((car) => car.slug === selectedCarSlug) || liveFleet[0] || fleet[0];
+
+  useEffect(() => {
+    let isMounted = true;
+    async function hydrateOperationsFleet() {
+      try {
+        const response = await fetch(`/api/fleet?ts=${Date.now()}`, {
+          method: "GET",
+          cache: "no-store",
+          headers: { Accept: "application/json" },
+        });
+        if (!response.ok) return;
+        const result = await response.json();
+        if (!isMounted || !Array.isArray(result.fleet)) return;
+        const nextFleet = mergeOperationsFleet(fleet, result.fleet);
+        setLiveFleet(nextFleet);
+        setSelectedCarSlug((slug) => (nextFleet.some((car) => car.slug === slug) ? slug : nextFleet[0]?.slug || slug));
+      } catch {
+        // Keep the static fleet visible if the operations API is unavailable.
+      }
+    }
+    hydrateOperationsFleet();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   async function askConcierge(question) {
     const clean = question.trim();
@@ -357,7 +413,7 @@ function App() {
         <nav className="nav-links">
           <a href="#fleet">Fleet</a>
           <a href="#experience">Experience</a>
-          <a href="#booking">Reserve</a>
+          <a href="booking.html">Reserve</a>
         </nav>
 
         <a className="nav-cta" href="booking.html">
@@ -386,38 +442,6 @@ function App() {
                 </a>
               </div>
             </div>
-
-            <form className="hero-reserve" action="booking.html" aria-label="Quick reservation">
-              <p className="eyebrow">Quick reserve</p>
-              <label>
-                Vehicle
-                <select name="vehicle" defaultValue={fleet[1].slug}>
-                  {fleet.map((car) => (
-                    <option value={car.slug} key={car.slug}>
-                      {car.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <div className="form-pair">
-                <label>
-                  Pickup
-                  <input type="date" name="pickup" />
-                </label>
-                <label>
-                  Time
-                  <input type="time" name="time" defaultValue="10:00" />
-                </label>
-              </div>
-              <label>
-                Delivery location
-                <input type="text" name="location" placeholder="Mayfair, Heathrow, hotel or venue" />
-              </label>
-              <button className="primary-button full-button" type="submit">
-                Check availability
-              </button>
-              <p className="form-note">Deposit guidance and concierge delivery shown before payment.</p>
-            </form>
           </div>
         </section>
 
@@ -441,7 +465,7 @@ function App() {
           </div>
 
           <div className="fleet-grid">
-            {fleet.map((car) => (
+            {liveFleet.map((car) => (
               <article className="fleet-card" key={car.slug}>
                 <div className="fleet-media">
                   <VehiclePhoto car={car} />
@@ -461,7 +485,7 @@ function App() {
                     ))}
                   </ul>
                   <div className="card-actions">
-                    <button className="text-button" type="button" onClick={() => setSelectedCar(car)}>
+                    <button className="text-button" type="button" onClick={() => setSelectedCarSlug(car.slug)}>
                       View details
                     </button>
                     <button

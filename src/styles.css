@@ -226,14 +226,13 @@ select {
 
 .hero-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(320px, 430px);
-  gap: 52px;
+  grid-template-columns: minmax(0, 1fr);
   align-items: end;
   min-height: calc(100vh - 208px);
 }
 
 .hero-copy {
-  max-width: 760px;
+  max-width: 980px;
   padding-bottom: 46px;
 }
 
@@ -257,13 +256,13 @@ select {
 }
 
 .hero h1 {
-  max-width: 760px;
+  max-width: 980px;
   color: var(--ivory);
-  font-size: 8.8rem;
+  font-size: clamp(6.8rem, 10vw, 10.8rem);
 }
 
 .hero-lede {
-  max-width: 650px;
+  max-width: 720px;
   margin: 28px 0 0;
   color: rgba(248, 242, 236, 0.82);
   font-size: 1.16rem;
@@ -312,55 +311,6 @@ select {
 
 .full-button {
   width: 100%;
-}
-
-.hero-reserve {
-  display: grid;
-  gap: 15px;
-  border: 1px solid rgba(215, 161, 140, 0.26);
-  border-radius: var(--radius);
-  background: rgba(9, 8, 8, 0.74);
-  padding: 24px;
-  box-shadow: var(--shadow);
-  backdrop-filter: blur(22px);
-}
-
-.hero-reserve label {
-  display: grid;
-  gap: 8px;
-  color: var(--muted);
-  font-size: 0.8rem;
-  font-weight: 800;
-}
-
-.hero-reserve input,
-.hero-reserve select {
-  width: 100%;
-  min-height: 46px;
-  border: 1px solid rgba(248, 242, 236, 0.14);
-  border-radius: var(--radius);
-  background: rgba(255, 255, 255, 0.06);
-  color: var(--ivory);
-  padding: 0 12px;
-}
-
-.hero-reserve input:focus,
-.hero-reserve select:focus {
-  outline: 3px solid rgba(215, 161, 140, 0.16);
-  border-color: var(--rose);
-}
-
-.form-pair {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-}
-
-.form-note {
-  margin: 0;
-  color: var(--muted);
-  font-size: 0.82rem;
-  line-height: 1.55;
 }
 
 .trust-strip {
@@ -1667,7 +1617,6 @@ select {
     width: 100%;
   }
 
-  .form-pair,
   .trust-strip,
   .fleet-grid,
   .service-grid,

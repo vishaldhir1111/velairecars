@@ -2,6 +2,7 @@ import { adminAllowed } from "../_lib/admin-auth.js";
 import { allowMethods, publicError, readJson, sendJson } from "../_lib/http.js";
 import {
   blockVehicleDates,
+  listOperationalVehiclesFromState,
   listOperationalVehicles,
   removeVehicleBlock,
   updateVehicleOperationsRecord,
@@ -30,21 +31,21 @@ export default async function handler(req, res) {
     }
 
     if (req.method === "POST") {
-      const { block, persistence } = await blockVehicleDates(slug, body.block || body);
-      const { vehicles } = await listOperationalVehicles();
+      const { block, state, persistence } = await blockVehicleDates(slug, body.block || body);
+      const vehicles = listOperationalVehiclesFromState(state);
       sendJson(res, 201, { block, vehicles, persistence });
       return;
     }
 
     if (req.method === "DELETE") {
-      const { removed, persistence } = await removeVehicleBlock(slug, body.blockId || req.query?.blockId);
-      const { vehicles } = await listOperationalVehicles();
+      const { removed, state, persistence } = await removeVehicleBlock(slug, body.blockId || req.query?.blockId);
+      const vehicles = listOperationalVehiclesFromState(state);
       sendJson(res, removed ? 200 : 404, { removed, vehicles, persistence, message: removed ? "Vehicle block removed." : "Block not found." });
       return;
     }
 
-    const { vehicle, persistence } = await updateVehicleOperationsRecord(slug, body.patch || body);
-    const { vehicles } = await listOperationalVehicles();
+    const { vehicle, state, persistence } = await updateVehicleOperationsRecord(slug, body.patch || body);
+    const vehicles = listOperationalVehiclesFromState(state);
     sendJson(res, 200, { vehicle, vehicles, persistence });
   } catch (error) {
     sendJson(res, error.status || 500, { error: "admin_vehicle_update_failed", message: publicError(error) });

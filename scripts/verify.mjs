@@ -66,6 +66,12 @@ const app = read("src/App.jsx");
 if (!app.includes('from "./data/fleet.js"')) {
   throw new Error("src/App.jsx is not using the shared fleet data module");
 }
+if (!app.includes("/api/fleet?ts=") || !app.includes("mergeOperationsFleet") || !app.includes("cache: \"no-store\"")) {
+  throw new Error("Homepage fleet must hydrate pricing from the operations-managed fleet API without cache");
+}
+if (app.includes("hero-reserve") || app.includes("Quick reserve") || read("src/styles.css").includes(".hero-reserve")) {
+  throw new Error("Homepage quick reserve form should not be present");
+}
 
 const vite = read("vite.config.js");
 for (const page of ["booking.html", "login.html", "account.html", "admin.html", "payment.html", "success.html"]) {
@@ -102,6 +108,7 @@ if (
   read("api/availability.js").includes('|| "lamborghini-urus"') ||
   !read("flow.js").includes("resolveSelectedVehicleSlug") ||
   !read("flow.js").includes("hydrateFleetPricing") ||
+  !read("flow.js").includes("strict: true") ||
   !read("flow.js").includes("dateIsSelectedVehicleBlocked") ||
   !read("flow.js").includes("setupAdmin") ||
   !read("api/availability.js").includes("vehicle_required")

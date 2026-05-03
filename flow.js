@@ -518,32 +518,26 @@ async function ensureBackendAccount({ email, password, phone }) {
   }
 }
 
-async function syncBookingToBackend(status = "draft") {
+async function syncBookingToBackend(status = "draft", { strict = false } = {}) {
   const reservation = loadReservation();
   const currentBooking = loadBackendBooking();
-  const result = currentBooking?.id
-    ? await optionalApiRequest(
-        "/api/bookings",
-        {
-          method: "PATCH",
-          body: JSON.stringify({
-            id: currentBooking.id,
-            patch: {
-              reservation,
-              status,
-            },
-          }),
-        },
-        null,
-      )
-    : await optionalApiRequest(
-        "/api/bookings",
-        {
-          method: "POST",
-          body: JSON.stringify({ reservation, status }),
-        },
-        null,
-      );
+  const path = "/api/bookings";
+  const options = currentBooking?.id
+    ? {
+        method: "PATCH",
+        body: JSON.stringify({
+          id: currentBooking.id,
+          patch: {
+            reservation,
+            status,
+          },
+        }),
+      }
+    : {
+        method: "POST",
+        body: JSON.stringify({ reservation, status }),
+      };
+  const result = strict ? await apiRequest(path, options) : await optionalApiRequest(path, options, null);
   if (result?.booking) {
     saveBackendBooking(result.booking);
     saveReservation({ bookingId: result.booking.id, reference: result.booking.reference });
@@ -586,9 +580,10 @@ async function checkAvailability() {
   }
 
   const result = await optionalApiRequest(
-    "/api/availability",
+    `/api/availability?ts=${Date.now()}`,
     {
       method: "POST",
+      cache: "no-store",
       body: JSON.stringify({ ...reservation, vehicle: selectedVehicleSlug }),
     },
     null,
@@ -771,7 +766,15 @@ function updateBookingVehicleCards() {
 }
 
 async function hydrateFleetPricing() {
-  const result = await optionalApiRequest("/api/fleet", { method: "GET" }, null);
+  const result = await optionalApiRequest(
+    `/api/fleet?ts=${Date.now()}`,
+    {
+      method: "GET",
+      cache: "no-store",
+      headers: { Accept: "application/json" },
+    },
+    null,
+  );
   (result?.fleet || []).forEach(mergeFleetVehicle);
   updateBookingVehicleCards();
   updateSummary();
@@ -2060,8 +2063,17 @@ function setupBooking() {
   form?.addEventListener("submit", async (event) => {
     event.preventDefault();
     saveReservation(readBookingForm(form));
-    await syncBookingToBackend("draft");
-    navigateTo(form.getAttribute("action") || "payment.html");
+    try {
+      const availability = await checkAvailability();
+      if (availability && availability.available === false) {
+        showFlowToast(availability.message || "That vehicle is unavailable for the selected dates.", "warning");
+        return;
+      }
+      await syncBookingToBackend("draft", { strict: true });
+      navigateTo(form.getAttribute("action") || "payment.html");
+    } catch (error) {
+      showFlowToast(error.message || "Those reservation details could not be saved. Please adjust the selection.", "warning");
+    }
   });
 
   hydrateFleetPricing().finally(() => {
@@ -2362,15 +2374,21 @@ function setupLogin() {
 
 function setupPayment() {
   const form = document.querySelector("form");
+  hydrateFleetPricing();
   form?.addEventListener("submit", async (event) => {
     event.preventDefault();
-    await syncBookingToBackend("payment_review");
-    await createPaymentIntent();
-    saveReservation({
-      status: "Concierge review",
-      confirmedAt: new Date().toISOString(),
-    });
-    navigateTo(form.getAttribute("action") || "success.html");
+    try {
+      await hydrateFleetPricing();
+      await syncBookingToBackend("payment_review", { strict: true });
+      await createPaymentIntent();
+      saveReservation({
+        status: "Concierge review",
+        confirmedAt: new Date().toISOString(),
+      });
+      navigateTo(form.getAttribute("action") || "success.html");
+    } catch (error) {
+      showFlowToast(error.message || "The deposit step could not continue. Please review availability.", "warning");
+    }
   });
 }
 
@@ -2381,4 +2399,5 @@ if (page === "login") setupLogin();
 if (page === "payment") setupPayment();
 if (page === "account") setupAccount();
 if (page === "admin") setupAdmin();
+if (["success", "guest"].includes(page)) hydrateFleetPricing();
 updateSummary();
