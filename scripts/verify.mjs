@@ -143,9 +143,36 @@ for (const page of ["booking.html", "login.html", "account.html", "admin.html", 
   if (!html.includes('href="flow.css"')) {
     throw new Error(`${page} does not load flow.css`);
   }
-  if (!html.includes('type="module" src="/flow.js"')) {
+  if (!html.includes('type="module" src="/flow.js"') && !html.includes('type="module" src="flow.js"')) {
     throw new Error(`${page} does not load flow.js`);
   }
+}
+
+const booking = read("booking.html");
+if (
+  (booking.match(/class="vehicle-media-image"/g) || []).length < 6 ||
+  (booking.match(/class="vehicle-media-backup"/g) || []).length < 6 ||
+  !booking.includes('src="flow.js"') ||
+  !booking.includes("!this.dataset.triedLocal") ||
+  !booking.includes("--vehicle-card-image: url('/cars/studio-tesla-model-3-performance-2020.png')") ||
+  !booking.includes('data-local-src="public/cars/studio-tesla-model-3-performance-2020.png"') ||
+  !booking.includes('data-local-src="public/cars/studio-lamborghini-urus-2021-orange.png"') ||
+  !booking.includes('data-local-src="public/cars/studio-range-rover-sport-svr-2021.png"') ||
+  !booking.includes('data-local-src="public/cars/studio-bmw-m440i-convertible-2022-sky-blue.png"') ||
+  !booking.includes('data-local-src="public/cars/studio-bmw-m140i-shadow-edition-2019.png"')
+) {
+  throw new Error("Booking page must render generated vehicle images directly, with local-preview fallbacks, before JS hydration");
+}
+
+if (
+  !read("flow.css").includes(".choice-card .vehicle-media-image") ||
+  !read("flow.css").includes(".summary-media .vehicle-media-image") ||
+  !read("flow.css").includes(".vehicle-media-backup") ||
+  !read("flow.js").includes("node.style.setProperty(\"--vehicle-card-image\"") ||
+  !read("flow.css").includes("visibility: visible") ||
+  !read("flow.css").includes("isolation: isolate")
+) {
+  throw new Error("Booking media CSS must keep real vehicle images above the dark studio card layers");
 }
 
 for (const match of read("flow.js").matchAll(/^  "([^"]+)": \{/gm)) {

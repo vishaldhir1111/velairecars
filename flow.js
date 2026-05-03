@@ -714,7 +714,12 @@ function vehicleModelMarkup() {
 
 function vehiclePhotoMarkup(src = "", alt = "") {
   if (!src) return "";
-  return `<img class="vehicle-media-image" src="${escapeHtml(src)}" alt="${escapeHtml(alt)}" loading="lazy" decoding="async" />`;
+  const localSrc = src.startsWith("/cars/") ? `public${src}` : src;
+  return `<img class="vehicle-media-image" src="${escapeHtml(src)}" data-canonical-src="${escapeHtml(
+    src,
+  )}" data-local-src="${escapeHtml(localSrc)}" alt="${escapeHtml(
+    alt,
+  )}" loading="lazy" decoding="async" onerror="if(!this.dataset.triedLocal&&this.dataset.localSrc){this.dataset.triedLocal='true';this.src=this.dataset.localSrc}" />`;
 }
 
 function hydrateVehicleModels(root = document) {
@@ -722,14 +727,26 @@ function hydrateVehicleModels(root = document) {
   nodes.forEach((node) => {
     const imagePath = node.dataset.fallbackImage || "";
     const label = node.getAttribute("aria-label") || "Velaire fleet vehicle";
+    if (imagePath) {
+      node.style.setProperty("--vehicle-card-image", `url("${imagePath}")`);
+    }
     const existingImage = node.querySelector(".vehicle-media-image");
     if (imagePath && !existingImage) {
       node.insertAdjacentHTML("afterbegin", vehiclePhotoMarkup(imagePath, label));
-    } else if (imagePath && existingImage?.getAttribute("src") !== imagePath) {
+    } else if (imagePath && existingImage?.dataset.canonicalSrc !== imagePath) {
+      const localPath = imagePath.startsWith("/cars/") ? `public${imagePath}` : imagePath;
+      existingImage.dataset.canonicalSrc = imagePath;
+      existingImage.dataset.localSrc = localPath;
       existingImage.setAttribute("src", imagePath);
       existingImage.setAttribute("alt", label);
     }
     node.classList.toggle("has-photo", Boolean(imagePath));
+    if (imagePath && !node.querySelector(".vehicle-media-backup")) {
+      const backup = document.createElement("span");
+      backup.className = "vehicle-media-backup";
+      backup.setAttribute("aria-hidden", "true");
+      node.appendChild(backup);
+    }
     if (!node.querySelector(".vehicle-model-scene")) {
       node.insertAdjacentHTML("beforeend", vehicleModelMarkup());
     }
