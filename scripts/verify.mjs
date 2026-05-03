@@ -98,16 +98,30 @@ if (
   throw new Error("Fleet media must use the local premium 3D-style studio visual assets");
 }
 
-for (const asset of [
+const studioAssets = [
   "public/cars/studio-tesla-model-3-performance-2020.png",
   "public/cars/studio-lamborghini-urus-2021-orange.png",
   "public/cars/studio-range-rover-sport-svr-2021.png",
   "public/cars/studio-bmw-m440i-convertible-2022-sky-blue.png",
   "public/cars/studio-bmw-m140i-shadow-edition-2019.png",
-]) {
+];
+
+for (const asset of studioAssets) {
   if (!fs.existsSync(path.join(root, asset))) {
     throw new Error(`Missing studio fleet media asset: ${asset}`);
   }
+  const publicPath = `/${asset.replace(/^public\//, "")}`;
+  if (!read("src/data/fleet.js").includes(publicPath) || !read("flow.js").includes(publicPath) || !read("booking.html").includes(publicPath)) {
+    throw new Error(`Booking and fleet pages must share generated studio media: ${publicPath}`);
+  }
+}
+
+if (
+  !read("flow.js").includes("generatedVehicleMedia") ||
+  read("flow.js").includes("current.fallbackImagePath = vehicle.fallbackImagePath") ||
+  read("src/App.jsx").includes("fallbackImagePath: live.fallbackImagePath")
+) {
+  throw new Error("Booking and homepage fleet media must stay locked to the generated studio assets, not stale live fallbacks");
 }
 
 const vite = read("vite.config.js");

@@ -96,6 +96,27 @@ const vehicles = {
   },
 };
 
+Object.entries(vehicles).forEach(([slug, vehicle]) => {
+  vehicle.slug = slug;
+});
+
+const generatedVehicleMedia = Object.freeze(
+  Object.fromEntries(
+    Object.entries(vehicles).map(([slug, vehicle]) => [
+      slug,
+      Object.freeze({
+        visualClass: vehicle.visualClass,
+        modelType: vehicle.modelType,
+        modelPath: vehicle.modelPath,
+        fallbackImagePath: vehicle.fallbackImagePath,
+        modelAvailable: false,
+        viewerMode: "studio-3d-render",
+        visualLabel: vehicle.visualLabel,
+      }),
+    ]),
+  ),
+);
+
 const storageKey = "velaireReservation";
 const accountStorageKey = "velaireAccount";
 const backendBookingKey = "velaireBackendBooking";
@@ -643,6 +664,23 @@ function selectedVehicle(slug = selectedSlug()) {
   return vehicles[cleanSlug] || vehicles[firstBookableVehicleSlug()] || vehicles[defaultVehicle];
 }
 
+function exactGeneratedMediaFor(slug = "") {
+  return generatedVehicleMedia[normaliseVehicleSlug(slug)] || null;
+}
+
+function mediaForVehicle(vehicle = {}) {
+  const media = exactGeneratedMediaFor(vehicle.slug);
+  return {
+    visualClass: media?.visualClass || vehicle.visualClass,
+    modelType: media?.modelType || vehicle.modelType || "saloon",
+    modelPath: media?.modelPath || vehicle.modelPath || "",
+    fallbackImagePath: media?.fallbackImagePath || vehicle.fallbackImagePath || "",
+    modelAvailable: Boolean(media?.modelAvailable),
+    viewerMode: media?.viewerMode || vehicle.viewerMode || "studio-3d-render",
+    visualLabel: media?.visualLabel || vehicle.visualLabel || vehicle.name || "Velaire fleet vehicle",
+  };
+}
+
 function bindText(name, value) {
   document.querySelectorAll(`[data-bind="${name}"]`).forEach((node) => {
     node.textContent = value;
@@ -699,6 +737,7 @@ function hydrateVehicleModels(root = document) {
 }
 
 function bindVehicleMedia(vehicle) {
+  const media = mediaForVehicle(vehicle);
   document.querySelectorAll("[data-bind-vehicle-media]").forEach((node) => {
     Object.keys(vehicles).forEach((slug) => {
       node.classList.remove(`flow-vehicle-photo-${slug}`, `vehicle-model-${slug}`);
@@ -707,14 +746,14 @@ function bindVehicleMedia(vehicle) {
       node.classList.remove(`vehicle-model-${type}`);
     });
     node.classList.add(
-      `flow-vehicle-photo-${vehicle.visualClass}`,
-      `vehicle-model-${vehicle.visualClass}`,
-      `vehicle-model-${vehicle.modelType || "saloon"}`,
+      `flow-vehicle-photo-${media.visualClass}`,
+      `vehicle-model-${media.visualClass}`,
+      `vehicle-model-${media.modelType}`,
     );
-    node.setAttribute("aria-label", `Premium 3D studio visual of ${vehicle.visualLabel}`);
-    node.dataset.modelPath = vehicle.modelPath || "";
-    node.dataset.fallbackImage = vehicle.fallbackImagePath || "";
-    node.dataset.modelStatus = vehicle.modelAvailable ? "glb-active" : vehicle.viewerMode || "studio-3d-render";
+    node.setAttribute("aria-label", `Premium 3D studio visual of ${media.visualLabel}`);
+    node.dataset.modelPath = media.modelPath;
+    node.dataset.fallbackImage = media.fallbackImagePath;
+    node.dataset.modelStatus = media.modelAvailable ? "glb-active" : media.viewerMode;
     hydrateVehicleModels(node);
   });
 
@@ -780,18 +819,20 @@ function updateSummary() {
 function mergeFleetVehicle(vehicle = {}) {
   const current = vehicles[vehicle.slug];
   if (!current) return;
+  const media = exactGeneratedMediaFor(current.slug);
   current.name = vehicle.name || current.name;
   current.shortName = vehicle.shortName || current.shortName || vehicle.name || current.name;
   current.category = vehicle.category || current.category;
   current.finish = vehicle.finish || current.finish;
   current.paint = vehicle.paint || current.paint;
   current.interior = vehicle.interior || current.interior;
-  current.modelType = vehicle.modelType || current.modelType;
-  current.modelPath = vehicle.modelPath || current.modelPath;
-  current.fallbackImagePath = vehicle.fallbackImagePath || current.fallbackImagePath;
-  current.modelAvailable = Boolean(vehicle.modelAvailable || current.modelAvailable);
-  current.viewerMode = vehicle.viewerMode || current.viewerMode || "studio-3d-render";
-  current.visualLabel = vehicle.visualLabel || vehicle.alt || current.visualLabel;
+  current.visualClass = media?.visualClass || current.visualClass;
+  current.modelType = media?.modelType || current.modelType;
+  current.modelPath = media?.modelPath || current.modelPath;
+  current.fallbackImagePath = media?.fallbackImagePath || current.fallbackImagePath;
+  current.modelAvailable = Boolean(media?.modelAvailable);
+  current.viewerMode = media?.viewerMode || current.viewerMode || "studio-3d-render";
+  current.visualLabel = media?.visualLabel || vehicle.visualLabel || vehicle.alt || current.visualLabel;
   current.rate = Number(vehicle.rate || current.rate);
   current.deposit = Number(vehicle.deposit || current.deposit);
   current.availability = vehicle.availability || current.availability || {};
@@ -811,10 +852,11 @@ function updateBookingVehicleCards() {
     if (price) price.textContent = `${money(vehicle.rate)}/day`;
     const media = card.querySelector("[data-vehicle-model]");
     if (media) {
-      media.setAttribute("aria-label", `Premium 3D studio visual of ${vehicle.visualLabel}`);
-      media.dataset.modelPath = vehicle.modelPath || "";
-      media.dataset.fallbackImage = vehicle.fallbackImagePath || "";
-      media.dataset.modelStatus = vehicle.modelAvailable ? "glb-active" : vehicle.viewerMode || "studio-3d-render";
+      const exactMedia = mediaForVehicle(vehicle);
+      media.setAttribute("aria-label", `Premium 3D studio visual of ${exactMedia.visualLabel}`);
+      media.dataset.modelPath = exactMedia.modelPath;
+      media.dataset.fallbackImage = exactMedia.fallbackImagePath;
+      media.dataset.modelStatus = exactMedia.modelAvailable ? "glb-active" : exactMedia.viewerMode;
       hydrateVehicleModels(media);
     }
     input.disabled = isOffline;
@@ -2118,6 +2160,10 @@ function setupBooking() {
       persistDraft();
     });
   });
+
+  updateBookingVehicleCards();
+  refreshCards();
+  updateSummary();
 
   form?.addEventListener("input", persistDraft);
   form?.addEventListener("submit", async (event) => {

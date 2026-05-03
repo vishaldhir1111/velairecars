@@ -81,9 +81,10 @@ function mergeOperationsFleet(baseFleet, operationsFleet = []) {
       availability: live.availability || car.availability || {},
       asset: {
         ...car.asset,
-        modelPath: live.modelPath || car.asset.modelPath,
-        fallbackImagePath: live.fallbackImagePath || car.asset.fallbackImagePath,
-        modelAvailable: Boolean(live.modelAvailable || car.asset.modelAvailable),
+        modelPath: car.asset.modelPath,
+        fallbackImagePath: car.asset.fallbackImagePath,
+        modelAvailable: Boolean(car.asset.modelAvailable),
+        viewerMode: car.asset.viewerMode,
       },
     };
   });
