@@ -2078,39 +2078,66 @@ function renderAdminVehicles(vehiclesList = []) {
               <span class="eyebrow">${escapeHtml(vehicle.category || "Vehicle")}</span>
               <h3>${escapeHtml(vehicle.name)} ${escapeHtml(vehicle.year || "")}</h3>
             </div>
-            <strong>${money(vehicle.rate)}/day</strong>
+            <strong class="admin-rate-badge">${money(vehicle.rate)}/day</strong>
           </div>
-          <form class="admin-inline-form" data-admin-vehicle-form data-slug="${escapeHtml(vehicle.slug)}">
-            <label>Daily rate <input type="number" name="rate" min="0" value="${Number(vehicle.rate || 0)}" /></label>
-            <label>Deposit <input type="number" name="deposit" min="0" value="${Number(vehicle.deposit || 0)}" /></label>
-            <label>Status
-              <select name="availabilityStatus">
-                <option value="request-to-confirm" ${vehicle.availability?.status !== "offline" ? "selected" : ""}>Active</option>
-                <option value="offline" ${vehicle.availability?.status === "offline" ? "selected" : ""}>Offline</option>
-              </select>
-            </label>
-            <button type="submit">Save vehicle</button>
-          </form>
-          <form class="admin-inline-form" data-admin-block-form data-slug="${escapeHtml(vehicle.slug)}">
-            <label>Block from <input type="date" name="start" required /></label>
-            <label>Block until <input type="date" name="end" required /></label>
-            <label>Reason <input name="reason" placeholder="Service, detailing, owner hold" /></label>
-            <button type="submit">Block dates</button>
-          </form>
-          <div class="admin-block-list">
+          <div class="admin-vehicle-actions">
+            <form class="admin-inline-form admin-pricing-form" data-admin-vehicle-form data-slug="${escapeHtml(vehicle.slug)}">
+              <div class="admin-control-heading">
+                <div>
+                  <span>Tariff control</span>
+                  <small>Updates the live reservation rate and deposit.</small>
+                </div>
+              </div>
+              <label class="field admin-field">Daily rate
+                <input type="number" name="rate" min="0" value="${Number(vehicle.rate || 0)}" />
+              </label>
+              <label class="field admin-field">Deposit
+                <input type="number" name="deposit" min="0" value="${Number(vehicle.deposit || 0)}" />
+              </label>
+              <label class="field admin-field">Status
+                <select name="availabilityStatus">
+                  <option value="request-to-confirm" ${vehicle.availability?.status !== "offline" ? "selected" : ""}>Active</option>
+                  <option value="offline" ${vehicle.availability?.status === "offline" ? "selected" : ""}>Offline</option>
+                </select>
+              </label>
+              <button class="primary-button admin-submit" type="submit">Save changes</button>
+            </form>
+            <form class="admin-inline-form admin-block-form" data-admin-block-form data-slug="${escapeHtml(vehicle.slug)}">
+              <div class="admin-control-heading">
+                <div>
+                  <span>Availability hold</span>
+                  <small>Block customer reservations for service, detailing or owner holds.</small>
+                </div>
+              </div>
+              <label class="field admin-field">Block from
+                <input type="date" name="start" required />
+              </label>
+              <label class="field admin-field">Block until
+                <input type="date" name="end" required />
+              </label>
+              <label class="field admin-field">Reason
+                <input name="reason" placeholder="Service, detailing, owner hold" />
+              </label>
+              <button class="secondary-button admin-submit admin-block-submit" type="submit">Block dates</button>
+            </form>
+          </div>
+          <div class="admin-block-list" aria-label="Blocked dates for ${escapeHtml(vehicle.name)}">
             ${
               blocks.length
                 ? blocks
                     .map(
                       (block) => `
-                        <span>
-                          ${escapeHtml(block.start)} to ${escapeHtml(block.end)} · ${escapeHtml(block.reason || "Operations block")}
-                          <button type="button" data-admin-remove-block data-slug="${escapeHtml(vehicle.slug)}" data-block-id="${escapeHtml(block.id)}">Remove</button>
-                        </span>
+                        <div class="admin-block-chip">
+                          <span class="admin-block-copy">
+                            <strong>${escapeHtml(block.start)} to ${escapeHtml(block.end)}</strong>
+                            <small>${escapeHtml(block.reason || "Operations block")}</small>
+                          </span>
+                          <button class="admin-remove-block" type="button" data-admin-remove-block data-slug="${escapeHtml(vehicle.slug)}" data-block-id="${escapeHtml(block.id)}">Remove</button>
+                        </div>
                       `,
                     )
                     .join("")
-                : "<span>No blocked dates</span>"
+                : `<div class="admin-block-empty">No blocked dates currently.</div>`
             }
           </div>
         </article>
