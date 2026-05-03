@@ -484,6 +484,8 @@ async function optionalApiRequest(path, options = {}, fallback = null) {
   try {
     return await apiRequest(path, options);
   } catch (error) {
+    if (window.location.protocol !== "file:" && path.startsWith("/api/bookings")) throw error;
+    if (window.location.protocol !== "file:" && path.startsWith("/api/payments")) throw error;
     return fallback;
   }
 }
@@ -605,12 +607,21 @@ async function createPaymentIntent() {
     saveReservation({
       paymentIntentId: result.paymentIntent.id,
       paymentStatus: result.paymentIntent.status,
+      checkoutSessionId: result.checkoutSessionId || "",
+      checkoutUrl: result.checkoutUrl || "",
     });
   }
   if (!result?.paymentIntent) {
     throw new Error("The secure deposit record could not be created. Please try again.");
   }
-  return result.paymentIntent;
+  if (!result.checkoutUrl) {
+    throw new Error("Stripe Checkout did not return a secure payment link. Please try again.");
+  }
+  return {
+    ...result.paymentIntent,
+    checkoutUrl: result.checkoutUrl,
+    checkoutSessionId: result.checkoutSessionId || "",
+  };
 }
 
 async function checkAvailability() {
@@ -2503,14 +2514,14 @@ function setupPayment() {
     try {
       await hydrateFleetPricing();
       await syncBookingToBackend("payment_review", { strict: true });
-      await createPaymentIntent();
+      const payment = await createPaymentIntent();
       saveReservation({
         status: "Concierge review",
-        confirmedAt: new Date().toISOString(),
+        paymentStatus: payment.status || "payment_pending",
       });
-      navigateTo(form.getAttribute("action") || "success.html");
+      window.location.assign(payment.checkoutUrl);
     } catch (error) {
-      showFlowToast(error.message || "The deposit step could not continue. Please review availability.", "warning");
+      showFlowToast(error.message || "Stripe Checkout could not be started. Please try again.", "warning");
     }
   });
 }

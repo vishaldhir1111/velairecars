@@ -33,6 +33,19 @@ function storageAvailable({ readOnly = false } = {}) {
   return Boolean(url && token);
 }
 
+function persistenceRequired() {
+  return process.env.VELAIRE_ALLOW_MEMORY_FALLBACK !== "true" && (process.env.VERCEL || process.env.NODE_ENV === "production");
+}
+
+function persistenceError(reason = "kv_rest_not_configured") {
+  const error = new Error("Operations storage is not available. Please try again shortly.");
+  error.status = 503;
+  error.code = "operations_storage_unavailable";
+  error.publicMessage = "Secure booking storage is temporarily unavailable. Please try again shortly.";
+  error.reason = reason;
+  return error;
+}
+
 async function kvCommand(command, args = [], { readOnly = false } = {}) {
   const { url, token } = kvConfig({ readOnly });
   if (!url || !token) {
@@ -169,8 +182,11 @@ export async function saveOperationsState(nextState) {
     ...nextState,
     updatedAt: now(),
   });
-  globalThis.__VELAIRE_OPERATIONS_STORE__ = state;
   const persistence = await writePersistedState(state);
+  if (persistenceRequired() && !persistence.saved) {
+    throw persistenceError(persistence.reason);
+  }
+  globalThis.__VELAIRE_OPERATIONS_STORE__ = state;
   return { state, persistence };
 }
 
@@ -248,6 +264,9 @@ function publicPayment(payment = {}) {
     status: payment.status || "payment_pending",
     provider: payment.provider || "manual_deposit_record",
     providerReference: payment.providerReference || "",
+    stripePaymentIntentId: payment.stripePaymentIntentId || "",
+    stripeCustomerId: payment.stripeCustomerId || "",
+    stripePaymentStatus: payment.stripePaymentStatus || "",
     createdAt: payment.createdAt,
     updatedAt: payment.updatedAt || payment.createdAt,
   };
@@ -631,6 +650,13 @@ export async function updateBookingRecord(idValue, patch = {}) {
 export async function createPaymentRecord({ bookingId = "", reservation = {} } = {}) {
   const { state, persistence, result } = await mutateOperations((draft) => {
     const booking = draft.bookings.find((item) => item.id === bookingId);
+    if (!booking) {
+      const error = new Error("Create a secure booking record before starting the deposit session.");
+      error.status = 404;
+      error.code = "booking_required";
+      error.publicMessage = "Create a secure booking record before starting the deposit session.";
+      throw error;
+    }
     const totals = booking?.totals || totalsForReservation(draft, reservation);
     const payment = {
       id: id("pi"),
@@ -657,9 +683,7 @@ export async function createPaymentRecord({ bookingId = "", reservation = {} } =
     }
     return publicPayment(payment);
   });
-  const booking = (state.bookings || []).find((item) => item.id === result?.bookingId) || null;
-  const notifications = await dispatchNotifications(() => sendPaymentPendingNotifications({ payment: result, booking }));
-  return { payment: result, state, persistence, notifications };
+  return { payment: result, state, persistence, notifications: [] };
 }
 
 export async function updatePaymentRecord(idValue, patch = {}) {
@@ -670,16 +694,19 @@ export async function updatePaymentRecord(idValue, patch = {}) {
     const booking = draft.bookings.find((item) => item.id === payment.bookingId);
     if (booking && patch.status) {
       booking.paymentStatus = patch.status;
-      booking.status = patch.status === "deposit_paid" ? "confirmed" : booking.status;
+      if (patch.status === "deposit_paid") booking.status = "confirmed";
+      if (["cancelled", "failed"].includes(String(patch.status).toLowerCase())) booking.status = String(patch.status).toLowerCase();
       booking.updatedAt = now();
     }
     return publicPayment(payment);
   });
   const booking = (state.bookings || []).find((item) => item.id === result?.bookingId) || null;
-  const notifications =
-    result && String(patch?.status || "").toLowerCase() === "deposit_paid"
-      ? await dispatchNotifications(() => sendDepositPaidNotifications({ payment: result, booking }))
-      : [];
+  let notifications = [];
+  if (result && String(patch?.status || "").toLowerCase() === "deposit_paid") {
+    notifications = await dispatchNotifications(() => sendDepositPaidNotifications({ payment: result, booking }));
+  } else if (result && String(patch?.status || "").toLowerCase() === "payment_pending" && (patch?.providerReference || patch?.checkoutUrl)) {
+    notifications = await dispatchNotifications(() => sendPaymentPendingNotifications({ payment: result, booking }));
+  }
   return { payment: result, state, persistence, notifications };
 }
 

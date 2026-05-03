@@ -92,36 +92,17 @@
           <form class="flow-panel form-grid payment-card" action="success.html">
             <div class="panel-heading">
               <p class="eyebrow">Secure payment</p>
-              <h2>Reservation details.</h2>
+              <h2>Stripe-hosted deposit.</h2>
             </div>
-
-            <label class="field">
-              Card number
-              <input inputmode="numeric" name="card" placeholder="1234 1234 1234 1234" autocomplete="cc-number" />
-            </label>
-            <div class="form-grid two-column">
-              <label class="field">
-                Expiry
-                <input type="text" name="expiry" placeholder="MM / YY" autocomplete="cc-exp" />
-              </label>
-              <label class="field">
-                CVC
-                <input inputmode="numeric" name="cvc" placeholder="123" autocomplete="cc-csc" />
-              </label>
-            </div>
-            <label class="field">
-              Name on card
-              <input type="text" name="name" placeholder="Full name" autocomplete="cc-name" />
-            </label>
 
             <div class="secure-band">
               <strong>Secure reservation hold</strong>
-              <span>Ready for a live payment provider when connected.</span>
+              <span>Continue to Stripe Checkout to complete the deposit securely. Velaire never stores card details.</span>
             </div>
 
-            <button class="primary-button full-width" type="submit">Confirm reservation</button>
+            <button class="primary-button full-width" type="submit">Create secure deposit session</button>
             <p class="secure-note">
-              Deposit and balance terms are confirmed by concierge before the vehicle is released.
+              After payment, Stripe returns you to Velaire and Operations receives the paid deposit state.
             </p>
           </form>
         </div>

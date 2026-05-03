@@ -60,6 +60,21 @@ Vercel. Add these environment variables in Vercel to enable live email delivery:
 If `RESEND_API_KEY` is missing, bookings and payments continue to work and notification attempts are
 recorded as skipped in the operations data instead of blocking the customer flow.
 
+## Stripe Deposits
+
+The deposit step creates a real Stripe Checkout Session in `api/payments/intent.js`, then Stripe
+returns paid state through `api/stripe/webhook.js`.
+
+Required Vercel environment variables:
+
+- `STRIPE_SECRET_KEY` - Stripe test or live secret key.
+- `STRIPE_WEBHOOK_SECRET` - signing secret for the `/api/stripe/webhook` endpoint.
+- `VELAIRE_SITE_URL` - production site URL, for example `https://www.velairecars.com`.
+
+Bookings and payment records must persist to Vercel KV before the customer is redirected to Stripe.
+On Vercel, local memory fallback is disabled for writes unless `VELAIRE_ALLOW_MEMORY_FALLBACK=true`
+is explicitly set.
+
 ## Run
 
 Install dependencies, then run the Vite dev server:

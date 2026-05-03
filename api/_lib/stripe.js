@@ -1,152 +1,123 @@
 import crypto from "node:crypto";
 
+const stripeApiBase = "https://api.stripe.com/v1";
+const stripeApiVersion = "2026-02-25.clover";
+
+function clean(value = "") {
+  return String(value || "").trim();
+}
+
+function siteUrl(req = null) {
+  const configured = clean(process.env.VELAIRE_SITE_URL || process.env.SITE_URL || process.env.VERCEL_URL);
+  if (configured) {
+    const withProtocol = configured.startsWith("http") ? configured : `https://${configured}`;
+    return withProtocol.replace(/\/$/, "");
+  }
+  const host = req?.headers?.host || "www.velairecars.com";
+  const protocol = req?.headers?.["x-forwarded-proto"] || (host.includes("localhost") ? "http" : "https");
+  return `${protocol}://${host}`.replace(/\/$/, "");
+}
+
 export function stripeConfigured() {
-  return /^sk_(test|live)_/.test(String(process.env.STRIPE_SECRET_KEY || ""));
+  return Boolean(clean(process.env.STRIPE_SECRET_KEY));
 }
 
-export function originFor(req) {
-  if (process.env.VELAIRE_SITE_URL) return process.env.VELAIRE_SITE_URL.replace(/\/$/, "");
-  const proto = req.headers["x-forwarded-proto"] || "https";
-  const host = req.headers["x-forwarded-host"] || req.headers.host || "velairecars.com";
-  return `${proto}://${host}`;
+function stripeError(message, status = 500, code = "stripe_error") {
+  const error = new Error(message);
+  error.status = status;
+  error.code = code;
+  error.publicMessage = message;
+  return error;
 }
 
-export async function stripeRequest(path, { method = "GET", body = null } = {}) {
-  const secret = process.env.STRIPE_SECRET_KEY;
-  if (!secret) {
-    const error = new Error("Stripe is not configured.");
-    error.status = 503;
-    error.publicMessage = "Stripe payments are not configured. Add STRIPE_SECRET_KEY in Vercel before taking deposits.";
-    throw error;
-  }
-
-  if (!stripeConfigured()) {
-    const error = new Error("Stripe secret key is invalid.");
-    error.status = 503;
-    error.publicMessage = "Stripe payments are not configured with a valid secret key.";
-    throw error;
-  }
-
-  const response = await fetch(`https://api.stripe.com/v1${path}`, {
-    method,
-    headers: {
-      Authorization: `Bearer ${secret}`,
-      ...(body ? { "Content-Type": "application/x-www-form-urlencoded" } : {}),
-    },
-    body,
-  });
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    const error = new Error(data.error?.message || "Stripe request failed.");
-    error.status = response.status;
-    error.publicMessage = data.error?.message || "Stripe could not process this request.";
-    error.stripe = data;
-    throw error;
-  }
-  return data;
+function appendFormValue(params, key, value) {
+  if (value === undefined || value === null || value === "") return;
+  params.append(key, String(value));
 }
 
-export async function createStripeCheckoutSession(req, payment, reservation = {}, booking = null) {
-  const origin = originFor(req);
-  const amount = Math.round(Number(payment.amount || 0) * 100);
+export async function createStripeCheckoutSession({ req, payment, booking } = {}) {
+  const secretKey = clean(process.env.STRIPE_SECRET_KEY);
+  if (!secretKey) {
+    throw stripeError("Stripe is not configured. Add STRIPE_SECRET_KEY in Vercel and redeploy.", 503, "stripe_not_configured");
+  }
+  if (!payment?.id) {
+    throw stripeError("Create a deposit record before starting Stripe Checkout.", 400, "payment_required");
+  }
+
+  const baseUrl = siteUrl(req);
+  const amount = Math.round(Number(payment.amount || booking?.totals?.deposit || 0) * 100);
   if (!Number.isFinite(amount) || amount < 50) {
-    const error = new Error("Deposit amount is too low for Stripe Checkout.");
-    error.status = 400;
-    error.publicMessage = "The reservation deposit could not be prepared.";
-    throw error;
+    throw stripeError("The reservation deposit amount is not valid.", 400, "invalid_deposit_amount");
   }
 
-  const vehicleName = booking?.vehicleName || payment.vehicleName || reservation.vehicleName || "Velaire Cars reservation";
-  const metadata = {
-    velaire: "true",
-    payment_id: payment.id,
-    booking_id: payment.bookingId || booking?.id || reservation.bookingId || "",
-    booking_reference: payment.bookingReference || booking?.reference || reservation.reference || "",
-    vehicle_slug: reservation.vehicle || booking?.vehicleSlug || "",
-    vehicle_name: vehicleName,
-    customer_name: reservation.name || reservation.fullName || booking?.customerName || "",
-    customer_email: reservation.email || payment.customerEmail || booking?.customerEmail || "",
-    customer_phone: reservation.phone || payment.customerPhone || booking?.customerPhone || "",
-    billing_address: reservation.billingAddress || booking?.billingAddress || "",
-    billing_address_line1: reservation.billingAddressLine1 || booking?.billingAddressLine1 || "",
-    billing_address_line2: reservation.billingAddressLine2 || booking?.billingAddressLine2 || "",
-    billing_town: reservation.billingTown || booking?.billingTown || "",
-    billing_city: reservation.billingCity || booking?.billingCity || "",
-    billing_postcode: reservation.billingPostcode || booking?.billingPostcode || "",
-    billing_country: reservation.billingCountry || booking?.billingCountry || "",
-    pickup: reservation.pickup || booking?.pickup || "",
-    pickup_time: reservation.pickupTime || booking?.pickupTime || "",
-    return_date: reservation.return || booking?.return || "",
-    return_time: reservation.returnTime || booking?.returnTime || "",
-    location: reservation.formattedAddress || reservation.location || booking?.location || "",
-    hire_estimate: String(reservation.hireEstimate || booking?.totals?.hireEstimate || ""),
-    deposit_amount: String(payment.amount || booking?.totals?.deposit || ""),
-  };
   const params = new URLSearchParams();
-  params.set("mode", "payment");
-  params.set("payment_method_types[0]", "card");
-  params.set("client_reference_id", booking?.id || payment.bookingId || payment.id);
-  params.set("line_items[0][price_data][currency]", String(payment.currency || "GBP").toLowerCase());
-  params.set("line_items[0][price_data][product_data][name]", "Velaire Cars reservation deposit");
-  params.set("line_items[0][price_data][product_data][description]", vehicleName);
-  params.set("line_items[0][price_data][unit_amount]", String(amount));
-  params.set("line_items[0][quantity]", "1");
-  params.set("success_url", `${origin}/success.html?session_id={CHECKOUT_SESSION_ID}`);
-  params.set("cancel_url", `${origin}/payment.html?payment=cancelled`);
-  Object.entries(metadata).forEach(([key, value]) => {
-    if (value !== undefined && value !== null && String(value).trim()) {
-      params.set(`metadata[${key}]`, String(value).slice(0, 500));
-    }
+  appendFormValue(params, "mode", "payment");
+  appendFormValue(params, "success_url", `${baseUrl}/success.html?session_id={CHECKOUT_SESSION_ID}&booking=${encodeURIComponent(booking?.id || payment.bookingId || "")}`);
+  appendFormValue(params, "cancel_url", `${baseUrl}/payment.html?payment=cancelled&booking=${encodeURIComponent(booking?.id || payment.bookingId || "")}`);
+  appendFormValue(params, "client_reference_id", booking?.id || payment.bookingId);
+  appendFormValue(params, "customer_email", payment.customerEmail || booking?.customerEmail);
+  appendFormValue(params, "line_items[0][quantity]", 1);
+  appendFormValue(params, "line_items[0][price_data][currency]", (payment.currency || "GBP").toLowerCase());
+  appendFormValue(params, "line_items[0][price_data][unit_amount]", amount);
+  appendFormValue(params, "line_items[0][price_data][product_data][name]", `Velaire reservation deposit - ${payment.vehicleName || booking?.vehicleName || "Selected vehicle"}`);
+  appendFormValue(
+    params,
+    "line_items[0][price_data][product_data][description]",
+    `Secure deposit for ${booking?.reference || payment.bookingReference || "Velaire reservation"}.`,
+  );
+  appendFormValue(params, "metadata[bookingId]", booking?.id || payment.bookingId);
+  appendFormValue(params, "metadata[paymentId]", payment.id);
+  appendFormValue(params, "metadata[bookingReference]", booking?.reference || payment.bookingReference);
+  appendFormValue(params, "metadata[vehicleSlug]", booking?.vehicleSlug || payment.vehicleSlug);
+  appendFormValue(params, "payment_intent_data[metadata][bookingId]", booking?.id || payment.bookingId);
+  appendFormValue(params, "payment_intent_data[metadata][paymentId]", payment.id);
+  appendFormValue(params, "payment_intent_data[metadata][bookingReference]", booking?.reference || payment.bookingReference);
+
+  const response = await fetch(`${stripeApiBase}/checkout/sessions`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${secretKey}`,
+      "Content-Type": "application/x-www-form-urlencoded",
+      "Stripe-Version": stripeApiVersion,
+    },
+    body: params.toString(),
   });
-  params.set("payment_intent_data[metadata][payment_id]", payment.id);
-  if (metadata.booking_id) params.set("payment_intent_data[metadata][booking_id]", metadata.booking_id);
-  params.set("payment_intent_data[metadata][velaire]", "true");
-  if (reservation.email) params.set("customer_email", reservation.email);
-
-  return stripeRequest("/checkout/sessions", { method: "POST", body: params });
-}
-
-export async function retrieveStripeCheckoutSession(sessionId) {
-  if (!sessionId) {
-    const error = new Error("Checkout session ID is required.");
-    error.status = 400;
-    error.publicMessage = "Checkout session ID is required.";
-    throw error;
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok || !payload.url) {
+    throw stripeError(payload.error?.message || "Stripe Checkout could not be created. Please try again.", response.status || 500, payload.error?.code || "checkout_failed");
   }
-  return stripeRequest(`/checkout/sessions/${encodeURIComponent(sessionId)}`);
+  return payload;
 }
 
 export async function readRawBody(req) {
   if (typeof req.body === "string") return req.body;
   if (Buffer.isBuffer(req.body)) return req.body.toString("utf8");
   const chunks = [];
-  for await (const chunk of req) chunks.push(chunk);
+  for await (const chunk of req) chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
   return Buffer.concat(chunks).toString("utf8");
 }
 
-export function verifyStripeSignature(rawBody, signatureHeader, secret = process.env.STRIPE_WEBHOOK_SECRET) {
-  if (!secret || !signatureHeader) return false;
-  const timestamp = String(signatureHeader)
-    .split(",")
-    .find((part) => part.startsWith("t="))
-    ?.slice(2);
-  const signatures = String(signatureHeader)
-    .split(",")
-    .filter((part) => part.startsWith("v1="))
-    .map((part) => part.slice(3));
-  if (!timestamp || !signatures.length) return false;
-
-  const expected = crypto.createHmac("sha256", secret).update(`${timestamp}.${rawBody}`).digest("hex");
+export function verifyStripeWebhookSignature(rawBody, signatureHeader = "") {
+  const secret = clean(process.env.STRIPE_WEBHOOK_SECRET);
+  if (!secret) {
+    throw stripeError("Stripe webhook secret is not configured.", 503, "stripe_webhook_not_configured");
+  }
+  const parts = Object.fromEntries(
+    String(signatureHeader || "")
+      .split(",")
+      .map((part) => part.split("="))
+      .filter(([key, value]) => key && value),
+  );
+  const timestamp = parts.t;
+  const signature = parts.v1;
+  if (!timestamp || !signature) {
+    throw stripeError("Stripe webhook signature is missing.", 400, "invalid_stripe_signature");
+  }
+  const signedPayload = `${timestamp}.${rawBody}`;
+  const expected = crypto.createHmac("sha256", secret).update(signedPayload).digest("hex");
   const expectedBuffer = Buffer.from(expected, "hex");
-  return signatures.some((signature) => {
-    const receivedBuffer = Buffer.from(signature, "hex");
-    return expectedBuffer.length === receivedBuffer.length && crypto.timingSafeEqual(expectedBuffer, receivedBuffer);
-  });
-}
-
-export function paymentStatusFromCheckoutSession(session = {}) {
-  if (session.status === "complete" && session.payment_status === "paid") return "deposit_paid";
-  if (session.status === "expired") return "cancelled";
-  if (session.payment_status === "unpaid" && session.status === "complete") return "failed";
-  return "payment_pending";
+  const signatureBuffer = Buffer.from(signature, "hex");
+  if (expectedBuffer.length !== signatureBuffer.length || !crypto.timingSafeEqual(expectedBuffer, signatureBuffer)) {
+    throw stripeError("Stripe webhook signature could not be verified.", 400, "invalid_stripe_signature");
+  }
 }

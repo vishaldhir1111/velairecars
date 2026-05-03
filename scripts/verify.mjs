@@ -27,6 +27,7 @@ const requiredFiles = [
   "api/auth/logout.js",
   "api/auth/session.js",
   "api/payments/intent.js",
+  "api/stripe/webhook.js",
   "api/admin/summary.js",
   "api/admin/vehicles.js",
   "api/admin/bookings.js",
@@ -36,6 +37,7 @@ const requiredFiles = [
   "api/_lib/admin-auth.js",
   "api/_lib/http.js",
   "api/_lib/notifications.js",
+  "api/_lib/stripe.js",
   "api/_lib/operations-store.js",
   "api/_lib/store.js",
   "vite.config.js",
@@ -223,6 +225,22 @@ if (
   !read("api/payments/intent.js").includes("notifications")
 ) {
   throw new Error("Premium booking notifications must be wired into booking and payment operations");
+}
+
+if (
+  !read("api/_lib/stripe.js").includes("STRIPE_SECRET_KEY") ||
+  !read("api/_lib/stripe.js").includes("checkout/sessions") ||
+  !read("api/_lib/stripe.js").includes("STRIPE_WEBHOOK_SECRET") ||
+  !read("api/payments/intent.js").includes("createStripeCheckoutSession") ||
+  !read("api/payments/intent.js").includes("checkoutUrl") ||
+  !read("api/stripe/webhook.js").includes("checkout.session.completed") ||
+  !read("api/stripe/webhook.js").includes("deposit_paid") ||
+  !read("flow.js").includes("window.location.assign(payment.checkoutUrl)") ||
+  !read("payment.html").includes("Create secure deposit session") ||
+  read("payment.html").includes('name="card"') ||
+  read("payment.html").includes("Ready for a live payment provider when connected")
+) {
+  throw new Error("Deposit flow must create a real Stripe Checkout session and redirect instead of using a local placeholder payment form");
 }
 
 for (const htmlFile of ["index.html", "booking.html", "login.html", "account.html", "admin.html", "payment.html", "success.html"]) {
