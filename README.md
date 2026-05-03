@@ -41,9 +41,24 @@ The `api/` folder contains Vercel-ready serverless endpoints:
 - `POST /api/concierge`
 - `GET /api/admin/summary`
 
-The current backend uses an in-memory store scaffold so the flow is API-shaped without adding a
-database dependency. For production, replace `api/_lib/store.js` with a durable database adapter and
-connect `api/payments/intent.js` to Stripe or another payment provider. No raw card data is stored.
+The active operations layer uses Vercel KV through `api/_lib/operations-store.js` for vehicles,
+availability, bookings, customers, payments and notification history. If KV is unavailable the site
+falls back to memory so the customer flow remains usable, but production should keep the Vercel KV
+environment variables connected. No raw card data is stored.
+
+## Notifications
+
+Booking and deposit communication is wired through `api/_lib/notifications.js` using Resend on
+Vercel. Add these environment variables in Vercel to enable live email delivery:
+
+- `RESEND_API_KEY` - Resend API key from the Resend dashboard.
+- `VELAIRE_EMAIL_FROM` - verified sender, for example `Velaire Cars <reservations@velairecars.com>`.
+- `VELAIRE_ADMIN_EMAIL` - internal operations inbox for new booking and deposit alerts.
+- `VELAIRE_REPLY_TO` - optional reply-to address for concierge responses.
+- `VELAIRE_SITE_URL` - production site URL, for example `https://www.velairecars.com`.
+
+If `RESEND_API_KEY` is missing, bookings and payments continue to work and notification attempts are
+recorded as skipped in the operations data instead of blocking the customer flow.
 
 ## Run
 

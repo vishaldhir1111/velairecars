@@ -6,7 +6,7 @@ export default async function handler(req, res) {
 
   try {
     const body = await readJson(req);
-    const { payment, persistence } = await createPaymentRecord({
+    const { payment, persistence, notifications } = await createPaymentRecord({
       bookingId: body.bookingId,
       reservation: body.reservation || {},
     });
@@ -14,6 +14,7 @@ export default async function handler(req, res) {
     sendJson(res, 201, {
       paymentIntent: payment,
       persistence,
+      notifications,
       providerReady: false,
       message: "Deposit record created in Operations. Stripe Checkout can use this persisted booking state.",
     });

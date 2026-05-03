@@ -1,5 +1,11 @@
 import crypto from "node:crypto";
 import { fleetData, requireVehicle } from "./fleet-data.js";
+import {
+  sendBookingCreatedNotifications,
+  sendBookingStatusUpdateNotifications,
+  sendDepositPaidNotifications,
+  sendPaymentPendingNotifications,
+} from "./notifications.js";
 
 const operationsKey = "velaire:operations:v1";
 const memoryState = (globalThis.__VELAIRE_OPERATIONS_STORE__ ||= null);
@@ -71,6 +77,7 @@ function baseState() {
     payments: [],
     customers: [],
     leads: [],
+    notifications: [],
     updatedAt: now(),
   };
 }
@@ -98,6 +105,7 @@ function normaliseState(raw = null) {
     payments: Array.isArray(state.payments) ? state.payments : [],
     customers: Array.isArray(state.customers) ? state.customers : [],
     leads: Array.isArray(state.leads) ? state.leads : [],
+    notifications: Array.isArray(state.notifications) ? state.notifications : [],
     updatedAt: state.updatedAt || fallback.updatedAt,
   };
 }
@@ -245,6 +253,24 @@ function publicPayment(payment = {}) {
   };
 }
 
+function publicNotification(notification = {}) {
+  return {
+    id: notification.id,
+    type: notification.type || "notification",
+    audience: notification.audience || "customer",
+    recipient: notification.recipient || "",
+    subject: notification.subject || "",
+    status: notification.status || "queued",
+    provider: notification.provider || "resend",
+    providerId: notification.providerId || "",
+    reason: notification.reason || "",
+    bookingId: notification.bookingId || "",
+    bookingReference: notification.bookingReference || "",
+    paymentId: notification.paymentId || "",
+    createdAt: notification.createdAt || now(),
+  };
+}
+
 function customerRecordsFromBookings(bookings = []) {
   const map = new Map();
   for (const booking of bookings) {
@@ -314,6 +340,10 @@ function bookingRange(booking) {
 
 function isBlockingStatus(status = "") {
   return ["draft", "pending", "payment_intent_created", "payment_pending", "confirmed"].includes(String(status || "").toLowerCase());
+}
+
+function shouldNotifyBookingStatus(status = "") {
+  return ["confirmed", "cancelled", "completed", "rejected"].includes(String(status || "").toLowerCase());
 }
 
 function calculateDays(pickup, returnDate, days) {
@@ -430,6 +460,43 @@ function syncCustomers(state) {
   state.customers = customerRecordsFromBookings(state.bookings || []);
 }
 
+async function recordNotificationEvents(events = []) {
+  const cleanEvents = events
+    .flat()
+    .filter(Boolean)
+    .map((event) =>
+      publicNotification({
+        id: event.id || id("ntf"),
+        ...event,
+        createdAt: event.createdAt || now(),
+      }),
+    );
+  if (!cleanEvents.length) return [];
+  await mutateOperations((draft) => {
+    draft.notifications = [...cleanEvents, ...(draft.notifications || [])].slice(0, 120);
+    return cleanEvents;
+  });
+  return cleanEvents;
+}
+
+async function dispatchNotifications(sender) {
+  try {
+    const events = await sender();
+    return await recordNotificationEvents(events);
+  } catch (error) {
+    return await recordNotificationEvents([
+      {
+        type: "notification_error",
+        audience: "operations",
+        status: "failed",
+        provider: "resend",
+        reason: error.message || "Notification dispatch failed.",
+        createdAt: now(),
+      },
+    ]);
+  }
+}
+
 export async function listOperationalVehicles() {
   const state = await loadOperationsState();
   return {
@@ -496,7 +563,8 @@ export async function createBookingRecord({ userId = null, reservation = {}, sta
     syncCustomers(draft);
     return publicBooking(booking);
   });
-  return { booking: result, state, persistence };
+  const notifications = await dispatchNotifications(() => sendBookingCreatedNotifications({ booking: result }));
+  return { booking: result, state, persistence, notifications };
 }
 
 export async function updateBookingRecord(idValue, patch = {}) {
@@ -552,7 +620,12 @@ export async function updateBookingRecord(idValue, patch = {}) {
     syncCustomers(draft);
     return publicBooking(booking);
   });
-  return { booking: result, state, persistence };
+  const nextStatus = patch?.status || patch?.bookingStatus || "";
+  const notifications =
+    result && shouldNotifyBookingStatus(nextStatus)
+      ? await dispatchNotifications(() => sendBookingStatusUpdateNotifications({ booking: result, status: nextStatus }))
+      : [];
+  return { booking: result, state, persistence, notifications };
 }
 
 export async function createPaymentRecord({ bookingId = "", reservation = {} } = {}) {
@@ -584,7 +657,9 @@ export async function createPaymentRecord({ bookingId = "", reservation = {} } =
     }
     return publicPayment(payment);
   });
-  return { payment: result, state, persistence };
+  const booking = (state.bookings || []).find((item) => item.id === result?.bookingId) || null;
+  const notifications = await dispatchNotifications(() => sendPaymentPendingNotifications({ payment: result, booking }));
+  return { payment: result, state, persistence, notifications };
 }
 
 export async function updatePaymentRecord(idValue, patch = {}) {
@@ -600,7 +675,12 @@ export async function updatePaymentRecord(idValue, patch = {}) {
     }
     return publicPayment(payment);
   });
-  return { payment: result, state, persistence };
+  const booking = (state.bookings || []).find((item) => item.id === result?.bookingId) || null;
+  const notifications =
+    result && String(patch?.status || "").toLowerCase() === "deposit_paid"
+      ? await dispatchNotifications(() => sendDepositPaidNotifications({ payment: result, booking }))
+      : [];
+  return { payment: result, state, persistence, notifications };
 }
 
 export async function updateVehicleOperationsRecord(slug, patch = {}) {
@@ -656,12 +736,16 @@ export async function operationsSummary() {
   const bookings = (state.bookings || []).map(publicBooking).sort((a, b) => String(b.updatedAt || b.createdAt).localeCompare(String(a.updatedAt || a.createdAt)));
   const payments = (state.payments || []).map(publicPayment).sort((a, b) => String(b.updatedAt || b.createdAt).localeCompare(String(a.updatedAt || a.createdAt)));
   const customers = state.customers?.length ? state.customers : customerRecordsFromBookings(bookings);
+  const notifications = (state.notifications || [])
+    .map(publicNotification)
+    .sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
   return {
     meta: state.meta,
     counts: {
       bookings: bookings.length,
       payments: payments.length,
       customers: customers.length,
+      notifications: notifications.length,
       vehicles: fleetData.length,
       pendingBookings: bookings.filter((booking) => ["draft", "pending", "payment_intent_created", "payment_pending"].includes(booking.status)).length,
       confirmedBookings: bookings.filter((booking) => booking.status === "confirmed").length,
@@ -669,6 +753,7 @@ export async function operationsSummary() {
     bookings,
     payments,
     customers,
+    notifications,
     vehicles: listOperationalVehiclesFromState(state),
   };
 }

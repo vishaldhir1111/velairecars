@@ -34,12 +34,12 @@ export default async function handler(req, res) {
       ...(body.patch || {}),
       ...(body.action ? { status: statusByAction[body.action] || body.action } : {}),
     };
-    const { booking, persistence } = await updateBookingRecord(body.id, patch);
+    const { booking, persistence, notifications } = await updateBookingRecord(body.id, patch);
     if (!booking) {
       sendJson(res, 404, { error: "booking_not_found", message: "Booking not found." });
       return;
     }
-    sendJson(res, 200, { booking, persistence });
+    sendJson(res, 200, { booking, persistence, notifications });
   } catch (error) {
     sendJson(res, error.status || 500, { error: "admin_booking_update_failed", message: publicError(error) });
   }

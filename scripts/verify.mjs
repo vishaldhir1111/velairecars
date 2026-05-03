@@ -35,6 +35,7 @@ const requiredFiles = [
   "api/_lib/fleet-data.js",
   "api/_lib/admin-auth.js",
   "api/_lib/http.js",
+  "api/_lib/notifications.js",
   "api/_lib/operations-store.js",
   "api/_lib/store.js",
   "vite.config.js",
@@ -207,6 +208,21 @@ if (
   !read("vercel.json").includes('"/portal"')
 ) {
   throw new Error("Operations must use Vercel KV as the shared source of truth for admin and reservation data");
+}
+
+if (
+  !read("api/_lib/notifications.js").includes("RESEND_API_KEY") ||
+  !read("api/_lib/notifications.js").includes("VELAIRE_ADMIN_EMAIL") ||
+  !read("api/_lib/notifications.js").includes("sendBookingCreatedNotifications") ||
+  !read("api/_lib/notifications.js").includes("sendDepositPaidNotifications") ||
+  !read("api/_lib/notifications.js").includes("sendBookingStatusUpdateNotifications") ||
+  !read("api/_lib/operations-store.js").includes("sendBookingCreatedNotifications") ||
+  !read("api/_lib/operations-store.js").includes("notifications: []") ||
+  !read("api/_lib/operations-store.js").includes("recordNotificationEvents") ||
+  !read("api/bookings.js").includes("notifications") ||
+  !read("api/payments/intent.js").includes("notifications")
+) {
+  throw new Error("Premium booking notifications must be wired into booking and payment operations");
 }
 
 for (const htmlFile of ["index.html", "booking.html", "login.html", "account.html", "admin.html", "payment.html", "success.html"]) {

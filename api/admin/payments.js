@@ -21,12 +21,12 @@ export default async function handler(req, res) {
 
   try {
     const body = await readJson(req);
-    const { payment, persistence } = await updatePaymentRecord(body.id, body.patch || {});
+    const { payment, persistence, notifications } = await updatePaymentRecord(body.id, body.patch || {});
     if (!payment) {
       sendJson(res, 404, { error: "payment_not_found", message: "Payment not found." });
       return;
     }
-    sendJson(res, 200, { payment, persistence });
+    sendJson(res, 200, { payment, persistence, notifications });
   } catch (error) {
     sendJson(res, error.status || 500, { error: "admin_payment_update_failed", message: publicError(error) });
   }

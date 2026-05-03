@@ -41,7 +41,7 @@ export default async function handler(req, res) {
 
     if (req.method === "PATCH") {
       const patch = body.patch || {};
-      const { booking } = await updateBookingRecord(
+      const { booking, notifications } = await updateBookingRecord(
         body.id,
         patch.reservation ? { ...patch, reservation: requireReservationVehicle(patch.reservation) } : patch,
       );
@@ -49,11 +49,11 @@ export default async function handler(req, res) {
         sendJson(res, 404, { error: "booking_not_found", message: "Booking not found." });
         return;
       }
-      sendJson(res, 200, { booking });
+      sendJson(res, 200, { booking, notifications });
       return;
     }
 
-    const { booking, persistence } = await createBookingRecord({
+    const { booking, persistence, notifications } = await createBookingRecord({
       userId: user?.id || null,
       reservation: requireReservationVehicle(body.reservation || body),
       status: body.status || "draft",
@@ -62,6 +62,7 @@ export default async function handler(req, res) {
       authenticated: Boolean(user),
       booking,
       persistence,
+      notifications,
     });
   } catch (error) {
     sendJson(res, error.status || 500, { error: "booking_failed", message: publicError(error) });
