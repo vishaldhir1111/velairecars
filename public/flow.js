@@ -11,8 +11,9 @@ const vehicles = {
     visualClass: "tesla-model-3-performance",
     modelType: "saloon",
     modelPath: "/models/tesla-model-3-performance-2020-white.glb",
-    fallbackImagePath: "/cars/hero-tesla.png",
+    fallbackImagePath: "/cars/studio-tesla-model-3-performance-2020.png",
     modelAvailable: false,
+    viewerMode: "studio-3d-render",
     visualLabel: "Tesla Model 3 Performance 2020, white exterior and white interior",
     description:
       "A white-on-white electric performance saloon with instant torque, a minimalist cabin and understated executive presence.",
@@ -29,8 +30,9 @@ const vehicles = {
     visualClass: "lamborghini-urus",
     modelType: "suv",
     modelPath: "/models/lamborghini-urus-2021-orange.glb",
-    fallbackImagePath: "/cars/lamborghini-urus-2021-orange.png",
+    fallbackImagePath: "/cars/studio-lamborghini-urus-2021-orange.png",
     modelAvailable: false,
+    viewerMode: "studio-3d-render",
     visualLabel: "Lamborghini Urus 2021, orange exterior",
     description:
       "An orange Lamborghini Urus with super SUV theatre, flagship presence and the kind of arrival that turns a booking into a moment.",
@@ -47,8 +49,9 @@ const vehicles = {
     visualClass: "range-rover-sport-svr",
     modelType: "suv",
     modelPath: "/models/range-rover-sport-svr-2021.glb",
-    fallbackImagePath: "/cars/range-rover-svr.png",
+    fallbackImagePath: "/cars/studio-range-rover-sport-svr-2021.png",
     modelAvailable: false,
+    viewerMode: "studio-3d-render",
     visualLabel: "Range Rover Sport SVR 2021, performance SUV",
     description:
       "A performance Range Rover with supercharged V8 character, elevated comfort and the confidence expected from a premium SUV handover.",
@@ -65,8 +68,9 @@ const vehicles = {
     visualClass: "bmw-m440i-convertible",
     modelType: "convertible",
     modelPath: "/models/bmw-m440i-convertible-2022-sky-blue.glb",
-    fallbackImagePath: "/cars/bmw-m440i-convertible-2022-sky-blue.png",
+    fallbackImagePath: "/cars/studio-bmw-m440i-convertible-2022-sky-blue.png",
     modelAvailable: false,
+    viewerMode: "studio-3d-render",
     visualLabel: "BMW M440i Convertible 2022, sky blue wrap",
     description:
       "A sky-blue open-top grand tourer with M Performance pace, polished daily usability and a clean summer-event look.",
@@ -83,22 +87,42 @@ const vehicles = {
     visualClass: "bmw-m140i-shadow-edition",
     modelType: "hatch",
     modelPath: "/models/bmw-m140i-shadow-edition-2019.glb",
-    fallbackImagePath: "/cars/bmw-m140i-black-2019.jpg",
+    fallbackImagePath: "/cars/studio-bmw-m140i-shadow-edition-2019.png",
     modelAvailable: false,
+    viewerMode: "studio-3d-render",
     visualLabel: "BMW M140i Shadow Edition 2019",
     description:
       "A compact performance favourite with B58 power, understated Shadow Edition styling and a focused premium cabin.",
   },
 };
 
+Object.entries(vehicles).forEach(([slug, vehicle]) => {
+  vehicle.slug = slug;
+});
+
+const generatedVehicleMedia = Object.freeze(
+  Object.fromEntries(
+    Object.entries(vehicles).map(([slug, vehicle]) => [
+      slug,
+      Object.freeze({
+        visualClass: vehicle.visualClass,
+        modelType: vehicle.modelType,
+        modelPath: vehicle.modelPath,
+        fallbackImagePath: vehicle.fallbackImagePath,
+        modelAvailable: false,
+        viewerMode: "studio-3d-render",
+        visualLabel: vehicle.visualLabel,
+      }),
+    ]),
+  ),
+);
+
 const storageKey = "velaireReservation";
 const accountStorageKey = "velaireAccount";
 const backendBookingKey = "velaireBackendBooking";
 const favouriteStorageKey = "velaireFavouriteCars";
 const adminTokenStorageKey = "velaireAdminToken";
-const signedOutMessageKey = "velaireSignedOutMessage";
-const guestBookingMigrationKey = "velaireGuestBookingCleanSlateV1";
-const defaultVehicle = "lamborghini-urus";
+const defaultVehicle = Object.keys(vehicles)[0] || "";
 const MAPBOX_TOKEN = "pk.eyJ1IjoidmlzaGFsZGhpcjExMTEiLCJhIjoiY21vampwYm54MGQzejJwczFzMHcwN3h2dSJ9.M-zV1ypGN1rPPTgEk0iWgg";
 const MAPBOX_GL_VERSION = "v3.10.0";
 const MAPBOX_GL_JS = `https://api.mapbox.com/mapbox-gl-js/${MAPBOX_GL_VERSION}/mapbox-gl.js`;
@@ -112,21 +136,6 @@ const UK_BOUNDS = {
 };
 const LONDON_CENTER = { lat: 51.5074, lng: -0.1278 };
 let mapboxLoaderPromise;
-let operationalFleetPromise;
-let adminState = {
-  bookings: [],
-  payments: [],
-  leads: [],
-  customers: [],
-  vehicles: [],
-  notifications: [],
-  filters: {
-    query: "",
-    status: "",
-    paymentStatus: "",
-    date: "",
-  },
-};
 
 const fleetKnowledgeBase = [
   {
@@ -261,92 +270,6 @@ function humanStatus(value = "") {
     .replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
-function statusClass(value = "") {
-  const clean = String(value || "pending").toLowerCase().replaceAll("_", "-");
-  return `status-${clean || "pending"}`;
-}
-
-function adminActionLabel(action = "") {
-  const labels = {
-    pending: "pending",
-    payment_pending: "payment pending",
-    confirm: "confirmed",
-    cancel: "cancelled",
-    complete: "completed",
-  };
-  return labels[action] || humanStatus(action).toLowerCase();
-}
-
-function normaliseAdminText(value = "") {
-  return String(value || "").trim().toLowerCase();
-}
-
-function adminStatusTone(value = "") {
-  const clean = normaliseAdminText(value).replaceAll("_", "-");
-  if (["confirmed", "deposit-paid", "paid", "sent"].includes(clean)) return "Ready";
-  if (["pending", "payment-pending", "requires-checkout"].includes(clean)) return "Action";
-  if (["cancelled", "failed", "expired", "rejected"].includes(clean)) return "Issue";
-  if (["completed", "refunded", "skipped"].includes(clean)) return "Closed";
-  return "Review";
-}
-
-function adminDateMatches(booking, isoDate = "") {
-  if (!isoDate) return true;
-  const pickup = String(booking.pickup || "").slice(0, 10);
-  const returnDate = String(booking.return || "").slice(0, 10);
-  if (pickup === isoDate || returnDate === isoDate) return true;
-  const selected = new Date(`${isoDate}T00:00:00`);
-  const pickupDate = pickup ? new Date(`${pickup}T00:00:00`) : null;
-  const returnValue = returnDate ? new Date(`${returnDate}T00:00:00`) : pickupDate;
-  if (!pickupDate || Number.isNaN(selected.getTime()) || Number.isNaN(pickupDate.getTime())) return false;
-  return selected >= pickupDate && selected <= returnValue;
-}
-
-function bookingSearchText(booking = {}) {
-  return [
-    booking.reference,
-    booking.id,
-    booking.vehicleName,
-    booking.vehicle,
-    booking.customerName,
-    booking.customerEmail,
-    booking.customerPhone,
-    booking.location,
-    booking.billingPostcode,
-    booking.status,
-    booking.paymentStatus,
-  ]
-    .filter(Boolean)
-    .join(" ")
-    .toLowerCase();
-}
-
-function filterAdminBookings(bookings = [], filters = adminState.filters) {
-  const query = normaliseAdminText(filters.query);
-  const status = normaliseAdminText(filters.status);
-  const paymentStatus = normaliseAdminText(filters.paymentStatus);
-  const date = filters.date || "";
-
-  return bookings.filter((booking) => {
-    const matchesQuery = !query || bookingSearchText(booking).includes(query);
-    const matchesStatus = !status || normaliseAdminText(booking.status) === status;
-    const matchesPayment = !paymentStatus || normaliseAdminText(booking.paymentStatus) === paymentStatus;
-    return matchesQuery && matchesStatus && matchesPayment && adminDateMatches(booking, date);
-  });
-}
-
-function updateAdminBookingResultStrip(filtered = [], total = 0) {
-  const target = document.querySelector("[data-admin-booking-results]");
-  if (!target) return;
-  const activeFilters = Object.values(adminState.filters || {}).filter(Boolean).length;
-  const pending = filtered.filter((booking) => ["pending", "payment_pending"].includes(booking.status)).length;
-  const paid = filtered.filter((booking) => booking.paymentStatus === "deposit_paid").length;
-  target.innerHTML = `
-    <span>${filtered.length} of ${total} bookings shown${activeFilters ? ` · ${activeFilters} filter${activeFilters === 1 ? "" : "s"} active` : ""}</span>
-    <strong>${pending} needs review · ${paid} deposit paid</strong>
-  `;
-}
-
 function loadReservation() {
   try {
     return JSON.parse(window.localStorage.getItem(storageKey)) || {};
@@ -361,55 +284,92 @@ function saveReservation(next) {
   return reservation;
 }
 
+function isKnownVehicleSlug(slug = "") {
+  return Boolean(slug && vehicles[String(slug).trim()]);
+}
+
+function normaliseVehicleSlug(slug = "") {
+  const clean = String(slug || "").trim();
+  return isKnownVehicleSlug(clean) ? clean : "";
+}
+
+function firstBookableVehicleSlug() {
+  return Object.keys(vehicles)[0] || "";
+}
+
+function checkedVehicleSlug() {
+  return normaliseVehicleSlug(document.querySelector('input[name="vehicle"]:checked')?.value || "");
+}
+
+function queryVehicleSlug() {
+  const params = new URLSearchParams(window.location.search);
+  return normaliseVehicleSlug(params.get("vehicle") || "");
+}
+
+function resolveSelectedVehicleSlug({ preferUrl = true, preferChecked = false, preferStored = true } = {}) {
+  const reservation = loadReservation();
+  const candidates = [
+    preferUrl ? queryVehicleSlug() : "",
+    preferChecked ? checkedVehicleSlug() : "",
+    preferStored ? normaliseVehicleSlug(reservation.vehicle) : "",
+    preferChecked ? "" : checkedVehicleSlug(),
+    firstBookableVehicleSlug(),
+    defaultVehicle,
+  ];
+  return candidates.find((slug) => isKnownVehicleSlug(slug)) || "";
+}
+
+function syncVehicleQueryParam(slug = "") {
+  const selected = normaliseVehicleSlug(slug);
+  if (!selected || !window.history?.replaceState) return;
+  const url = new URL(window.location.href);
+  url.searchParams.set("vehicle", selected);
+  window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
+}
+
+function saveSelectedVehicleSlug(slug = "") {
+  const selected = normaliseVehicleSlug(slug) || resolveSelectedVehicleSlug({ preferUrl: false, preferChecked: true });
+  if (!selected) return loadReservation();
+  return saveReservation({ vehicle: selected });
+}
+
 function loadAccount() {
   const reservation = loadReservation();
   try {
     return {
-      fullName: reservation.fullName || reservation.name || "",
+      fullName: "",
       email: reservation.email || "",
       phone: reservation.phone || "",
       preferredContact: "Email",
       licenceCountry: "United Kingdom",
       billingAddress: "",
-      billingAddressLine1: "",
-      billingAddressLine2: "",
-      billingTown: "",
-      billingCity: "",
       billingPostcode: "",
-      billingCountry: "United Kingdom",
       preferredLocation: "",
-      savedLocations: [],
       handoverType: "Concierge delivery",
       vehicleCategories: ["Super SUV", "Luxury SUV"],
       communication: ["Concierge updates"],
       files: {},
       cardSummary: "No saved card",
-      cardName: "Reservation payment status appears here after checkout.",
+      cardName: "Add a preferred card for reservation holds.",
       membership: "Private client status",
       ...JSON.parse(window.localStorage.getItem(accountStorageKey)),
     };
   } catch {
     return {
-      fullName: reservation.fullName || reservation.name || "",
+      fullName: "",
       email: reservation.email || "",
       phone: reservation.phone || "",
       preferredContact: "Email",
       licenceCountry: "United Kingdom",
       billingAddress: "",
-      billingAddressLine1: "",
-      billingAddressLine2: "",
-      billingTown: "",
-      billingCity: "",
       billingPostcode: "",
-      billingCountry: "United Kingdom",
       preferredLocation: "",
-      savedLocations: [],
       handoverType: "Concierge delivery",
       vehicleCategories: ["Super SUV", "Luxury SUV"],
       communication: ["Concierge updates"],
       files: {},
       cardSummary: "No saved card",
-      cardName: "Reservation payment status appears here after checkout.",
+      cardName: "Add a preferred card for reservation holds.",
       membership: "Private client status",
     };
   }
@@ -442,10 +402,6 @@ function saveBackendBooking(booking) {
   return booking;
 }
 
-function clearBackendBooking() {
-  window.localStorage.removeItem(backendBookingKey);
-}
-
 function loadBackendBooking() {
   try {
     return JSON.parse(window.localStorage.getItem(backendBookingKey)) || null;
@@ -454,150 +410,16 @@ function loadBackendBooking() {
   }
 }
 
-const reservationBookingKeys = [
-  "bookingId",
-  "reference",
-  "status",
-  "paymentStatus",
-  "paymentIntentId",
-  "checkoutSessionId",
-  "paidAt",
-  "confirmedAt",
-];
-
-function clearReservationBookingState() {
-  clearBackendBooking();
-  const reservation = loadReservation();
-  reservationBookingKeys.forEach((key) => {
-    delete reservation[key];
-  });
-  window.localStorage.setItem(storageKey, JSON.stringify(reservation));
-  return reservation;
-}
-
-function startFreshBookingDraft({ vehicle = "" } = {}) {
-  const current = loadReservation();
-  const next = {
-    vehicle: vehicle || current.vehicle || defaultVehicle,
-    name: current.name || current.fullName || "",
-    fullName: current.fullName || current.name || "",
-    email: current.email || "",
-    phone: current.phone || "",
-    clientIntent: "reservation",
-  };
-  clearBackendBooking();
-  window.localStorage.setItem(storageKey, JSON.stringify(next));
-  return next;
-}
-
-function bookingMatchesReservationDraft(booking = null, reservation = {}) {
-  if (!booking?.id) return false;
-  const sameVehicle = !reservation.vehicle || !booking.vehicleSlug || booking.vehicleSlug === reservation.vehicle;
-  const samePickup = !reservation.pickup || !booking.pickup || booking.pickup === reservation.pickup;
-  const sameReturn = !reservation.return || !booking.return || booking.return === reservation.return;
-  return sameVehicle && samePickup && sameReturn;
-}
-
-function bookingExactlyMatchesReservation(booking = null, reservation = {}) {
-  if (!booking?.id || !reservation.vehicle || !reservation.pickup || !reservation.return) return false;
-  return booking.vehicleSlug === reservation.vehicle && booking.pickup === reservation.pickup && booking.return === reservation.return;
-}
-
-function bookingCanBeUpdatedForReservation(booking = null, reservation = {}) {
-  if (!booking?.id) return false;
-  if (reservation.bookingId && reservation.bookingId !== booking.id) return false;
-  if (booking.paymentStatus === "deposit_paid" || reservation.paymentStatus === "deposit_paid") return false;
-  const status = String(booking.status || "").toLowerCase();
-  if (["confirmed", "completed", "cancelled", "rejected"].includes(status)) return false;
-  if (status === "draft") return true;
-  return bookingMatchesReservationDraft(booking, reservation);
-}
-
-function currentBackendBookingForReservation(reservation = loadReservation()) {
-  const booking = loadBackendBooking();
+function reusableDraftBooking(booking, reservation = loadReservation()) {
   if (!booking?.id) return null;
-  if (reservation.bookingId && reservation.bookingId === booking.id) return booking;
-  return bookingMatchesReservationDraft(booking, reservation) ? booking : null;
-}
-
-function saveBookingDraft(next = {}) {
-  const draft = { ...loadReservation(), ...next };
-  const booking = loadBackendBooking();
-  if (booking && !bookingCanBeUpdatedForReservation(booking, draft)) {
-    clearReservationBookingState();
-  }
-  return saveReservation(next);
-}
-
-function mergeUniqueById(items = []) {
-  const map = new Map();
-  items.filter(Boolean).forEach((item) => {
-    const key = item.id || item.bookingId || item.checkoutSessionId || JSON.stringify(item);
-    map.set(key, { ...(map.get(key) || {}), ...item });
-  });
-  return [...map.values()];
-}
-
-function isDepositPaidState({ reservation = loadReservation(), booking = loadBackendBooking(), payments = [] } = {}) {
-  return (
-    reservation.paymentStatus === "deposit_paid" ||
-    (reservation.status === "confirmed" && Boolean(reservation.paidAt)) ||
-    booking?.paymentStatus === "deposit_paid" ||
-    (booking?.status === "confirmed" && Boolean(booking?.paidAt)) ||
-    payments.some((payment) => payment?.status === "deposit_paid" || payment?.paymentStatus === "deposit_paid")
-  );
-}
-
-function savePaidState({ booking = null, payment = null } = {}) {
-  const reservation = loadReservation();
-  const paid = reservation.paymentStatus === "deposit_paid" || booking?.paymentStatus === "deposit_paid" || payment?.status === "deposit_paid";
-  if (booking?.id) saveBackendBooking(booking);
-  saveReservation({
-    bookingId: booking?.id || reservation.bookingId || "",
-    reference: booking?.reference || reservation.reference || "",
-    status: paid ? booking?.status || reservation.status || "confirmed" : booking?.status || reservation.status || "payment_pending",
-    paymentStatus: paid ? "deposit_paid" : booking?.paymentStatus || payment?.status || "deposit_paid",
-    paymentIntentId: payment?.id || reservation.paymentIntentId || "",
-    checkoutSessionId: booking?.checkoutSessionId || payment?.checkoutSessionId || reservation.checkoutSessionId || "",
-    paidAt: paid ? booking?.paidAt || payment?.paidAt || reservation.paidAt || new Date().toISOString() : reservation.paidAt || "",
-  });
-}
-
-function paymentStateFromResult(result = {}, reservation = loadReservation()) {
-  const bookings = [result.booking, ...(result.bookings || [])].filter(Boolean);
-  const payments = [result.payment, ...(result.payments || [])].filter(Boolean);
-  const hasCurrentReservationKey = Boolean(reservation.bookingId || (reservation.vehicle && reservation.pickup && reservation.return));
-  const relevantBookings = hasCurrentReservationKey
-    ? bookings.filter((item) => item.id === reservation.bookingId || bookingExactlyMatchesReservation(item, reservation))
-    : bookings;
-  const relevantBookingIds = new Set(relevantBookings.map((item) => item.id).filter(Boolean));
-  const relevantPayments = hasCurrentReservationKey
-    ? payments.filter(
-        (item) =>
-          item.id === reservation.paymentIntentId ||
-          item.checkoutSessionId === reservation.checkoutSessionId ||
-          relevantBookingIds.has(item.bookingId),
-      )
-    : payments;
-  const booking = relevantBookings.find((item) => item.paymentStatus === "deposit_paid") || relevantBookings[0] || null;
-  const payment = relevantPayments.find((item) => item.status === "deposit_paid") || relevantPayments[0] || null;
-  return {
-    paid: isDepositPaidState({ reservation, booking, payments: relevantPayments }),
-    booking,
-    payment,
-    bookings: relevantBookings,
-    payments: relevantPayments,
-  };
-}
-
-async function fetchAccountPaymentState(email = "") {
-  const cleanEmail = String(email || "").trim();
-  if (!cleanEmail) return { paid: isDepositPaidState(), booking: loadBackendBooking(), payment: null, bookings: [], payments: [] };
-  const result = await optionalApiRequest(`/api/account?email=${encodeURIComponent(cleanEmail)}`, { method: "GET" }, null);
-  if (!result) return { paid: isDepositPaidState(), booking: loadBackendBooking(), payment: null, bookings: [], payments: [] };
-  const state = paymentStateFromResult(result, loadReservation());
-  if (state.paid) savePaidState({ booking: state.booking, payment: state.payment });
-  return state;
+  const selectedVehicle = normaliseVehicleSlug(reservation.vehicle);
+  const bookingVehicle = normaliseVehicleSlug(booking.vehicleSlug);
+  const terminalStatuses = new Set(["confirmed", "completed", "cancelled", "rejected"]);
+  const settledPaymentStatuses = new Set(["deposit_paid", "paid", "refunded"]);
+  if (selectedVehicle && bookingVehicle && selectedVehicle !== bookingVehicle) return null;
+  if (terminalStatuses.has(String(booking.status || ""))) return null;
+  if (settledPaymentStatuses.has(String(booking.paymentStatus || ""))) return null;
+  return booking;
 }
 
 function loadAdminToken() {
@@ -609,153 +431,13 @@ function loadAdminToken() {
 }
 
 function saveAdminToken(token) {
-  const cleanToken = String(token || "").trim();
-  if (!cleanToken) {
+  const clean = String(token || "").trim();
+  if (!clean) {
     window.localStorage.removeItem(adminTokenStorageKey);
     return "";
   }
-  window.localStorage.setItem(adminTokenStorageKey, cleanToken);
-  return cleanToken;
-}
-
-async function logoutBackendSession() {
-  await optionalApiRequest("/api/auth/logout", { method: "POST" }, null);
-}
-
-function draftReservationFields(reservation = loadReservation()) {
-  const allowedKeys = [
-    "vehicle",
-    "name",
-    "fullName",
-    "email",
-    "phone",
-    "billingAddress",
-    "billingAddressLine1",
-    "billingAddressLine2",
-    "billingTown",
-    "billingCity",
-    "billingPostcode",
-    "billingCountry",
-    "pickup",
-    "pickupTime",
-    "return",
-    "returnTime",
-    "location",
-    "formattedAddress",
-    "placeId",
-    "lat",
-    "lng",
-    "handoverNotes",
-    "days",
-  ];
-  return Object.fromEntries(allowedKeys.map((key) => [key, reservation[key]]).filter(([, value]) => value));
-}
-
-function clearVelaireLocalState({ keepDraft = false } = {}) {
-  const draft = keepDraft ? draftReservationFields() : null;
-  [storageKey, accountStorageKey, backendBookingKey, favouriteStorageKey, adminTokenStorageKey].forEach((key) => {
-    window.localStorage.removeItem(key);
-  });
-  if (draft && Object.keys(draft).length) {
-    window.localStorage.setItem(storageKey, JSON.stringify(draft));
-  }
-}
-
-function runGuestBookingCleanSlate() {
-  try {
-    if (window.localStorage.getItem(guestBookingMigrationKey)) return;
-    [storageKey, accountStorageKey, backendBookingKey, favouriteStorageKey].forEach((key) => {
-      window.localStorage.removeItem(key);
-    });
-    window.sessionStorage.removeItem(signedOutMessageKey);
-    window.localStorage.setItem(guestBookingMigrationKey, new Date().toISOString());
-  } catch {
-    // Local cleanup is best-effort; the guest booking flow still reads only current reservation data.
-  }
-}
-
-function clearAccountOnlyState() {
-  [accountStorageKey, backendBookingKey, favouriteStorageKey].forEach((key) => {
-    window.localStorage.removeItem(key);
-  });
-}
-
-async function performLogout({ keepDraft = false, redirect = "login.html?signedOut=1" } = {}) {
-  try {
-    await apiRequest("/api/auth/logout", { method: "POST" });
-  } catch {
-    await logoutBackendSession();
-  }
-  clearVelaireLocalState({ keepDraft });
-  window.sessionStorage.setItem(
-    signedOutMessageKey,
-    keepDraft ? "You have been signed out. Your current reservation draft is saved on this device." : "You have been signed out.",
-  );
-  window.location.href = redirect;
-}
-
-function showSignedOutMessage() {
-  const params = new URLSearchParams(window.location.search);
-  const message = window.sessionStorage.getItem(signedOutMessageKey);
-  if (!params.has("signedOut") && !message) return;
-  window.sessionStorage.removeItem(signedOutMessageKey);
-  showFlowToast(message || "You have been signed out.");
-  if (document.body.dataset.page === "login") {
-    renderLoginState({
-      tone: "success",
-      title: "Signed out",
-      message: message || "You have been signed out.",
-    });
-  }
-}
-
-async function requireClientLoungeSession() {
-  const session = await fetchAuthSession();
-  if (session?.authenticated && session.user) {
-    mergeAuthenticatedUser(session.user);
-    renderFlowAuthNavigation(session);
-    return session;
-  }
-
-  clearAccountOnlyState();
-  window.sessionStorage.setItem(signedOutMessageKey, "Velaire now uses guest reservations. Start a booking without signing in.");
-  window.location.href = "login.html?signedOut=1";
-  return null;
-}
-
-function renderFlowAuthNavigation(session = { authenticated: false, user: null }) {
-  const navLinks = document.querySelector(".flow-nav-links");
-  if (!navLinks) return;
-  const authenticated = Boolean(session.authenticated);
-  let accountLink = navLinks.querySelector('a[href="account.html"], a[href="login.html"]');
-  if (!accountLink) {
-    navLinks.querySelector("[data-flow-auth-logout]")?.remove();
-    return;
-  }
-  accountLink.href = authenticated ? "account.html" : "login.html?mode=lounge";
-  accountLink.textContent = authenticated ? "Accounts" : "Login";
-
-  let logoutButton = navLinks.querySelector("[data-flow-auth-logout]");
-  if (authenticated) {
-    if (!logoutButton) {
-      logoutButton = document.createElement("button");
-      logoutButton.type = "button";
-      logoutButton.className = "flow-nav-button";
-      logoutButton.dataset.flowAuthLogout = "true";
-      logoutButton.textContent = "Log out";
-      logoutButton.addEventListener("click", async () => {
-        await performLogout();
-      });
-      navLinks.appendChild(logoutButton);
-    }
-    return;
-  }
-  logoutButton?.remove();
-}
-
-async function setupFlowAuthNavigation() {
-  const session = await fetchAuthSession();
-  renderFlowAuthNavigation(session || { authenticated: false, user: null });
+  window.localStorage.setItem(adminTokenStorageKey, clean);
+  return clean;
 }
 
 function showFlowToast(message, tone = "default") {
@@ -779,9 +461,10 @@ async function apiRequest(path, options = {}) {
     "Content-Type": "application/json",
     ...(options.headers || {}),
   };
-  const adminToken = path.startsWith("/api/admin") ? loadAdminToken() : "";
-  if (adminToken) headers["x-velaire-admin-token"] = adminToken;
-
+  if (path.startsWith("/api/admin")) {
+    const adminToken = loadAdminToken();
+    if (adminToken) headers["x-velaire-admin-token"] = adminToken;
+  }
   const response = await fetch(path, {
     credentials: "include",
     ...options,
@@ -801,13 +484,8 @@ async function optionalApiRequest(path, options = {}, fallback = null) {
   try {
     return await apiRequest(path, options);
   } catch (error) {
-    if (error.status === 409) {
-      showFlowToast(error.message || "Those dates are no longer available.", "warning");
-      throw error;
-    }
-    if (error.status !== 401) {
-      showFlowToast("Saved locally. Backend sync will resume once the API is available.", "warning");
-    }
+    if (window.location.protocol !== "file:" && path.startsWith("/api/bookings")) throw error;
+    if (window.location.protocol !== "file:" && path.startsWith("/api/payments")) throw error;
     return fallback;
   }
 }
@@ -817,17 +495,8 @@ function backendAccountPatchFromLocal(account = loadAccount()) {
     phone: account.phone || "",
     profile: {
       fullName: account.fullName || "",
-      billingAddress:
-        account.billingAddress ||
-        [account.billingAddressLine1, account.billingAddressLine2, account.billingTown, account.billingCity, account.billingPostcode, account.billingCountry]
-          .filter(Boolean)
-          .join(", "),
-      billingAddressLine1: account.billingAddressLine1 || "",
-      billingAddressLine2: account.billingAddressLine2 || "",
-      billingTown: account.billingTown || "",
-      billingCity: account.billingCity || "",
+      billingAddress: account.billingAddress || "",
       billingPostcode: account.billingPostcode || "",
-      billingCountry: account.billingCountry || "United Kingdom",
       licenceCountry: account.licenceCountry || "United Kingdom",
       preferredContact: account.preferredContact || "Email",
     },
@@ -836,13 +505,20 @@ function backendAccountPatchFromLocal(account = loadAccount()) {
       handoverType: account.handoverType || "Concierge delivery",
       communication: account.communication || [],
       preferredLocation: account.preferredLocation || "",
-      savedLocations: account.savedLocations || [],
     },
     verification: {
       status: verificationStatus(account).toLowerCase().replace(/\s+/g, "_"),
       documents: account.files || {},
     },
-    paymentMethod: null,
+    paymentMethod:
+      account.cardSummary && account.cardSummary !== "No saved card"
+        ? {
+            label: account.cardSummary,
+            name: account.cardName || "",
+            expiry: account.cardExpiry || "",
+            provider: "manual_masked_reference",
+          }
+        : null,
     favourites: account.favourites || ["lamborghini-urus", "range-rover-sport-svr", "bmw-m440i-convertible"],
   };
 }
@@ -858,151 +534,7 @@ async function syncAccountToBackend(account = loadAccount()) {
   );
 }
 
-async function fetchAuthSession() {
-  return optionalApiRequest("/api/auth/session", { method: "GET" }, { authenticated: false, user: null });
-}
-
-function mergeAuthenticatedUser(user = null) {
-  if (!user) return loadAccount();
-  const account = saveAccount({
-    fullName: user.profile?.fullName || loadAccount().fullName || "",
-    email: user.email || loadAccount().email || "",
-    phone: user.phone || loadAccount().phone || "",
-    preferredContact: user.profile?.preferredContact || loadAccount().preferredContact || "Email",
-    licenceCountry: user.profile?.licenceCountry || loadAccount().licenceCountry || "United Kingdom",
-    billingAddress: user.profile?.billingAddress || loadAccount().billingAddress || "",
-    billingAddressLine1: user.profile?.billingAddressLine1 || loadAccount().billingAddressLine1 || user.profile?.billingAddress || "",
-    billingAddressLine2: user.profile?.billingAddressLine2 || loadAccount().billingAddressLine2 || "",
-    billingTown: user.profile?.billingTown || loadAccount().billingTown || "",
-    billingCity: user.profile?.billingCity || loadAccount().billingCity || "",
-    billingPostcode: user.profile?.billingPostcode || loadAccount().billingPostcode || "",
-    billingCountry: user.profile?.billingCountry || loadAccount().billingCountry || "United Kingdom",
-  });
-  saveReservation({
-    email: account.email,
-    phone: account.phone,
-    name: account.fullName,
-    fullName: account.fullName,
-  });
-  return account;
-}
-
-async function fetchAccountContext(email = "") {
-  const cleanEmail = String(email || "").trim();
-  if (!cleanEmail) return null;
-  return optionalApiRequest(`/api/account?email=${encodeURIComponent(cleanEmail)}`, { method: "GET" }, null);
-}
-
-function matchingActiveVehicleBooking(bookings = [], reservation = loadReservation()) {
-  const released = new Set(["cancelled", "completed", "rejected"]);
-  return bookings.find(
-    (booking) =>
-      bookingExactlyMatchesReservation(booking, reservation) &&
-      !released.has(String(booking.status || "").toLowerCase()),
-  );
-}
-
-function hasReservationIntent(reservation = loadReservation()) {
-  return Boolean(
-    reservation.clientIntent === "reservation" ||
-      reservation.bookingId ||
-      reservation.reference ||
-      reservation.pickup ||
-      reservation.return ||
-      reservation.location ||
-      reservation.formattedAddress,
-  );
-}
-
-function loginJourneyMode() {
-  const params = new URLSearchParams(window.location.search);
-  const requestedMode = params.get("mode");
-  if (requestedMode === "booking" || requestedMode === "lounge") return requestedMode;
-  return hasReservationIntent() ? "booking" : "lounge";
-}
-
-function configureLoginExperience({ journeyMode = loginJourneyMode(), authMode = "returning" } = {}) {
-  const bookingJourney = journeyMode === "booking";
-  const title = document.querySelector("[data-login-title]");
-  const kicker = document.querySelector("[data-login-kicker]");
-  const copy = document.querySelector("[data-login-copy]");
-  const panelTitle = document.querySelector("[data-login-panel-title]");
-  const progress = document.querySelector("[data-login-progress]");
-  const submit = document.querySelector("[data-login-submit]");
-  const fullName = document.querySelector('input[name="fullName"]');
-  const phone = document.querySelector('input[name="phone"]');
-  const password = document.querySelector('input[name="password"]');
-  const creatingAccess = authMode === "new";
-
-  if (kicker) kicker.textContent = bookingJourney ? "Step 2 of 4" : "Private client access";
-  if (title) title.textContent = bookingJourney ? "Continue through the Client Lounge." : "Enter the Velaire Client Lounge.";
-  if (copy) {
-    copy.textContent = bookingJourney
-      ? "Sign in or create your Velaire profile so concierge can attach this reservation to the right private client account."
-      : "Sign in to manage reservations, verification, saved handover details and concierge preferences in one polished private space.";
-  }
-  if (panelTitle) panelTitle.textContent = creatingAccess ? "Create private client access." : "Login to your account.";
-  if (progress) progress.hidden = !bookingJourney;
-  if (submit) submit.textContent = creatingAccess ? "Sign up" : "Login";
-  document.querySelectorAll("[data-signup-field]").forEach((field) => {
-    field.hidden = !creatingAccess;
-    field.querySelectorAll("input, select, textarea").forEach((input) => {
-      input.disabled = !creatingAccess;
-    });
-  });
-  document.querySelectorAll("[data-signup-extra]").forEach((item) => {
-    item.hidden = !creatingAccess;
-  });
-  if (fullName) fullName.required = creatingAccess;
-  if (phone) phone.required = false;
-  if (password) {
-    password.autocomplete = creatingAccess ? "new-password" : "current-password";
-    password.placeholder = creatingAccess ? "Create a secure password" : "Enter password";
-  }
-
-  document.querySelectorAll("[data-auth-mode]").forEach((button) => {
-    button.classList.toggle("is-active", button.dataset.authMode === authMode);
-  });
-}
-
-function hasAccountAccess(context = null) {
-  return Boolean(context?.accountAccessExists || context?.authAccountExists);
-}
-
-function emailExistsInVelaire(context = null) {
-  return Boolean(context?.exists || context?.accountAccessExists || context?.authAccountExists || context?.customerActivityExists);
-}
-
-function renderLoginState({ tone = "default", title = "", message = "", actions = "" } = {}) {
-  const target = document.querySelector("[data-login-state]");
-  if (!target) return;
-  target.hidden = false;
-  target.classList.toggle("is-warning", tone === "warning");
-  target.classList.toggle("is-success", tone === "success");
-  target.innerHTML = `
-    ${title ? `<strong>${escapeHtml(title)}</strong>` : ""}
-    ${message ? `<span>${escapeHtml(message)}</span>` : ""}
-    ${actions ? `<div class="flow-state-actions">${actions}</div>` : ""}
-  `;
-}
-
-function clearLoginState() {
-  const target = document.querySelector("[data-login-state]");
-  if (!target) return;
-  target.hidden = true;
-  target.innerHTML = "";
-  target.classList.remove("is-warning", "is-success");
-}
-
-async function ensureBackendAccount({
-  email,
-  password,
-  phone,
-  fullName,
-  accountExists = false,
-  authAccountExists = false,
-  mode = "auto",
-}) {
+async function ensureBackendAccount({ email, password, phone }) {
   const cleanEmail = String(email || "").trim();
   if (!cleanEmail) return null;
 
@@ -1011,16 +543,7 @@ async function ensureBackendAccount({
       method: "POST",
       body: JSON.stringify({ email: cleanEmail, password }),
     });
-  } catch (error) {
-    if (mode === "returning" || accountExists || authAccountExists) {
-      const signInError = new Error(
-        /password did not match/i.test(error.message || "")
-          ? error.message
-          : "A Velaire account already exists for this email. Enter the account password to continue.",
-      );
-      signInError.status = 401;
-      throw signInError;
-    }
+  } catch {
     return optionalApiRequest(
       "/api/auth/register",
       {
@@ -1030,7 +553,6 @@ async function ensureBackendAccount({
           password,
           phone,
           profile: {
-            fullName,
             preferredContact: "Email",
             licenceCountry: "United Kingdom",
           },
@@ -1041,58 +563,37 @@ async function ensureBackendAccount({
   }
 }
 
-async function syncBookingToBackend(status = "draft") {
+async function syncBookingToBackend(status = "draft", { strict = false } = {}) {
   const reservation = loadReservation();
-  const currentBooking = loadBackendBooking();
-  const shouldPatchCurrentBooking = bookingCanBeUpdatedForReservation(currentBooking, reservation);
-  if (currentBooking?.id && !shouldPatchCurrentBooking) {
-    clearBackendBooking();
-  }
-  const result = shouldPatchCurrentBooking
-    ? await optionalApiRequest(
-        "/api/bookings",
-        {
-          method: "PATCH",
-          body: JSON.stringify({
-            id: currentBooking.id,
-            patch: {
-              reservation,
-              status,
-            },
-          }),
-        },
-        null,
-      )
-    : await optionalApiRequest(
-        "/api/bookings",
-        {
-          method: "POST",
-          body: JSON.stringify({ reservation, status }),
-        },
-        null,
-      );
+  const currentBooking = reusableDraftBooking(loadBackendBooking(), reservation);
+  const path = "/api/bookings";
+  const options = currentBooking?.id
+    ? {
+        method: "PATCH",
+        body: JSON.stringify({
+          id: currentBooking.id,
+          patch: {
+            reservation,
+            status,
+          },
+        }),
+      }
+    : {
+        method: "POST",
+        body: JSON.stringify({ reservation, status }),
+      };
+  const result = strict ? await apiRequest(path, options) : await optionalApiRequest(path, options, null);
   if (result?.booking) {
     saveBackendBooking(result.booking);
     saveReservation({ bookingId: result.booking.id, reference: result.booking.reference });
-  }
-  if (result?.protected === "deposit_already_paid" || result?.payment?.status === "deposit_paid" || result?.booking?.paymentStatus === "deposit_paid") {
-    savePaidState({ booking: result.booking, payment: result.payment });
-  }
-  if (result?.protected === "reservation_already_exists" && result?.booking) {
-    saveReservation({
-      bookingId: result.booking.id,
-      reference: result.booking.reference,
-      status: result.booking.status,
-      paymentStatus: result.booking.paymentStatus,
-    });
   }
   return result?.booking || null;
 }
 
 async function createPaymentIntent() {
   const reservation = loadReservation();
-  const booking = currentBackendBookingForReservation(reservation) || (await syncBookingToBackend("pending"));
-  const result = await optionalApiRequest(
+  const booking = reusableDraftBooking(loadBackendBooking(), reservation) || (await syncBookingToBackend("payment_review", { strict: true }));
+  const result = await apiRequest(
     "/api/payments/intent",
     {
       method: "POST",
@@ -1101,95 +602,51 @@ async function createPaymentIntent() {
         reservation,
       }),
     },
-    null,
   );
   if (result?.paymentIntent) {
     saveReservation({
       paymentIntentId: result.paymentIntent.id,
       paymentStatus: result.paymentIntent.status,
+      checkoutSessionId: result.checkoutSessionId || "",
+      checkoutUrl: result.checkoutUrl || "",
     });
   }
-  return result?.paymentIntent || null;
-}
-
-async function createPaymentCheckout() {
-  const reservation = loadReservation();
-  const booking = currentBackendBookingForReservation(reservation) || (await syncBookingToBackend("payment_pending"));
-  let result;
-  try {
-    result = await apiRequest("/api/payments/checkout", {
-      method: "POST",
-      body: JSON.stringify({
-        bookingId: booking?.id || reservation.bookingId || "",
-        reservation,
-      }),
-    });
-  } catch (error) {
-    if (error.status === 409 && error.payload?.error === "deposit_already_paid") {
-      savePaidState({ booking: error.payload.booking, payment: error.payload.payment });
-      error.alreadyPaid = true;
-    }
-    throw error;
+  if (!result?.paymentIntent) {
+    throw new Error("The secure deposit record could not be created. Please try again.");
   }
-
-  if (result?.paymentIntent) {
-    saveReservation({
-      paymentIntentId: result.paymentIntent.id,
-      paymentStatus: result.paymentIntent.status,
-      checkoutSessionId: result.checkoutSessionId || result.paymentIntent.checkoutSessionId || "",
-    });
+  if (!result.checkoutUrl) {
+    throw new Error("Stripe Checkout did not return a secure payment link. Please try again.");
   }
-
-  return result;
-}
-
-async function verifyCheckoutSession(sessionId) {
-  if (!sessionId) return null;
-  const result = await optionalApiRequest(
-    `/api/payments/session?session_id=${encodeURIComponent(sessionId)}`,
-    { method: "GET" },
-    null,
-  );
-
-  if (result?.booking) {
-    saveBackendBooking(result.booking);
-    saveReservation({
-      bookingId: result.booking.id,
-      reference: result.booking.reference,
-      status: result.booking.status,
-      paymentStatus: result.booking.paymentStatus,
-      checkoutSessionId: result.booking.checkoutSessionId || sessionId,
-      paidAt: result.booking.paidAt || "",
-    });
-  } else if (result?.payment) {
-    saveReservation({
-      paymentIntentId: result.payment.id,
-      paymentStatus: result.payment.status,
-      checkoutSessionId: result.payment.checkoutSessionId || sessionId,
-      paidAt: result.payment.paidAt || "",
-    });
-  }
-
-  return result;
+  return {
+    ...result.paymentIntent,
+    checkoutUrl: result.checkoutUrl,
+    checkoutSessionId: result.checkoutSessionId || "",
+  };
 }
 
 async function checkAvailability() {
-  const reservation = loadReservation();
+  const selectedVehicleSlug = resolveSelectedVehicleSlug({ preferUrl: false, preferChecked: true, preferStored: true });
+  const reservation = saveReservation({ vehicle: selectedVehicleSlug });
   const target = document.querySelector("[data-availability-text]");
-  const submitButton = document.querySelector('body[data-page="booking"] button[type="submit"]');
   if (!target) return null;
 
+  if (!selectedVehicleSlug) {
+    target.innerHTML = `<span aria-hidden="true"></span>Select a Velaire vehicle before checking availability.`;
+    return { available: false, status: "vehicle_required" };
+  }
+
   const result = await optionalApiRequest(
-    "/api/availability",
+    `/api/availability?ts=${Date.now()}`,
     {
       method: "POST",
-      body: JSON.stringify(reservation),
+      cache: "no-store",
+      body: JSON.stringify({ ...reservation, vehicle: selectedVehicleSlug }),
     },
     null,
   );
 
   if (result?.message) {
-    const vehicle = vehicles[reservation.vehicle || selectedSlug()];
+    const vehicle = vehicles[result.vehicle] || vehicles[selectedVehicleSlug];
     if (vehicle) {
       if (Number.isFinite(Number(result.dailyRate))) vehicle.rate = Number(result.dailyRate);
       if (Number.isFinite(Number(result.deposit))) vehicle.deposit = Number(result.deposit);
@@ -1197,13 +654,6 @@ async function checkAvailability() {
       updateSummary();
     }
     target.innerHTML = `<span aria-hidden="true"></span>${result.message}`;
-    target.classList.toggle("is-unavailable", result.available === false);
-    target.classList.toggle("is-available", result.available === true);
-    if (submitButton) {
-      submitButton.disabled = result.available === false;
-      submitButton.textContent =
-        result.available === false ? "Choose available dates" : "Continue to secure deposit";
-    }
   }
 
   return result;
@@ -1214,12 +664,32 @@ function navigateTo(action) {
 }
 
 function selectedSlug() {
-  const params = new URLSearchParams(window.location.search);
-  return params.get("vehicle") || loadReservation().vehicle || defaultVehicle;
+  if (page === "booking") {
+    return resolveSelectedVehicleSlug({ preferUrl: false, preferChecked: true, preferStored: true }) || queryVehicleSlug();
+  }
+  return resolveSelectedVehicleSlug({ preferUrl: true, preferChecked: true, preferStored: true });
 }
 
 function selectedVehicle(slug = selectedSlug()) {
-  return vehicles[slug] || vehicles[defaultVehicle];
+  const cleanSlug = normaliseVehicleSlug(slug) || resolveSelectedVehicleSlug({ preferUrl: true, preferChecked: true, preferStored: true });
+  return vehicles[cleanSlug] || vehicles[firstBookableVehicleSlug()] || vehicles[defaultVehicle];
+}
+
+function exactGeneratedMediaFor(slug = "") {
+  return generatedVehicleMedia[normaliseVehicleSlug(slug)] || null;
+}
+
+function mediaForVehicle(vehicle = {}) {
+  const media = exactGeneratedMediaFor(vehicle.slug);
+  return {
+    visualClass: media?.visualClass || vehicle.visualClass,
+    modelType: media?.modelType || vehicle.modelType || "saloon",
+    modelPath: media?.modelPath || vehicle.modelPath || "",
+    fallbackImagePath: media?.fallbackImagePath || vehicle.fallbackImagePath || "",
+    modelAvailable: Boolean(media?.modelAvailable),
+    viewerMode: media?.viewerMode || vehicle.viewerMode || "studio-3d-render",
+    visualLabel: media?.visualLabel || vehicle.visualLabel || vehicle.name || "Velaire fleet vehicle",
+  };
 }
 
 function bindText(name, value) {
@@ -1253,15 +723,49 @@ function vehicleModelMarkup() {
   `;
 }
 
+function vehiclePhotoMarkup(src = "", alt = "") {
+  if (!src) return "";
+  const localSrc = src.startsWith("/cars/") ? `public${src}` : src;
+  return `<img class="vehicle-media-image" src="${escapeHtml(src)}" data-canonical-src="${escapeHtml(
+    src,
+  )}" data-local-src="${escapeHtml(localSrc)}" alt="${escapeHtml(
+    alt,
+  )}" loading="lazy" decoding="async" onerror="if(!this.dataset.triedLocal&&this.dataset.localSrc){this.dataset.triedLocal='true';this.src=this.dataset.localSrc}" />`;
+}
+
 function hydrateVehicleModels(root = document) {
-  root.querySelectorAll("[data-vehicle-model]").forEach((node) => {
+  const nodes = root.matches?.("[data-vehicle-model]") ? [root] : [...root.querySelectorAll("[data-vehicle-model]")];
+  nodes.forEach((node) => {
+    const imagePath = node.dataset.fallbackImage || "";
+    const label = node.getAttribute("aria-label") || "Velaire fleet vehicle";
+    if (imagePath) {
+      node.style.setProperty("--vehicle-card-image", `url("${imagePath}")`);
+    }
+    const existingImage = node.querySelector(".vehicle-media-image");
+    if (imagePath && !existingImage) {
+      node.insertAdjacentHTML("afterbegin", vehiclePhotoMarkup(imagePath, label));
+    } else if (imagePath && existingImage?.dataset.canonicalSrc !== imagePath) {
+      const localPath = imagePath.startsWith("/cars/") ? `public${imagePath}` : imagePath;
+      existingImage.dataset.canonicalSrc = imagePath;
+      existingImage.dataset.localSrc = localPath;
+      existingImage.setAttribute("src", imagePath);
+      existingImage.setAttribute("alt", label);
+    }
+    node.classList.toggle("has-photo", Boolean(imagePath));
+    if (imagePath && !node.querySelector(".vehicle-media-backup")) {
+      const backup = document.createElement("span");
+      backup.className = "vehicle-media-backup";
+      backup.setAttribute("aria-hidden", "true");
+      node.appendChild(backup);
+    }
     if (!node.querySelector(".vehicle-model-scene")) {
-      node.insertAdjacentHTML("afterbegin", vehicleModelMarkup());
+      node.insertAdjacentHTML("beforeend", vehicleModelMarkup());
     }
   });
 }
 
 function bindVehicleMedia(vehicle) {
+  const media = mediaForVehicle(vehicle);
   document.querySelectorAll("[data-bind-vehicle-media]").forEach((node) => {
     Object.keys(vehicles).forEach((slug) => {
       node.classList.remove(`flow-vehicle-photo-${slug}`, `vehicle-model-${slug}`);
@@ -1270,14 +774,15 @@ function bindVehicleMedia(vehicle) {
       node.classList.remove(`vehicle-model-${type}`);
     });
     node.classList.add(
-      `flow-vehicle-photo-${vehicle.visualClass}`,
-      `vehicle-model-${vehicle.visualClass}`,
-      `vehicle-model-${vehicle.modelType || "saloon"}`,
+      `flow-vehicle-photo-${media.visualClass}`,
+      `vehicle-model-${media.visualClass}`,
+      `vehicle-model-${media.modelType}`,
     );
-    node.setAttribute("aria-label", `3D studio mockup of ${vehicle.visualLabel}`);
-    node.dataset.modelPath = vehicle.modelPath || "";
-    node.dataset.fallbackImage = vehicle.fallbackImagePath || "";
-    node.dataset.modelStatus = vehicle.modelAvailable ? "glb-active" : "studio-fallback";
+    node.setAttribute("aria-label", `Premium 3D studio visual of ${media.visualLabel}`);
+    node.dataset.modelPath = media.modelPath;
+    node.dataset.fallbackImage = media.fallbackImagePath;
+    node.dataset.modelStatus = media.modelAvailable ? "glb-active" : media.viewerMode;
+    hydrateVehicleModels(node);
   });
 
   hydrateVehicleModels();
@@ -1315,19 +820,11 @@ function referenceFor(slug) {
 
 function updateSummary() {
   const reservation = loadReservation();
-  const backendBooking = loadBackendBooking();
-  const rawSlug = reservation.vehicle || selectedSlug();
-  const slug = vehicles[rawSlug] ? rawSlug : defaultVehicle;
+  const slug = selectedSlug();
+  if (slug && reservation.vehicle !== slug) saveReservation({ vehicle: slug });
   const vehicle = selectedVehicle(slug);
   const days = Math.max(Number.parseInt(reservation.days || "2", 10), 1);
   const location = reservation.formattedAddress || reservation.location || "Delivery location pending";
-  const depositPaid = isDepositPaidState({ reservation, booking: backendBooking, payments: [] });
-  const resolvedPaymentStatus = depositPaid
-    ? "deposit_paid"
-    : reservation.paymentStatus || backendBooking?.paymentStatus || "payment_pending";
-  const resolvedReservationStatus = depositPaid
-    ? backendBooking?.status || reservation.status || "confirmed"
-    : reservation.status || backendBooking?.status || "payment_pending";
 
   bindText("vehicleName", vehicle.name);
   bindText("vehicleShortName", vehicle.shortName);
@@ -1342,28 +839,30 @@ function updateSummary() {
   bindText("hireEstimate", money(vehicle.rate * days));
   bindText("rentalDays", displayDays(days));
   bindText("handoverLocation", location);
-  bindText("reference", reservation.reference || backendBooking?.reference || referenceFor(slug));
-  bindText("reservationStatus", humanStatus(resolvedReservationStatus));
-  bindText("paymentStatus", humanStatus(resolvedPaymentStatus));
+  bindText("reference", referenceFor(slug));
   bindVehicleMedia(vehicle);
   updateSelectedLocationPanel(reservation);
 }
 
-function mergeOperationalVehicle(vehicle = {}) {
+function mergeFleetVehicle(vehicle = {}) {
   const current = vehicles[vehicle.slug];
   if (!current) return;
+  const media = exactGeneratedMediaFor(current.slug);
   current.name = vehicle.name || current.name;
   current.shortName = vehicle.shortName || current.shortName || vehicle.name || current.name;
   current.category = vehicle.category || current.category;
   current.finish = vehicle.finish || current.finish;
   current.paint = vehicle.paint || current.paint;
   current.interior = vehicle.interior || current.interior;
-  current.rate = Number(vehicle.rate || vehicle.operations?.rate || current.rate);
-  current.deposit = Number(vehicle.deposit || vehicle.operations?.deposit || current.deposit);
-  current.modelType = vehicle.modelType || current.modelType;
-  current.modelPath = vehicle.modelPath || current.modelPath;
-  current.fallbackImagePath = vehicle.fallbackImagePath || current.fallbackImagePath;
-  current.modelAvailable = Boolean(vehicle.modelAvailable ?? current.modelAvailable);
+  current.visualClass = media?.visualClass || current.visualClass;
+  current.modelType = media?.modelType || current.modelType;
+  current.modelPath = media?.modelPath || current.modelPath;
+  current.fallbackImagePath = media?.fallbackImagePath || current.fallbackImagePath;
+  current.modelAvailable = Boolean(media?.modelAvailable);
+  current.viewerMode = media?.viewerMode || current.viewerMode || "studio-3d-render";
+  current.visualLabel = media?.visualLabel || vehicle.visualLabel || vehicle.alt || current.visualLabel;
+  current.rate = Number(vehicle.rate || current.rate);
+  current.deposit = Number(vehicle.deposit || current.deposit);
   current.availability = vehicle.availability || current.availability || {};
 }
 
@@ -1379,99 +878,35 @@ function updateBookingVehicleCards() {
     if (name) name.textContent = vehicle.shortName || vehicle.name;
     if (detail) detail.textContent = isOffline ? "Temporarily unavailable" : vehicle.finish || vehicle.category;
     if (price) price.textContent = `${money(vehicle.rate)}/day`;
+    const media = card.querySelector("[data-vehicle-model]");
+    if (media) {
+      const exactMedia = mediaForVehicle(vehicle);
+      media.setAttribute("aria-label", `Premium 3D studio visual of ${exactMedia.visualLabel}`);
+      media.dataset.modelPath = exactMedia.modelPath;
+      media.dataset.fallbackImage = exactMedia.fallbackImagePath;
+      media.dataset.modelStatus = exactMedia.modelAvailable ? "glb-active" : exactMedia.viewerMode;
+      hydrateVehicleModels(media);
+    }
     input.disabled = isOffline;
     card.classList.toggle("is-disabled", isOffline);
     card.setAttribute("aria-disabled", String(isOffline));
   });
-
-  const checked = document.querySelector('input[name="vehicle"]:checked');
-  if (checked?.disabled) {
-    const fallback = document.querySelector('input[name="vehicle"]:not(:disabled)');
-    if (fallback) {
-      checked.checked = false;
-      fallback.checked = true;
-      saveBookingDraft({ vehicle: fallback.value });
-    }
-  }
 }
 
-function orderedFleetVehicles() {
-  return Object.values(vehicles);
-}
-
-function renderBookingFleetChoices(selectedSlugValue = selectedSlug()) {
-  const grid = document.querySelector("[data-live-fleet-grid]");
-  if (!grid) return;
-  const availableVehicles = orderedFleetVehicles();
-  if (!availableVehicles.length) {
-    grid.innerHTML = `
-      <article class="choice-card choice-card-loading">
-        <span class="choice-name">Fleet unavailable</span>
-        <small>Operations data could not be loaded. Please refresh before taking a reservation.</small>
-        <strong>Live data required</strong>
-      </article>
-    `;
-    return;
-  }
-
-  const selectedExists = availableVehicles.some((vehicle) => vehicle.slug === selectedSlugValue);
-  const selected = selectedExists ? selectedSlugValue : availableVehicles[0].slug;
-  grid.innerHTML = availableVehicles
-    .map((vehicle) => {
-      const isOffline = vehicle.availability?.status === "offline";
-      const isChecked = vehicle.slug === selected && !isOffline;
-      return `
-        <label class="choice-card${isOffline ? " is-disabled" : ""}" data-vehicle-card aria-disabled="${String(isOffline)}">
-          <input type="radio" name="vehicle" value="${escapeHtml(vehicle.slug)}" ${isChecked ? "checked" : ""} ${
-            isOffline ? "disabled" : ""
-          } />
-          <span
-            class="choice-visual flow-choice-photo vehicle-model vehicle-model-mini vehicle-model-${escapeHtml(
-              vehicle.visualClass,
-            )} vehicle-model-${escapeHtml(vehicle.modelType || "saloon")}"
-            data-vehicle-model
-            role="img"
-            aria-label="3D studio mockup of ${escapeHtml(vehicle.visualLabel || vehicle.name)}"
-          ></span>
-          <span class="choice-name">${escapeHtml(vehicle.shortName || vehicle.name)}</span>
-          <small>${escapeHtml(isOffline ? "Temporarily unavailable" : vehicle.finish || vehicle.category)}</small>
-          <strong>${money(vehicle.rate)}/day</strong>
-        </label>
-      `;
-    })
-    .join("");
-
-  hydrateVehicleModels(grid);
+async function hydrateFleetPricing() {
+  const result = await optionalApiRequest(
+    `/api/fleet?ts=${Date.now()}`,
+    {
+      method: "GET",
+      cache: "no-store",
+      headers: { Accept: "application/json" },
+    },
+    null,
+  );
+  (result?.fleet || []).forEach(mergeFleetVehicle);
   updateBookingVehicleCards();
-}
-
-async function hydrateOperationalFleet() {
-  if (operationalFleetPromise) return operationalFleetPromise;
-  operationalFleetPromise = optionalApiRequest("/api/fleet", { method: "GET" }, null)
-    .then((result) => {
-      (result?.fleet || []).forEach(mergeOperationalVehicle);
-      if (document.body.dataset.page === "booking") renderBookingFleetChoices();
-      updateBookingVehicleCards();
-      updateSummary();
-      return result;
-    })
-    .catch(() => null);
-  return operationalFleetPromise;
-}
-
-function selectedVehicleAvailability() {
-  return selectedVehicle().availability || {};
-}
-
-function dateIsOperationallyBlocked(isoDate = "") {
-  const availability = selectedVehicleAvailability();
-  if (availability.status === "offline") return true;
-  const ranges = [
-    ...(availability.blockedRanges || []),
-    ...(availability.pendingBookings || []),
-    ...(availability.confirmedBookings || []),
-  ];
-  return ranges.some((range) => rangeCoversIso(range, isoDate));
+  updateSummary();
+  return result;
 }
 
 function updateSelectedLocationPanel(reservation = loadReservation()) {
@@ -1530,18 +965,27 @@ function addMonths(date, amount) {
   return new Date(date.getFullYear(), date.getMonth() + amount, 1);
 }
 
-function addDays(date, amount) {
-  const next = new Date(date);
-  next.setDate(next.getDate() + amount);
-  return next;
-}
-
 function rangeCoversIso(range = {}, isoDate = "") {
   const day = parseDate(isoDate);
   const start = parseDate(range.start || range.pickup);
   const end = parseDate(range.end || range.return);
   if (!day || !start || !end) return false;
   return day >= start && day < end;
+}
+
+function selectedVehicleAvailability() {
+  return selectedVehicle().availability || {};
+}
+
+function dateIsSelectedVehicleBlocked(isoDate = "") {
+  const availability = selectedVehicleAvailability();
+  if (availability.status === "offline") return true;
+  const ranges = [
+    ...(availability.blockedRanges || []),
+    ...(availability.pendingBookings || []),
+    ...(availability.confirmedBookings || []),
+  ];
+  return ranges.some((range) => rangeCoversIso(range, isoDate));
 }
 
 function setupElegantDatePicker(form) {
@@ -1617,7 +1061,7 @@ function setupElegantDatePicker(form) {
       day.setDate(gridStart.getDate() + index);
       const iso = formatIsoDate(day);
       const isMuted = day.getMonth() !== visibleMonth.getMonth();
-      const isBlocked = dateIsOperationallyBlocked(iso);
+      const isBlocked = dateIsSelectedVehicleBlocked(iso);
       const isDisabled = day < minDate || isBlocked;
       const isSelected = iso === selected;
       const isToday = iso === todayIso;
@@ -1714,34 +1158,29 @@ function normaliseCoordinate(value) {
 
 function readBookingForm(form) {
   const data = new FormData(form);
+  const vehicleSlug =
+    normaliseVehicleSlug(data.get("vehicle")) ||
+    checkedVehicleSlug() ||
+    normaliseVehicleSlug(loadReservation().vehicle) ||
+    resolveSelectedVehicleSlug({ preferUrl: false, preferChecked: true, preferStored: true });
   const pickup = data.get("pickup") || "";
   const returnDate = data.get("return") || "";
   const days = calculateDays(pickup, returnDate) || Number.parseInt(loadReservation().days || "2", 10) || 2;
   const formattedAddress = data.get("formatted-address") || "";
   const typedLocation = data.get("location") || "";
-  const billingAddressLine1 = data.get("billingAddressLine1") || "";
-  const billingAddressLine2 = data.get("billingAddressLine2") || "";
-  const billingTown = data.get("billingTown") || "";
-  const billingCity = data.get("billingCity") || "";
-  const billingPostcode = data.get("billingPostcode") || "";
-  const billingCountry = data.get("billingCountry") || "United Kingdom";
-  const billingAddress = [billingAddressLine1, billingAddressLine2, billingTown, billingCity, billingPostcode, billingCountry]
-    .filter(Boolean)
-    .join(", ");
 
   return {
-    vehicle: data.get("vehicle") || defaultVehicle,
-    name: data.get("fullName") || data.get("name") || loadReservation().name || "",
-    fullName: data.get("fullName") || data.get("name") || loadReservation().fullName || "",
-    email: data.get("email") || loadReservation().email || "",
-    phone: data.get("phone") || loadReservation().phone || "",
-    billingAddress,
-    billingAddressLine1,
-    billingAddressLine2,
-    billingTown,
-    billingCity,
-    billingPostcode,
-    billingCountry,
+    vehicle: vehicleSlug,
+    fullName: data.get("fullName") || data.get("name") || "",
+    name: data.get("fullName") || data.get("name") || "",
+    email: data.get("email") || "",
+    phone: data.get("phone") || "",
+    billingAddress1: data.get("billingAddress1") || "",
+    billingAddress2: data.get("billingAddress2") || "",
+    billingTown: data.get("billingTown") || "",
+    billingCity: data.get("billingCity") || "",
+    billingPostcode: data.get("billingPostcode") || "",
+    billingCountry: data.get("billingCountry") || "United Kingdom",
     pickup,
     pickupTime: data.get("pickup-time") || "",
     return: returnDate,
@@ -2273,250 +1712,25 @@ function verificationStatus(account = loadAccount()) {
   return "Not submitted";
 }
 
-function documentMeta(file) {
-  return {
-    name: file.name,
-    type: file.type || "Selected document",
-    size: file.size || 0,
-    status: "ready_for_review",
-    storageStatus: "metadata_saved",
-    updatedAt: new Date().toISOString(),
-  };
-}
-
-function readImagePreview(file) {
-  if (!file || !file.type?.startsWith("image/") || file.size > 2 * 1024 * 1024) return Promise.resolve("");
-  return new Promise((resolve) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result || ""));
-    reader.onerror = () => resolve("");
-    reader.readAsDataURL(file);
-  });
-}
-
-function strongestBooking(bookings = []) {
-  const priority = {
-    confirmed: 1,
-    payment_pending: 2,
-    pending: 3,
-    draft: 4,
-    completed: 5,
-    cancelled: 6,
-  };
-  return bookings
-    .slice()
-    .sort((a, b) => (priority[a.status] || 9) - (priority[b.status] || 9) || String(b.updatedAt || b.createdAt).localeCompare(String(a.updatedAt || a.createdAt)))[0];
-}
-
-function renderCurrentReservation(bookings = []) {
-  const target = document.querySelector("[data-current-reservation]");
-  if (!target) return;
-  const booking = strongestBooking(bookings) || loadBackendBooking();
-  if (!booking) {
-    target.innerHTML = `
-      <article class="account-empty-state">
-        <strong>No active reservation yet</strong>
-        <span>Reserve a vehicle and your private client timeline will appear here.</span>
-      </article>
-    `;
-    return;
-  }
-
-  target.innerHTML = `
-    <article class="account-reservation-card">
-      <div>
-        <span class="status-pill ${statusClass(booking.status)}">${escapeHtml(humanStatus(booking.status))}</span>
-        <h3>${escapeHtml(booking.vehicleName || "Velaire reservation")}</h3>
-        <p>${escapeHtml(booking.location || "Concierge handover pending")}</p>
-      </div>
-      <div class="account-reservation-meta">
-        <span>${escapeHtml(formatDisplayDate(booking.pickup) || "Pickup pending")}</span>
-        <strong>${escapeHtml(booking.reference || booking.id || "Reference pending")}</strong>
-        <small>${escapeHtml(humanStatus(booking.paymentStatus || "not_started"))}</small>
-      </div>
-    </article>
-  `;
-}
-
-function readinessItem(label, complete, detail) {
-  return {
-    label,
-    complete,
-    detail,
-  };
-}
-
-function renderClientReadiness(account = loadAccount(), bookings = [], payments = []) {
-  const target = document.querySelector("[data-client-readiness]");
-  const primaryBooking = strongestBooking(bookings) || loadBackendBooking() || {};
-  const reservation = loadReservation();
-  const hasPaidDeposit =
-    payments.some((payment) => payment.status === "deposit_paid") ||
-    primaryBooking.paymentStatus === "deposit_paid" ||
-    reservation.paymentStatus === "deposit_paid";
-  const hasLocation = Boolean(primaryBooking.location || reservation.formattedAddress || reservation.location);
-  const isVerified = verificationStatus(account) === "Ready for review";
-  const isApproved = primaryBooking.status === "confirmed";
-  const items = [
-    readinessItem("Profile", Boolean(account.fullName && account.email && account.phone), account.fullName ? "Client details saved" : "Add your client details"),
-    readinessItem("Verification", isVerified, isVerified ? "Documents ready for review" : "Upload licence, proof of address and ID"),
-    readinessItem("Deposit", hasPaidDeposit, hasPaidDeposit ? "Stripe deposit received" : "Secure deposit required"),
-    readinessItem("Handover", hasLocation, hasLocation ? "Preferred location saved" : "Add delivery or handover point"),
-    readinessItem("Approval", isApproved, isApproved ? "Reservation approved" : "Concierge approval pending"),
-  ];
-  const completeCount = items.filter((item) => item.complete).length;
-
-  bindAccountText(
-    "portalStatus",
-    completeCount >= 4 ? "Release-ready private client" : completeCount >= 2 ? "Concierge review in progress" : "Concierge profile in progress",
-  );
-  bindAccountText(
-    "portalSummary",
-    completeCount >= 4
-      ? "Your Velaire profile is prepared for a polished handover. The concierge team will confirm final timing."
-      : `${completeCount}/5 readiness steps complete. Finish the remaining checks to prepare your vehicle release.`,
-  );
-
-  if (!target) return;
-  target.innerHTML = items
-    .map(
-      (item) => `
-        <li class="${item.complete ? "is-complete" : "is-pending"}">
-          <strong>${escapeHtml(item.label)}</strong>
-          <span>${escapeHtml(item.detail)}</span>
-        </li>
-      `,
-    )
-    .join("");
-}
-
-function renderPaymentHistory(payments = []) {
-  const target = document.querySelector("[data-payment-history]");
-  if (!target) return;
-  if (!payments.length) {
-    target.innerHTML = `<li><strong>No payment records yet</strong><span>Deposit activity will appear here after reservation checkout.</span></li>`;
-    return;
-  }
-  target.innerHTML = payments
-    .map(
-      (payment) => `
-        <li>
-          <strong>${escapeHtml(payment.bookingReference || payment.bookingId || "Reservation deposit")}</strong>
-          <span>${escapeHtml(humanStatus(payment.status))} · ${money(Number(payment.amount || 0))} · ${escapeHtml(payment.providerReference || payment.checkoutSessionId || "Stripe reference pending")}</span>
-        </li>
-      `,
-    )
-    .join("");
-}
-
-function renderReceipts(receipts = []) {
-  const target = document.querySelector("[data-receipt-list]");
-  if (!target) return;
-  if (!receipts.length) {
-    target.innerHTML = `<article class="receipt-card"><strong>No receipts yet</strong><span>Deposit receipts will appear after a successful Stripe payment.</span></article>`;
-    return;
-  }
-  target.innerHTML = receipts
-    .map(
-      (payment) => `
-        <article class="receipt-card">
-          <span>${escapeHtml(humanStatus(payment.status))}</span>
-          <strong>${money(Number(payment.amountPaid || payment.amount || 0))}</strong>
-          <small>${escapeHtml(payment.bookingReference || payment.bookingId || "Velaire reservation")} · ${escapeHtml(payment.providerReference || payment.checkoutSessionId || "Stripe")}</small>
-        </article>
-      `,
-    )
-    .join("");
-}
-
-function renderAccountPaymentState(bookings = [], payments = []) {
-  const paid = isDepositPaidState({ booking: strongestBooking(bookings) || loadBackendBooking(), payments });
-  const statusLabel = paid ? "Deposit Paid" : "Deposit Pending";
-  const detail = paid
-    ? "Payment confirmed by Stripe. Your booking is now in Velaire concierge review."
-    : "Deposit status will update after the reservation checkout step.";
-  bindAccountText("cardSummary", statusLabel);
-  bindAccountText("cardName", detail);
-
-  const paidMarkup = `
-    <span class="status-pill status-deposit-paid">Deposit paid</span>
-    <a class="secondary-button" href="#overview">View booking details</a>
-  `;
-  const unpaidMarkup = `
-    <span class="status-pill muted">Awaiting reservation checkout</span>
-    <a class="secondary-button" href="ai.html">Ask concierge</a>
-  `;
-
-  document.querySelectorAll("[data-account-primary-actions]").forEach((node) => {
-    node.innerHTML = paid
-      ? `<span class="status-pill status-deposit-paid">Payment confirmed</span><a class="secondary-button" href="#overview">View booking details</a><a class="secondary-button" href="ai.html">Ask concierge</a>`
-      : `<a class="primary-button" href="payment.html">Continue reservation</a><a class="secondary-button" href="ai.html">Ask concierge</a>`;
-  });
-  document.querySelectorAll("[data-account-payment-actions]").forEach((node) => {
-    node.innerHTML = paid ? paidMarkup : unpaidMarkup;
-  });
-
-  const paymentSummary = document.querySelector("[data-account-payment-summary]");
-  if (paymentSummary) paymentSummary.textContent = detail;
-}
-
-function renderSavedLocations(account = loadAccount()) {
-  const target = document.querySelector("[data-saved-locations]");
-  if (!target) return;
-  const reservation = loadReservation();
-  const locations = [
-    ...(account.savedLocations || []),
-    reservation.formattedAddress || reservation.location
-      ? {
-          label: reservation.formattedAddress || reservation.location,
-          type: "Current booking handover",
-          lat: reservation.lat || "",
-          lng: reservation.lng || "",
-        }
-      : null,
-  ].filter(Boolean);
-  const unique = new Map(locations.map((item) => [String(item.label).toLowerCase(), item]));
-  const saved = [...unique.values()].slice(0, 5);
-  target.innerHTML = saved.length
-    ? saved
-        .map(
-          (location) => `
-            <article class="location-card">
-              <strong>${escapeHtml(location.label)}</strong>
-              <span>${escapeHtml(location.type || "Saved handover point")}</span>
-              ${location.lat && location.lng ? `<small>${escapeHtml(location.lat)}, ${escapeHtml(location.lng)}</small>` : ""}
-            </article>
-          `,
-        )
-        .join("")
-    : `<article class="location-card"><strong>No saved locations yet</strong><span>Save a handover address from a booking to reuse it next time.</span></article>`;
-}
-
 function updateAccountDisplay(account = loadAccount()) {
   const displayName = account.fullName || "Velaire Client";
   const initials = accountInitials(displayName);
 
   ["client-avatar", "profile-avatar"].forEach((id) => {
     const avatar = document.getElementById(id);
-    if (!avatar) return;
-    const preview = account.files?.displayPhoto?.preview || "";
-    avatar.textContent = preview ? "" : initials;
-    avatar.style.backgroundImage = preview ? `url("${preview}")` : "";
-    avatar.classList.toggle("has-photo", Boolean(preview));
+    if (avatar) avatar.textContent = initials;
   });
 
   bindAccountText("displayName", displayName);
-  bindAccountText("membership", account.membership || "Velaire Private Client");
+  bindAccountText("membership", account.membership || "Private client status");
   bindAccountText("upcomingCount", "1");
   bindAccountText("verificationStatus", verificationStatus(account));
   bindAccountText("cardSummary", account.cardSummary || "No saved card");
-  bindAccountText("cardName", account.cardName || "Reservation payment status appears here after checkout.");
-  bindAccountText("documentCount", `${Object.values(account.files || {}).filter((file) => file?.name).length}/4 files`);
+  bindAccountText("cardName", account.cardName || "Add a preferred card for reservation holds.");
 
   document.querySelectorAll("[data-file-label]").forEach((label) => {
     const key = label.dataset.fileLabel;
-    const file = account.files?.[key];
-    label.textContent = file?.name ? `${file.name} · ${file.status ? humanStatus(file.status) : "Selected"}` : fileLabelDefaults[key] || "Select file";
+    label.textContent = account.files?.[key]?.name || fileLabelDefaults[key] || "Select file";
   });
 
   const favouriteGrid = document.querySelector("[data-favourite-grid]");
@@ -2530,8 +1744,6 @@ function updateAccountDisplay(account = loadAccount()) {
       .map((label) => `<span>${label}</span>`)
       .join("");
   }
-  renderSavedLocations(account);
-  renderClientReadiness(account);
 }
 
 function renderBookingHistory(bookings = []) {
@@ -2555,10 +1767,7 @@ function renderBookingHistory(bookings = []) {
       (booking) => `
         <li>
           <strong>${booking.vehicleName || "Velaire booking"}</strong>
-          <span>
-            ${humanStatus(booking.status || "draft")} · ${humanStatus(booking.paymentStatus || "not_started")} ·
-            ${booking.location || "Handover pending"}
-          </span>
+          <span>${booking.status || "draft"} · ${booking.location || "Handover pending"}</span>
         </li>
       `,
     )
@@ -2575,912 +1784,34 @@ function mergeBackendAccount(user) {
     preferredContact: user.profile?.preferredContact || loadAccount().preferredContact || "Email",
     licenceCountry: user.profile?.licenceCountry || loadAccount().licenceCountry || "United Kingdom",
     billingAddress: user.profile?.billingAddress || loadAccount().billingAddress || "",
-    billingAddressLine1: user.profile?.billingAddressLine1 || loadAccount().billingAddressLine1 || user.profile?.billingAddress || "",
-    billingAddressLine2: user.profile?.billingAddressLine2 || loadAccount().billingAddressLine2 || "",
-    billingTown: user.profile?.billingTown || loadAccount().billingTown || "",
-    billingCity: user.profile?.billingCity || loadAccount().billingCity || "",
     billingPostcode: user.profile?.billingPostcode || loadAccount().billingPostcode || "",
-    billingCountry: user.profile?.billingCountry || loadAccount().billingCountry || "United Kingdom",
     preferredLocation: user.preferences?.preferredLocation || loadAccount().preferredLocation || "",
-    savedLocations: user.preferences?.savedLocations || loadAccount().savedLocations || [],
     handoverType: user.preferences?.handoverType || loadAccount().handoverType || "Concierge delivery",
     vehicleCategories: user.preferences?.vehicleCategories || loadAccount().vehicleCategories || [],
     communication: user.preferences?.communication || loadAccount().communication || [],
     favourites: user.favourites || loadAccount().favourites || [],
     files: user.verification?.documents || loadAccount().files || {},
     cardSummary: user.paymentMethod?.label || loadAccount().cardSummary || "No saved card",
-    cardName: user.paymentMethod?.name || loadAccount().cardName || "Reservation payment status appears here after checkout.",
+    cardName: user.paymentMethod?.name || loadAccount().cardName || "Add a preferred card for reservation holds.",
     cardExpiry: user.paymentMethod?.expiry || loadAccount().cardExpiry || "",
-    membership: verificationStatus(loadAccount()) === "Ready for review" ? "Velaire Private Client" : loadAccount().membership || "Velaire Private Client",
   });
   updateAccountDisplay(next);
   return next;
 }
 
-function renderAccountSessionState(session = null) {
-  const target = document.querySelector("[data-account-session-state]");
-  if (!target) return;
-  const account = loadAccount();
-  const user = session?.user || {};
-  const name = account.fullName || user.profile?.fullName || "Velaire Client";
-  const email = account.email || user.email || "";
-  target.innerHTML = `
-    <span>Signed-in private client</span>
-    <strong>${escapeHtml(name)}</strong>
-    <small>${escapeHtml(email ? `${email} is active on this device.` : "Your secure lounge session is active on this device.")}</small>
-  `;
-}
-
 async function hydrateAccountFromBackend() {
-  const account = loadAccount();
-  const email = account.email || loadReservation().email || "";
-  const accountPath = email ? `/api/account?email=${encodeURIComponent(email)}` : "/api/account";
-  const result = await optionalApiRequest(accountPath, { method: "GET" }, null);
+  const result = await optionalApiRequest("/api/account", { method: "GET" }, null);
   if (!result) {
-    const localBooking = loadBackendBooking();
-    const localBookings = localBooking ? [localBooking] : [];
-    renderClientReadiness(loadAccount(), localBookings, []);
-    renderCurrentReservation(localBookings);
-    renderBookingHistory(localBookings);
-    renderPaymentHistory([]);
-    renderReceipts([]);
-    renderAccountPaymentState(localBookings, []);
+    renderBookingHistory([]);
     return;
   }
   mergeBackendAccount(result.user);
-  renderAccountSessionState({ user: result.user });
-  const bookings = mergeUniqueById([...(result.bookings || []), loadBackendBooking()]);
-  const payments = result.payments || [];
-  const paidPayment = payments.find((payment) => payment.status === "deposit_paid");
-  const paidBooking = bookings.find((booking) => booking.paymentStatus === "deposit_paid") || strongestBooking(bookings);
-  if (paidPayment || paidBooking?.paymentStatus === "deposit_paid") {
-    savePaidState({ booking: paidBooking, payment: paidPayment });
-  }
-  renderClientReadiness(loadAccount(), bookings, payments);
-  renderCurrentReservation(bookings);
-  renderBookingHistory(bookings);
-  renderPaymentHistory(payments);
-  renderReceipts(result.receipts || []);
-  renderAccountPaymentState(bookings, payments);
-  updateSummary();
-}
-
-function renderAdminMetrics(summary = {}) {
-  const counts = summary.counts || {};
-  document.querySelectorAll("[data-admin-count]").forEach((item) => {
-    item.textContent = String(counts[item.dataset.adminCount] || 0);
-  });
-  const mode = document.querySelector("[data-admin-mode]");
-  if (mode) mode.textContent = "Operations live";
-}
-
-function updateAdminAccessState({ message = "", tone = "default", mode = "", unlocked = null } = {}) {
-  const status = document.querySelector("[data-admin-access-status]");
-  const modeNode = document.querySelector("[data-admin-mode]");
-  const input = document.querySelector("[data-admin-token-input]");
-  const isUnlocked = unlocked === null ? mode === "Operations live" : Boolean(unlocked);
-  document.body.classList.toggle("is-admin-unlocked", isUnlocked);
-  if (status) {
-    status.textContent =
-      message || (loadAdminToken() ? "Portal password saved in this browser." : "Enter the operations password to load the portal.");
-    status.classList.toggle("is-warning", tone === "warning");
-  }
-  if (modeNode && mode) modeNode.textContent = mode;
-  if (input && loadAdminToken()) input.value = loadAdminToken();
-}
-
-function renderAdminBookings(bookings = []) {
-  const target = document.querySelector("[data-admin-bookings]");
-  if (!target) return;
-
-  const filteredBookings = filterAdminBookings(bookings);
-  updateAdminBookingResultStrip(filteredBookings, bookings.length);
-
-  if (!bookings.length) {
-    target.innerHTML = `
-      <tr>
-        <td colspan="7">
-          <strong>No booking requests yet</strong><br />
-          <span>Guest reservations will appear here once the booking flow syncs to the operations API.</span>
-        </td>
-      </tr>
-    `;
-    return;
-  }
-
-  if (!filteredBookings.length) {
-    target.innerHTML = `
-      <tr>
-        <td colspan="7">
-          <strong>No bookings match these filters</strong><br />
-          <span>Clear the filters or adjust the search to see more reservation requests.</span>
-        </td>
-      </tr>
-    `;
-    return;
-  }
-
-  target.innerHTML = filteredBookings
-    .map((booking) => {
-      const dates = `${formatDisplayDate(booking.pickup) || "Pickup pending"} - ${
-        formatDisplayDate(booking.return) || "return pending"
-      }`;
-      const customerName = booking.customerName || "Guest client";
-      const customerContact = [booking.customerEmail, booking.customerPhone].filter(Boolean).join(" · ");
-      const handover = booking.location || booking.handoverLocation || "Handover pending";
-      const paymentStatus = booking.paymentStatus || "payment_pending";
-      const bookingStatus = booking.status || "pending";
-      return `
-        <tr class="admin-booking-row">
-          <td>
-            <button type="button" class="admin-reference-button" data-admin-view-booking="${booking.id}">
-              ${escapeHtml(booking.reference || booking.id)}
-            </button>
-            <span>${escapeHtml(adminStatusTone(bookingStatus))}</span>
-          </td>
-          <td>
-            <strong>${escapeHtml(booking.vehicleName || "Vehicle pending")}</strong>
-            <span>${escapeHtml(handover)}</span>
-          </td>
-          <td>
-            <strong>${escapeHtml(dates)}</strong>
-            <span>${escapeHtml(booking.pickupTime || "Time pending")}</span>
-          </td>
-          <td>
-            <button type="button" class="admin-text-button" data-admin-view-booking="${booking.id}">
-              ${escapeHtml(customerName)}
-            </button>
-            <span>${escapeHtml(customerContact || "Contact pending")}</span>
-          </td>
-          <td><span class="status-pill ${statusClass(bookingStatus)}">${escapeHtml(humanStatus(bookingStatus))}</span></td>
-          <td><span class="status-pill ${statusClass(paymentStatus)}">${escapeHtml(
-            humanStatus(paymentStatus),
-          )}</span></td>
-          <td>
-            <div class="admin-action-row">
-              <button type="button" data-admin-view-booking="${booking.id}">View</button>
-              <button type="button" data-admin-booking-action="pending" data-booking-id="${booking.id}">Pending</button>
-              <button type="button" data-admin-booking-action="payment_pending" data-booking-id="${booking.id}">Payment pending</button>
-              <button type="button" data-admin-booking-action="confirm" data-booking-id="${booking.id}">Confirm</button>
-              <button type="button" data-admin-booking-action="cancel" data-booking-id="${booking.id}">Cancel</button>
-              <button type="button" data-admin-booking-action="complete" data-booking-id="${booking.id}">Complete</button>
-            </div>
-          </td>
-        </tr>
-      `;
-    })
-    .join("");
-}
-
-function renderAdminBookingDetail(booking) {
-  const drawer = document.querySelector("[data-admin-detail]");
-  const target = document.querySelector("[data-admin-detail-content]");
-  if (!drawer || !target || !booking) return;
-
-  const payment = adminState.payments.find((item) => item.bookingId === booking.id);
-  const timeline = booking.timeline?.length ? booking.timeline : [];
-  const billingParts = [
-    booking.billingAddressLine1 || booking.billingAddress,
-    booking.billingAddressLine2,
-    booking.billingTown,
-    booking.billingCity,
-    booking.billingPostcode,
-    booking.billingCountry,
-  ].filter(Boolean);
-  const paymentStatus = booking.paymentStatus || payment?.status || "payment_pending";
-  const bookingStatus = booking.status || "pending";
-  target.innerHTML = `
-    <div class="panel-heading">
-      <p class="eyebrow">Booking detail</p>
-      <h2>${escapeHtml(booking.reference || "Velaire booking")}</h2>
-      <span>${escapeHtml(booking.vehicleName || "Vehicle pending")}</span>
-    </div>
-
-    <div class="admin-detail-statusbar">
-      <span class="status-pill ${statusClass(bookingStatus)}">${escapeHtml(humanStatus(bookingStatus))}</span>
-      <span class="status-pill ${statusClass(paymentStatus)}">${escapeHtml(humanStatus(paymentStatus))}</span>
-      <strong>${money(Number(booking.totals?.total || booking.estimatedTotal || 0))} estimated hire</strong>
-    </div>
-
-    <div class="admin-detail-grid">
-      <div>
-        <span>Client</span>
-        <strong>${escapeHtml(booking.customerName || booking.customerEmail || "Client details pending")}</strong>
-        <small>${escapeHtml(booking.customerEmail || "Email pending")} · ${escapeHtml(booking.customerPhone || "Phone pending")}</small>
-      </div>
-      <div>
-        <span>Billing</span>
-        <strong>${escapeHtml(booking.billingPostcode || booking.billingCity || "Billing pending")}</strong>
-        <small>${escapeHtml(billingParts.join(", ") || "No billing address saved yet")}</small>
-      </div>
-      <div>
-        <span>Status</span>
-        <strong>${escapeHtml(humanStatus(bookingStatus))}</strong>
-        <small>${escapeHtml(adminStatusTone(bookingStatus))} · Payment: ${escapeHtml(humanStatus(paymentStatus))}</small>
-      </div>
-      <div>
-        <span>Dates</span>
-        <strong>${escapeHtml(formatDisplayDate(booking.pickup) || "Pickup pending")}</strong>
-        <small>${escapeHtml(booking.pickupTime || "Time pending")} · Return: ${escapeHtml(
-          formatDisplayDate(booking.return) || "Return pending",
-        )}</small>
-      </div>
-      <div>
-        <span>Deposit</span>
-        <strong>${money(Number(booking.totals?.deposit || payment?.amount || 0))}</strong>
-        <small>${escapeHtml(payment?.providerReference || payment?.checkoutSessionId || "Provider reference pending")}</small>
-      </div>
-    </div>
-
-    <div class="admin-detail-section">
-      <span>Handover</span>
-      <p>${escapeHtml(booking.location || "Handover location pending")}</p>
-      <small>${escapeHtml(booking.handoverNotes || "No concierge notes yet")}</small>
-    </div>
-
-    <div class="admin-detail-section">
-      <span>Operations actions</span>
-      <div class="admin-action-row detail-actions">
-        <button type="button" data-admin-booking-action="pending" data-booking-id="${booking.id}">Pending</button>
-        <button type="button" data-admin-booking-action="payment_pending" data-booking-id="${booking.id}">Payment pending</button>
-        <button type="button" data-admin-booking-action="confirm" data-booking-id="${booking.id}">Confirm</button>
-        <button type="button" data-admin-booking-action="cancel" data-booking-id="${booking.id}">Cancel</button>
-        <button type="button" data-admin-booking-action="complete" data-booking-id="${booking.id}">Complete</button>
-      </div>
-    </div>
-
-    <div class="admin-detail-section">
-      <span>Timeline</span>
-      <ul>
-        ${
-          timeline.length
-            ? timeline
-                .map((item) => `<li><strong>${escapeHtml(item.label || "Booking update")}</strong><small>${escapeHtml(item.at || "")}</small></li>`)
-                .join("")
-            : "<li><strong>No timeline yet</strong><small>Updates will appear here.</small></li>"
-        }
-      </ul>
-    </div>
-  `;
-  drawer.hidden = false;
-}
-
-function renderAdminPayments(payments = []) {
-  const target = document.querySelector("[data-admin-payments]");
-  if (!target) return;
-
-  if (!payments.length) {
-    target.innerHTML = `
-      <tr>
-        <td colspan="6">
-          <strong>No deposit records yet</strong><br />
-          <span>Stripe Checkout deposit records appear here once a reservation reaches payment.</span>
-        </td>
-      </tr>
-    `;
-    return;
-  }
-
-  target.innerHTML = payments
-    .map((payment) => {
-      const booking = adminState.bookings.find((item) => item.id === payment.bookingId);
-      const customerName = payment.customerName || booking?.customerName || "Guest client";
-      const customerContact = payment.customerEmail || booking?.customerEmail || "Client pending";
-      return `
-        <tr class="admin-payment-row">
-          <td>
-            <strong>${money(Number(payment.amount || 0))}</strong>
-            <span>
-              ${escapeHtml(payment.currency || "GBP")} · paid ${money(Number(payment.amountPaid || 0))}
-            </span>
-          </td>
-          <td>
-            <strong>${escapeHtml(payment.bookingReference || booking?.reference || payment.bookingId || "Booking pending")}</strong>
-            <span>${escapeHtml(payment.vehicleName || booking?.vehicleName || "Vehicle pending")}</span>
-          </td>
-          <td>
-            <strong>${escapeHtml(customerName)}</strong>
-            <span>${escapeHtml([customerContact, payment.customerPhone || booking?.customerPhone || ""].filter(Boolean).join(" · "))}</span>
-          </td>
-          <td><span class="status-pill ${statusClass(payment.status)}">${escapeHtml(humanStatus(payment.status))}</span></td>
-          <td>
-            ${escapeHtml(payment.provider || "stripe_checkout")}
-            <span>${escapeHtml(payment.providerReference || payment.checkoutSessionId || "Reference pending")}</span>
-            ${payment.failureReason ? `<span>${escapeHtml(payment.failureReason)}</span>` : ""}
-          </td>
-          <td>
-            <div class="admin-action-row">
-              <button type="button" data-admin-payment-status="payment_pending" data-payment-id="${payment.id}">Pending</button>
-              <button type="button" data-admin-payment-status="cancelled" data-payment-id="${payment.id}">Cancelled</button>
-              <button type="button" data-admin-payment-status="refunded" data-payment-id="${payment.id}">Refunded</button>
-              <button type="button" data-admin-payment-status="failed" data-payment-id="${payment.id}">Failed</button>
-            </div>
-          </td>
-        </tr>
-      `;
-    })
-    .join("");
-}
-
-function renderAdminLeads(leads = []) {
-  const target = document.querySelector("[data-admin-leads]");
-  if (!target) return;
-
-  if (!leads.length) {
-    target.innerHTML = `<article class="admin-empty">No concierge leads yet.</article>`;
-    return;
-  }
-
-  target.innerHTML = leads
-    .map((lead) => {
-      const vehicle = vehicles[lead.recommendedVehicle];
-      const needsReply = ["new", "contacted"].includes(lead.status || "new");
-      return `
-        <article class="admin-lead-card">
-          <div>
-            <span class="status-pill ${statusClass(lead.status)}">${escapeHtml(humanStatus(lead.status))}</span>
-            <h3>${escapeHtml(vehicle?.shortName || lead.recommendedVehicle || "Fleet recommendation")}</h3>
-            <p>${escapeHtml(lead.prompt || "Concierge question pending")}</p>
-          </div>
-          <small>${escapeHtml(lead.response || "Lead response pending")}</small>
-          <div class="admin-message-state">
-            <span>${needsReply ? "Reply needed" : "Reply state updated"}</span>
-            <strong>${escapeHtml(lead.customerEmail || "Email follow-up pending")}</strong>
-          </div>
-          <div class="admin-action-row">
-            <button type="button" data-admin-lead-status="new" data-lead-id="${lead.id}">New</button>
-            <button type="button" data-admin-lead-status="contacted" data-lead-id="${lead.id}">Contacted</button>
-            <button type="button" data-admin-lead-status="converted" data-lead-id="${lead.id}">Converted</button>
-            <button type="button" data-admin-lead-status="closed" data-lead-id="${lead.id}">Closed</button>
-          </div>
-        </article>
-      `;
-    })
-    .join("");
-}
-
-function renderAdminNotifications(notifications = []) {
-  const target = document.querySelector("[data-admin-notifications]");
-  if (!target) return;
-
-  if (!notifications.length) {
-    target.innerHTML = `<article class="admin-empty">No notification records yet. Booking and payment emails will appear here once triggered.</article>`;
-    return;
-  }
-
-  target.innerHTML = notifications
-    .slice(0, 12)
-    .map(
-      (notification) => `
-        <article class="admin-notification-card">
-          <div class="admin-notification-meta">
-            <span class="status-pill ${statusClass(notification.status)}">${escapeHtml(humanStatus(notification.status))}</span>
-            <span class="status-pill muted">${escapeHtml(notification.audience || "client")}</span>
-          </div>
-          <h3>${escapeHtml(notification.subject || humanStatus(notification.type))}</h3>
-          <p>${escapeHtml(notification.customerEmail || notification.to || "Recipient pending")}</p>
-          <small>
-            ${escapeHtml(notification.vehicleName || notification.bookingReference || notification.bookingId || "Reservation context pending")}
-            ${notification.reason ? ` · ${escapeHtml(notification.reason)}` : ""}
-          </small>
-        </article>
-      `,
-    )
-    .join("");
-}
-
-function adminCalendarStatus(vehicle, isoDate) {
-  const availability = vehicle.availability || {};
-  const confirmed = (availability.confirmedBookings || []).find((booking) =>
-    rangeCoversIso({ start: booking.pickup, end: booking.return }, isoDate),
-  );
-  if (confirmed) {
-    return {
-      className: "is-confirmed",
-      label: "Confirmed",
-      detail: `${confirmed.reference || "Confirmed booking"} blocks this vehicle`,
-    };
-  }
-
-  const pending = (availability.pendingBookings || []).find((booking) =>
-    rangeCoversIso({ start: booking.pickup, end: booking.return }, isoDate),
-  );
-  if (pending) {
-    return {
-      className: "is-pending",
-      label: humanStatus(pending.status),
-      detail: `${pending.reference || "Pending hold"} is awaiting approval`,
-    };
-  }
-
-  const blocked = (availability.blockedRanges || []).find((block) => rangeCoversIso(block, isoDate));
-  if (blocked) {
-    return {
-      className: "is-blocked",
-      label: "Blocked",
-      detail: blocked.reason || "Operations block",
-    };
-  }
-
-  if (availability.status === "offline") {
-    return {
-      className: "is-offline",
-      label: "Offline",
-      detail: "Vehicle marked unavailable by operations",
-    };
-  }
-
-  return {
-    className: "is-clear",
-    label: "Clear",
-    detail: "No block or booking hold currently recorded",
-  };
-}
-
-function renderAdminAvailabilityCalendar(vehicle) {
-  const start = new Date();
-  start.setHours(0, 0, 0, 0);
-  const weekday = new Intl.DateTimeFormat("en-GB", { weekday: "short" });
-  const month = new Intl.DateTimeFormat("en-GB", { month: "short", day: "numeric" });
-  const days = Array.from({ length: 42 }, (_, index) => {
-    const date = addDays(start, index);
-    const iso = formatIsoDate(date);
-    const status = adminCalendarStatus(vehicle, iso);
-    return `
-      <span
-        class="admin-calendar-day ${status.className}"
-        title="${escapeHtml(`${status.label}: ${status.detail}`)}"
-        aria-label="${escapeHtml(`${month.format(date)} ${status.label}`)}"
-      >
-        <small>${escapeHtml(weekday.format(date))}</small>
-        <strong>${date.getDate()}</strong>
-      </span>
-    `;
-  }).join("");
-
-  return `
-    <div class="admin-calendar" aria-label="${escapeHtml(vehicle.name)} availability calendar">
-      <div class="admin-calendar-top">
-        <div>
-          <span>42 day view</span>
-          <strong>Availability calendar</strong>
-        </div>
-        <div class="admin-calendar-legend" aria-label="Availability legend">
-          <span class="is-clear">Clear</span>
-          <span class="is-pending">Pending</span>
-          <span class="is-confirmed">Confirmed</span>
-          <span class="is-blocked">Blocked</span>
-        </div>
-      </div>
-      <div class="admin-calendar-grid">${days}</div>
-    </div>
-  `;
-}
-
-function renderAdminVehicles(vehiclesList = []) {
-  const target = document.querySelector("[data-admin-vehicles]");
-  if (!target) return;
-
-  if (!vehiclesList.length) {
-    target.innerHTML = `<article class="admin-empty">Vehicle operations are unavailable until the dashboard connects to the admin API.</article>`;
-    return;
-  }
-
-  target.innerHTML = vehiclesList
-    .map((vehicle) => {
-      const blocks = vehicle.availability?.blockedRanges || [];
-      const pendingCount = vehicle.availability?.pendingBookings?.length || 0;
-      const paymentPendingCount =
-        vehicle.availability?.pendingBookings?.filter((booking) => booking.status === "payment_pending").length || 0;
-      const confirmedCount = vehicle.availability?.confirmedBookings?.length || 0;
-      return `
-        <article class="admin-vehicle-card">
-          <div>
-            <span class="status-pill">${escapeHtml(vehicle.category)}</span>
-            <h3>${escapeHtml(vehicle.name)} ${escapeHtml(vehicle.year)}</h3>
-            <p>
-              ${escapeHtml(vehicle.finish)} · ${pendingCount} pending holds · ${paymentPendingCount} payment pending ·
-              ${confirmedCount} confirmed
-            </p>
-          </div>
-
-          ${renderAdminAvailabilityCalendar(vehicle)}
-
-          <form class="admin-inline-form" data-admin-vehicle-form data-slug="${vehicle.slug}">
-            <label>
-              Daily rate
-              <input type="number" name="rate" min="0" value="${vehicle.rate}" />
-            </label>
-            <label>
-              Deposit
-              <input type="number" name="deposit" min="0" value="${vehicle.deposit}" />
-            </label>
-            <label>
-              Status
-              <select name="availabilityStatus">
-                <option value="active" ${vehicle.availability?.status === "active" ? "selected" : ""}>Active</option>
-                <option value="offline" ${vehicle.availability?.status === "offline" ? "selected" : ""}>Offline</option>
-              </select>
-            </label>
-            <button type="submit">Save</button>
-          </form>
-
-          <form class="admin-inline-form block-form" data-admin-block-form data-slug="${vehicle.slug}">
-            <label>
-              Block from
-              <input type="date" name="start" required />
-            </label>
-            <label>
-              Block until
-              <input type="date" name="end" required />
-            </label>
-            <label>
-              Reason
-              <input type="text" name="reason" placeholder="Service, detailing or private hold" />
-            </label>
-            <button type="submit">Block dates</button>
-          </form>
-
-          <div class="admin-block-list">
-            ${
-              blocks.length
-                ? blocks
-                    .map(
-                      (block) => `
-                        <span>
-                          <strong>
-                            ${escapeHtml(formatDisplayDate(block.start) || block.start)} - ${escapeHtml(
-                              formatDisplayDate(block.end) || block.end,
-                            )}
-                          </strong>
-                          <small>${escapeHtml(block.reason || "Operations block")}</small>
-                          <button
-                            type="button"
-                            data-admin-remove-block
-                            data-slug="${vehicle.slug}"
-                            data-block-id="${block.id}"
-                          >
-                            Remove
-                          </button>
-                        </span>
-                      `,
-                    )
-                    .join("")
-                : "<span>No blocked dates</span>"
-            }
-          </div>
-        </article>
-      `;
-    })
-    .join("");
-}
-
-function renderAdminFailure(error) {
-  const needsToken = error?.status === 401;
-  updateAdminAccessState({
-    tone: "warning",
-    mode: needsToken ? "Token required" : "API unavailable",
-    unlocked: false,
-    message: needsToken
-      ? "This Operations portal is locked. Enter the portal password to load bookings, customers and payments."
-      : error?.message || "Operations data could not be loaded. The dashboard is showing safe empty states.",
-  });
-  renderAdminMetrics({ counts: {} });
-  renderAdminBookings([]);
-  renderAdminVehicles([]);
-  renderAdminCustomers([]);
-  renderAdminPayments([]);
-  renderAdminLeads([]);
-  renderAdminNotifications([]);
-}
-
-async function safeAdminRequest(path) {
-  try {
-    return { ok: true, data: await apiRequest(path) };
-  } catch (error) {
-    return { ok: false, error };
-  }
-}
-
-function renderAdminCustomers(customers = []) {
-  const target = document.querySelector("[data-admin-customers]");
-  if (!target) return;
-
-  if (!customers.length) {
-    target.innerHTML = `
-      <tr>
-        <td colspan="6">
-          <strong>No customers yet</strong><br />
-          <span>Guest contacts and reservation enquiries will appear here once customers use the booking flow.</span>
-        </td>
-      </tr>
-    `;
-    return;
-  }
-
-  target.innerHTML = customers
-    .map(
-      (customer) => `
-        <tr>
-          <td>
-            <strong>${escapeHtml(customer.fullName || "Velaire Client")}</strong>
-            <span>${escapeHtml(customer.source === "account" ? "Legacy account" : "Guest reservation")}</span>
-          </td>
-          <td>
-            ${escapeHtml(customer.email || "Email pending")}
-            <span>${escapeHtml([customer.phone || "Phone pending", customer.billingPostcode || customer.billingCountry || ""].filter(Boolean).join(" · "))}</span>
-          </td>
-          <td><span class="status-pill muted">${escapeHtml(humanStatus(customer.verificationStatus))}</span></td>
-          <td>
-            <strong>${Number(customer.totalBookings || 0)}</strong>
-            <span>${Number(customer.upcomingBookings || 0)} active · ${Number(customer.completedBookings || 0)} completed</span>
-          </td>
-          <td>
-            ${escapeHtml(customer.lastBookingReference || "No booking yet")}
-            <span>${escapeHtml(customer.lastVehicle || customer.lastStatus || "No enquiry activity")}</span>
-          </td>
-          <td>${money(Number(customer.hireValue || 0))}</td>
-        </tr>
-      `,
-    )
-    .join("");
-}
-
-async function refreshAdmin() {
-  updateAdminAccessState({ mode: "Loading operations", message: "Loading live bookings, customers and Stripe deposits..." });
-  const entries = await Promise.all(
-    Object.entries({
-      summary: "/api/admin/summary",
-      bookings: "/api/admin/bookings",
-      vehiclesResponse: "/api/admin/vehicles",
-      customers: "/api/admin/customers",
-      payments: "/api/admin/payments",
-      leads: "/api/admin/leads",
-      notifications: "/api/admin/notifications",
-    }).map(async ([key, path]) => [key, await safeAdminRequest(path)]),
-  );
-  const results = Object.fromEntries(entries);
-  const unauthorised = Object.values(results).find((result) => !result.ok && result.error?.status === 401);
-  if (unauthorised) {
-    renderAdminFailure(unauthorised.error);
-    return;
-  }
-
-  const failures = Object.values(results).filter((result) => !result.ok);
-  if (failures.length) {
-    showFlowToast("Some operations data could not be loaded. Available records are shown.", "warning");
-  }
-
-  const summary = results.summary.data || { summary: {} };
-  const bookings = results.bookings.data || { bookings: [] };
-  const vehiclesResponse = results.vehiclesResponse.data || { vehicles: [] };
-  const customers = results.customers.data || { customers: [] };
-  const payments = results.payments.data || { payments: [] };
-  const leads = results.leads.data || { leads: [] };
-  const notifications = results.notifications.data || { notifications: summary.summary?.latestNotifications || [] };
-  adminState = {
-    bookings: bookings.bookings || [],
-    customers: customers.customers || [],
-    vehicles: vehiclesResponse.vehicles || summary.summary?.vehicles || [],
-    payments: payments.payments || summary.summary?.latestPayments || [],
-    leads: leads.leads || summary.summary?.latestLeads || [],
-    notifications: notifications.notifications || [],
-    filters: adminState.filters || { query: "", status: "", paymentStatus: "", date: "" },
-  };
-  renderAdminMetrics(summary.summary || {});
-  renderAdminBookings(adminState.bookings);
-  renderAdminVehicles(adminState.vehicles);
-  renderAdminCustomers(adminState.customers);
-  renderAdminPayments(adminState.payments);
-  renderAdminLeads(adminState.leads);
-  renderAdminNotifications(adminState.notifications);
-  updateAdminAccessState({
-    mode: "Operations live",
-    unlocked: true,
-    message:
-      summary.summary?.storedOperations?.available === true
-        ? "Admin API loaded from the operations data store and Stripe Checkout ledger."
-        : summary.summary?.stripeOperations?.available === false
-        ? "Admin API loaded. Stripe payment ledger is unavailable until STRIPE_SECRET_KEY is configured."
-        : "Admin API loaded from Stripe Checkout. Add Vercel KV or Upstash Redis REST variables for persisted operations records.",
-  });
-}
-
-function setupAdmin() {
-  const tokenForm = document.querySelector("[data-admin-token-form]");
-  const filtersForm = document.querySelector("[data-admin-booking-filters]");
-  tokenForm?.addEventListener("submit", async (event) => {
-    event.preventDefault();
-    const token = new FormData(tokenForm).get("adminToken");
-    saveAdminToken(token);
-    await refreshAdmin();
-  });
-
-  filtersForm?.addEventListener("input", () => {
-    const data = new FormData(filtersForm);
-    adminState.filters = {
-      query: String(data.get("query") || ""),
-      status: String(data.get("status") || ""),
-      paymentStatus: String(data.get("paymentStatus") || ""),
-      date: String(data.get("date") || ""),
-    };
-    renderAdminBookings(adminState.bookings);
-  });
-
-  filtersForm?.addEventListener("change", () => {
-    const event = new Event("input", { bubbles: true });
-    filtersForm.dispatchEvent(event);
-  });
-
-  document.querySelector("[data-admin-clear-filters]")?.addEventListener("click", () => {
-    if (!filtersForm) return;
-    filtersForm.reset();
-    adminState.filters = { query: "", status: "", paymentStatus: "", date: "" };
-    renderAdminBookings(adminState.bookings);
-  });
-
-  document.querySelector("[data-admin-token-clear]")?.addEventListener("click", async () => {
-    saveAdminToken("");
-    const input = document.querySelector("[data-admin-token-input]");
-    if (input) input.value = "";
-    await refreshAdmin();
-  });
-
-  refreshAdmin().catch((error) => {
-    renderAdminFailure(error);
-    showFlowToast(error.message || "Operations dashboard could not load.", "warning");
-  });
-
-  document.addEventListener("click", async (event) => {
-    const closeDetail = event.target.closest("[data-admin-detail-close]");
-    if (closeDetail) {
-      const drawer = document.querySelector("[data-admin-detail]");
-      if (drawer) drawer.hidden = true;
-      return;
-    }
-
-    const viewBooking = event.target.closest("[data-admin-view-booking]");
-    if (viewBooking) {
-      const booking = adminState.bookings.find((item) => item.id === viewBooking.dataset.adminViewBooking);
-      renderAdminBookingDetail(booking);
-      return;
-    }
-
-    const removeBlock = event.target.closest("[data-admin-remove-block]");
-    if (removeBlock) {
-      removeBlock.disabled = true;
-      try {
-        await apiRequest("/api/admin/vehicles", {
-          method: "DELETE",
-          body: JSON.stringify({
-            slug: removeBlock.dataset.slug,
-            blockId: removeBlock.dataset.blockId,
-          }),
-        });
-        showFlowToast("Vehicle block removed.");
-        await refreshAdmin();
-      } catch (error) {
-        showFlowToast(error.message || "Block removal failed.", "warning");
-      } finally {
-        removeBlock.disabled = false;
-      }
-      return;
-    }
-
-    const paymentButton = event.target.closest("[data-admin-payment-status]");
-    if (paymentButton) {
-      paymentButton.disabled = true;
-      try {
-        await apiRequest("/api/admin/payments", {
-          method: "PATCH",
-          body: JSON.stringify({
-            id: paymentButton.dataset.paymentId,
-            patch: {
-              status: paymentButton.dataset.adminPaymentStatus,
-            },
-          }),
-        });
-        showFlowToast(`Deposit marked ${paymentButton.dataset.adminPaymentStatus}.`);
-        await refreshAdmin();
-      } catch (error) {
-        showFlowToast(error.message || "Payment update failed.", "warning");
-      } finally {
-        paymentButton.disabled = false;
-      }
-      return;
-    }
-
-    const leadButton = event.target.closest("[data-admin-lead-status]");
-    if (leadButton) {
-      leadButton.disabled = true;
-      try {
-        await apiRequest("/api/admin/leads", {
-          method: "PATCH",
-          body: JSON.stringify({
-            id: leadButton.dataset.leadId,
-            patch: {
-              status: leadButton.dataset.adminLeadStatus,
-            },
-          }),
-        });
-        showFlowToast(`Lead marked ${leadButton.dataset.adminLeadStatus}.`);
-        await refreshAdmin();
-      } catch (error) {
-        showFlowToast(error.message || "Lead update failed.", "warning");
-      } finally {
-        leadButton.disabled = false;
-      }
-      return;
-    }
-
-    const button = event.target.closest("[data-admin-booking-action]");
-    if (!button) return;
-    button.disabled = true;
-    try {
-      await apiRequest("/api/admin/bookings", {
-        method: "PATCH",
-        body: JSON.stringify({
-          id: button.dataset.bookingId,
-          action: button.dataset.adminBookingAction,
-        }),
-      });
-      showFlowToast(`Booking marked ${adminActionLabel(button.dataset.adminBookingAction)}.`);
-      await refreshAdmin();
-    } catch (error) {
-      showFlowToast(error.message || "Booking action failed.", "warning");
-    } finally {
-      button.disabled = false;
-    }
-  });
-
-  document.addEventListener("submit", async (event) => {
-    const vehicleForm = event.target.closest("[data-admin-vehicle-form]");
-    const blockForm = event.target.closest("[data-admin-block-form]");
-    if (!vehicleForm && !blockForm) return;
-    event.preventDefault();
-
-    const form = vehicleForm || blockForm;
-    const data = new FormData(form);
-    const slug = form.dataset.slug;
-    try {
-      if (vehicleForm) {
-        await apiRequest("/api/admin/vehicles", {
-          method: "PATCH",
-          body: JSON.stringify({
-            slug,
-            patch: {
-              rate: data.get("rate"),
-              deposit: data.get("deposit"),
-              availabilityStatus: data.get("availabilityStatus"),
-            },
-          }),
-        });
-        showFlowToast("Vehicle pricing and availability saved.");
-      } else {
-        await apiRequest("/api/admin/vehicles", {
-          method: "POST",
-          body: JSON.stringify({
-            slug,
-            block: {
-              start: data.get("start"),
-              end: data.get("end"),
-              reason: data.get("reason"),
-            },
-          }),
-        });
-        form.reset();
-        showFlowToast("Vehicle dates blocked.");
-      }
-      await refreshAdmin();
-    } catch (error) {
-      showFlowToast(error.message || "Operations update failed.", "warning");
-    }
-  });
+  renderBookingHistory(result.bookings || []);
 }
 
 function fillAccountForm(form, account = loadAccount()) {
   [...form.elements].forEach((field) => {
-    if (!field.name || field.type === "file") return;
+    if (!field.name || field.type === "file" || field.name === "cardNumber") return;
 
     const value = account[field.name];
     if (field.type === "checkbox") {
@@ -3501,7 +1832,7 @@ function readAccountForm(form) {
   const next = {};
 
   [...form.elements].forEach((field) => {
-    if (!field.name || field.type === "file") return;
+    if (!field.name || field.type === "file" || field.name === "cardNumber") return;
 
     if (field.type === "checkbox") {
       if (!Array.isArray(next[field.name])) next[field.name] = [];
@@ -3527,6 +1858,12 @@ function pulseSaved(button, label = "Saved") {
   window.setTimeout(() => {
     button.textContent = original;
   }, 1400);
+}
+
+function maskCard(value) {
+  const digits = value.replace(/\D/g, "");
+  if (digits.length < 4) return "";
+  return `Card ending ${digits.slice(-4)}`;
 }
 
 function appendConciergeMessage(role, message) {
@@ -3712,45 +2049,59 @@ function setupConciergeAssistant() {
   });
 }
 
-async function setupAccount() {
-  const session = await requireClientLoungeSession();
-  if (!session) return;
-  renderAccountSessionState(session);
+function setupAccount() {
   const account = loadAccount();
 
   document.querySelectorAll("[data-account-form]").forEach((form) => {
     fillAccountForm(form, account);
 
-    form.addEventListener("input", () => {
-      updateAccountDisplay(saveAccount(readAccountForm(form)));
-    });
-    form.addEventListener("change", () => {
-      updateAccountDisplay(saveAccount(readAccountForm(form)));
-    });
+    if (form.dataset.accountForm !== "payment") {
+      form.addEventListener("input", () => {
+        updateAccountDisplay(saveAccount(readAccountForm(form)));
+      });
+      form.addEventListener("change", () => {
+        updateAccountDisplay(saveAccount(readAccountForm(form)));
+      });
+    }
 
     form.addEventListener("submit", async (event) => {
       event.preventDefault();
-      updateAccountDisplay(saveAccount(readAccountForm(form)));
+
+      if (form.dataset.accountForm === "payment") {
+        const cardSummary = maskCard(form.elements.cardNumber?.value || "");
+        const cardName = form.elements.cardName?.value || "Preferred card saved";
+        const cardExpiry = form.elements.cardExpiry?.value || "";
+        updateAccountDisplay(
+          saveAccount({
+            cardSummary: cardSummary || "No saved card",
+            cardName,
+            cardExpiry,
+          }),
+        );
+        if (form.elements.cardNumber) form.elements.cardNumber.value = "";
+      } else {
+        updateAccountDisplay(saveAccount(readAccountForm(form)));
+      }
+
       await syncAccountToBackend(loadAccount());
       pulseSaved(form.querySelector('button[type="submit"]'));
     });
   });
 
   document.querySelectorAll("[data-file-input]").forEach((input) => {
-    input.addEventListener("change", async () => {
+    input.addEventListener("change", () => {
       const file = input.files?.[0];
       if (!file) return;
       const accountNext = loadAccount();
-      const key = input.dataset.fileInput;
-      const meta = documentMeta(file);
-      if (key === "displayPhoto") {
-        meta.preview = await readImagePreview(file);
-      }
       updateAccountDisplay(
         saveAccount({
           files: {
             ...(accountNext.files || {}),
-            [key]: meta,
+            [input.dataset.fileInput]: {
+              name: file.name,
+              type: file.type || "Selected document",
+              updatedAt: new Date().toISOString(),
+            },
           },
         }),
       );
@@ -3758,35 +2109,20 @@ async function setupAccount() {
     });
   });
 
-  document.querySelector("[data-save-current-location]")?.addEventListener("click", () => {
-    const reservation = loadReservation();
-    const label = reservation.formattedAddress || reservation.location;
-    if (!label) {
-      showFlowToast("Add a delivery location in the booking flow first.", "warning");
-      return;
-    }
-    const accountNext = loadAccount();
-    const savedLocations = [
-      ...(accountNext.savedLocations || []),
-      {
-        label,
-        type: "Concierge delivery",
-        lat: reservation.lat || "",
-        lng: reservation.lng || "",
-        updatedAt: new Date().toISOString(),
-      },
-    ];
-    updateAccountDisplay(saveAccount({ savedLocations }));
+  document.getElementById("remove-card")?.addEventListener("click", () => {
+    updateAccountDisplay(
+      saveAccount({
+        cardSummary: "No saved card",
+        cardName: "Add a preferred card for reservation holds.",
+        cardExpiry: "",
+      }),
+    );
     syncAccountToBackend(loadAccount());
-    showFlowToast("Handover location saved to your client lounge.");
   });
 
   document.querySelector("[data-logout]")?.addEventListener("click", async () => {
-    await performLogout();
-  });
-
-  document.querySelector("[data-logout-keep-draft]")?.addEventListener("click", async () => {
-    await performLogout({ keepDraft: true });
+    await optionalApiRequest("/api/auth/logout", { method: "POST" }, null);
+    showFlowToast("Signed out of the backend session. Local booking details remain on this device.");
   });
 
   updateAccountDisplay(account);
@@ -3796,30 +2132,14 @@ async function setupAccount() {
 
 function setupBooking() {
   const form = document.querySelector("form");
-  const params = new URLSearchParams(window.location.search);
-  const requestedVehicle = params.get("vehicle") || "";
+  const requestedVehicle = queryVehicleSlug();
   let reservation = loadReservation();
-  const storedBooking = loadBackendBooking();
-  const bookingStateIsClosed =
-    reservation.paymentStatus === "deposit_paid" ||
-    ["confirmed", "completed", "cancelled", "rejected"].includes(String(reservation.status || storedBooking?.status || "").toLowerCase()) ||
-    (storedBooking && !bookingCanBeUpdatedForReservation(storedBooking, reservation));
-  if (requestedVehicle || bookingStateIsClosed) {
-    reservation = startFreshBookingDraft({ vehicle: requestedVehicle || reservation.vehicle || selectedSlug() });
-  }
-  const slug = selectedSlug();
+  const slug = resolveSelectedVehicleSlug({ preferUrl: Boolean(requestedVehicle), preferChecked: false, preferStored: true });
+  if (slug) reservation = saveSelectedVehicleSlug(slug);
   const radio = document.querySelector(`input[name="vehicle"][value="${slug}"]`);
   if (radio) radio.checked = true;
+  if (slug) syncVehicleQueryParam(slug);
 
-  setFieldValue(form, "fullName", reservation.fullName || reservation.name);
-  setFieldValue(form, "email", reservation.email);
-  setFieldValue(form, "phone", reservation.phone);
-  setFieldValue(form, "billingAddressLine1", reservation.billingAddressLine1);
-  setFieldValue(form, "billingAddressLine2", reservation.billingAddressLine2);
-  setFieldValue(form, "billingTown", reservation.billingTown);
-  setFieldValue(form, "billingCity", reservation.billingCity);
-  setFieldValue(form, "billingPostcode", reservation.billingPostcode);
-  setFieldValue(form, "billingCountry", reservation.billingCountry || "United Kingdom");
   setFieldValue(form, "pickup", reservation.pickup);
   setFieldValue(form, "pickup-time", reservation.pickupTime);
   setFieldValue(form, "return", reservation.return);
@@ -3830,6 +2150,15 @@ function setupBooking() {
   setFieldValue(form, "lat", reservation.lat);
   setFieldValue(form, "lng", reservation.lng);
   setFieldValue(form, "handover-notes", reservation.handoverNotes);
+  setFieldValue(form, "fullName", reservation.fullName || reservation.name);
+  setFieldValue(form, "email", reservation.email);
+  setFieldValue(form, "phone", reservation.phone);
+  setFieldValue(form, "billingAddress1", reservation.billingAddress1);
+  setFieldValue(form, "billingAddress2", reservation.billingAddress2);
+  setFieldValue(form, "billingTown", reservation.billingTown);
+  setFieldValue(form, "billingCity", reservation.billingCity);
+  setFieldValue(form, "billingPostcode", reservation.billingPostcode);
+  setFieldValue(form, "billingCountry", reservation.billingCountry);
 
   function refreshCards() {
     document.querySelectorAll("[data-vehicle-card]").forEach((card) => {
@@ -3839,497 +2168,370 @@ function setupBooking() {
 
     const checked = document.querySelector('input[name="vehicle"]:checked');
     if (checked) {
-      saveBookingDraft({ vehicle: checked.value });
+      saveReservation({ vehicle: checked.value });
+      syncVehicleQueryParam(checked.value);
       updateSummary();
     }
   }
 
   function persistDraft() {
     if (!form) return;
-    saveBookingDraft(readBookingForm(form));
+    saveReservation(readBookingForm(form));
     updateSummary();
     window.clearTimeout(persistDraft.availabilityTimer);
     persistDraft.availabilityTimer = window.setTimeout(checkAvailability, 360);
   }
 
-  function bindVehicleChoiceEvents() {
-    document.querySelectorAll('input[name="vehicle"]').forEach((input) => {
-      if (input.dataset.bound === "true") return;
-      input.dataset.bound = "true";
-      input.addEventListener("change", () => {
-        refreshCards();
-        persistDraft();
-      });
+  document.querySelectorAll('input[name="vehicle"]').forEach((input) => {
+    input.addEventListener("change", () => {
+      refreshCards();
+      persistDraft();
     });
-  }
+  });
 
-  function initialiseLiveFleetChoices() {
-    const currentSlug = loadReservation().vehicle || selectedSlug();
-    renderBookingFleetChoices(currentSlug);
-    const liveRadio = document.querySelector(`input[name="vehicle"][value="${currentSlug}"]`);
-    if (liveRadio && !liveRadio.disabled) liveRadio.checked = true;
-    bindVehicleChoiceEvents();
-    refreshCards();
-    persistDraft();
-  }
+  updateBookingVehicleCards();
+  refreshCards();
+  updateSummary();
 
   form?.addEventListener("input", persistDraft);
   form?.addEventListener("submit", async (event) => {
     event.preventDefault();
-    saveBookingDraft({ ...readBookingForm(form), clientIntent: "reservation" });
+    saveReservation(readBookingForm(form));
     try {
       const availability = await checkAvailability();
-      if (availability && availability.available === false) return;
-      await syncBookingToBackend("pending");
+      if (availability && availability.available === false) {
+        showFlowToast(availability.message || "That vehicle is unavailable for the selected dates.", "warning");
+        return;
+      }
+      await syncBookingToBackend("draft", { strict: true });
       navigateTo(form.getAttribute("action") || "payment.html");
-    } catch {
-      // Conflict messaging is handled by the API helper toast.
+    } catch (error) {
+      showFlowToast(error.message || "Those reservation details could not be saved. Please adjust the selection.", "warning");
     }
   });
 
-  hydrateOperationalFleet().then((result) => {
-    if (!result?.fleet?.length) {
-      const target = document.querySelector("[data-availability-text]");
-      const submitButton = form?.querySelector('button[type="submit"]');
-      if (target) {
-        target.innerHTML = `<span aria-hidden="true"></span>Live Operations fleet data could not be loaded. Refresh before creating a reservation.`;
-        target.classList.add("is-unavailable");
-      }
-      if (submitButton) {
-        submitButton.disabled = true;
-        submitButton.textContent = "Live fleet data required";
-      }
-      showFlowToast("Live Operations fleet data is required before reserving.", "warning");
-      return;
-    }
-    initialiseLiveFleetChoices();
-    checkAvailability();
+  hydrateFleetPricing().finally(() => {
+    refreshCards();
+    persistDraft();
   });
   setupElegantDatePicker(form);
   setupMapboxDeliveryPicker(form);
 }
 
+let adminState = { bookings: [], vehicles: [], customers: [], payments: [] };
+
+function renderAdminCounts(counts = {}) {
+  document.querySelectorAll("[data-admin-count]").forEach((node) => {
+    node.textContent = String(counts[node.dataset.adminCount] || 0);
+  });
+}
+
+function renderAdminVehicles(vehiclesList = []) {
+  const target = document.querySelector("[data-admin-vehicles]");
+  if (!target) return;
+  if (!vehiclesList.length) {
+    target.innerHTML = `<article class="admin-empty">No vehicle operations data found.</article>`;
+    return;
+  }
+  target.innerHTML = vehiclesList
+    .map((vehicle) => {
+      const blocks = vehicle.availability?.blockedRanges || [];
+      return `
+        <article class="admin-vehicle-card">
+          <div class="admin-card-heading">
+            <div>
+              <span class="eyebrow">${escapeHtml(vehicle.category || "Vehicle")}</span>
+              <h3>${escapeHtml(vehicle.name)} ${escapeHtml(vehicle.year || "")}</h3>
+            </div>
+            <strong class="admin-rate-badge">${money(vehicle.rate)}/day</strong>
+          </div>
+          <div class="admin-vehicle-actions">
+            <form class="admin-inline-form admin-pricing-form" data-admin-vehicle-form data-slug="${escapeHtml(vehicle.slug)}">
+              <div class="admin-control-heading">
+                <div>
+                  <span>Tariff control</span>
+                  <small>Updates the live reservation rate and deposit.</small>
+                </div>
+              </div>
+              <label class="field admin-field">Daily rate
+                <input type="number" name="rate" min="0" value="${Number(vehicle.rate || 0)}" />
+              </label>
+              <label class="field admin-field">Deposit
+                <input type="number" name="deposit" min="0" value="${Number(vehicle.deposit || 0)}" />
+              </label>
+              <label class="field admin-field">Status
+                <select name="availabilityStatus">
+                  <option value="request-to-confirm" ${vehicle.availability?.status !== "offline" ? "selected" : ""}>Active</option>
+                  <option value="offline" ${vehicle.availability?.status === "offline" ? "selected" : ""}>Offline</option>
+                </select>
+              </label>
+              <button class="primary-button admin-submit" type="submit">Save changes</button>
+            </form>
+            <form class="admin-inline-form admin-block-form" data-admin-block-form data-slug="${escapeHtml(vehicle.slug)}">
+              <div class="admin-control-heading">
+                <div>
+                  <span>Availability hold</span>
+                  <small>Block customer reservations for service, detailing or owner holds.</small>
+                </div>
+              </div>
+              <label class="field admin-field">Block from
+                <input type="date" name="start" required />
+              </label>
+              <label class="field admin-field">Block until
+                <input type="date" name="end" required />
+              </label>
+              <label class="field admin-field">Reason
+                <input name="reason" placeholder="Service, detailing, owner hold" />
+              </label>
+              <button class="secondary-button admin-submit admin-block-submit" type="submit">Block dates</button>
+            </form>
+          </div>
+          <div class="admin-block-list" aria-label="Blocked dates for ${escapeHtml(vehicle.name)}">
+            ${
+              blocks.length
+                ? blocks
+                    .map(
+                      (block) => `
+                        <div class="admin-block-chip">
+                          <span class="admin-block-copy">
+                            <strong>${escapeHtml(block.start)} to ${escapeHtml(block.end)}</strong>
+                            <small>${escapeHtml(block.reason || "Operations block")}</small>
+                          </span>
+                          <button class="admin-remove-block" type="button" data-admin-remove-block data-slug="${escapeHtml(vehicle.slug)}" data-block-id="${escapeHtml(block.id)}">Remove</button>
+                        </div>
+                      `,
+                    )
+                    .join("")
+                : `<div class="admin-block-empty">No blocked dates currently.</div>`
+            }
+          </div>
+        </article>
+      `;
+    })
+    .join("");
+}
+
+function renderAdminBookings(bookings = []) {
+  const target = document.querySelector("[data-admin-bookings]");
+  if (!target) return;
+  if (!bookings.length) {
+    target.innerHTML = `<article class="admin-empty">No bookings yet. Guest reservations will appear here after customers reserve.</article>`;
+    return;
+  }
+  target.innerHTML = bookings
+    .map(
+      (booking) => `
+        <article class="admin-record-card">
+          <div>
+            <strong>${escapeHtml(booking.customerName || "Guest client")}</strong>
+            <span>${escapeHtml(booking.customerEmail || "No email")} · ${escapeHtml(booking.customerPhone || "No phone")}</span>
+          </div>
+          <div>
+            <strong>${escapeHtml(booking.vehicleName || booking.vehicleSlug)}</strong>
+            <span>${escapeHtml(booking.pickup || "Pickup pending")} to ${escapeHtml(booking.return || "Return pending")}</span>
+          </div>
+          <span class="status-pill">${humanStatus(booking.status)}</span>
+          <span class="status-pill">${humanStatus(booking.paymentStatus)}</span>
+          <div class="admin-action-row">
+            <button type="button" data-admin-booking-action="confirm" data-booking-id="${escapeHtml(booking.id)}">Confirm</button>
+            <button type="button" data-admin-booking-action="cancel" data-booking-id="${escapeHtml(booking.id)}">Cancel</button>
+            <button type="button" data-admin-booking-action="complete" data-booking-id="${escapeHtml(booking.id)}">Complete</button>
+          </div>
+        </article>
+      `,
+    )
+    .join("");
+}
+
+function renderAdminCustomers(customers = []) {
+  const target = document.querySelector("[data-admin-customers]");
+  if (!target) return;
+  target.innerHTML = customers.length
+    ? customers
+        .map(
+          (customer) => `
+            <article class="admin-record-card">
+              <strong>${escapeHtml(customer.fullName || "Guest client")}</strong>
+              <span>${escapeHtml(customer.email || "")} · ${escapeHtml(customer.phone || "")}</span>
+              <span>${Number(customer.totalBookings || 0)} bookings · ${money(Number(customer.hireValue || 0))} hire value</span>
+            </article>
+          `,
+        )
+        .join("")
+    : `<article class="admin-empty">No customer records yet.</article>`;
+}
+
+function renderAdminPayments(payments = []) {
+  const target = document.querySelector("[data-admin-payments]");
+  if (!target) return;
+  target.innerHTML = payments.length
+    ? payments
+        .map(
+          (payment) => `
+            <article class="admin-record-card">
+              <strong>${escapeHtml(payment.bookingReference || payment.bookingId || "Deposit record")}</strong>
+              <span>${escapeHtml(payment.vehicleName || "")} · ${escapeHtml(payment.customerEmail || "")}</span>
+              <span>${money(Number(payment.amount || 0))} · ${humanStatus(payment.status)}</span>
+            </article>
+          `,
+        )
+        .join("")
+    : `<article class="admin-empty">No payment records yet.</article>`;
+}
+
+async function refreshAdmin() {
+  const result = await apiRequest("/api/admin/summary", { method: "GET" });
+  const summary = result.summary || {};
+  adminState = {
+    bookings: summary.bookings || [],
+    vehicles: summary.vehicles || [],
+    customers: summary.customers || [],
+    payments: summary.payments || [],
+  };
+  renderAdminCounts(summary.counts || {});
+  renderAdminVehicles(adminState.vehicles);
+  renderAdminBookings(adminState.bookings);
+  renderAdminCustomers(adminState.customers);
+  renderAdminPayments(adminState.payments);
+  const status = document.querySelector("[data-admin-status]");
+  if (status) status.textContent = summary.meta?.available ? "Connected to Vercel KV operations storage." : "Using memory fallback. Check KV_REST_API_URL and KV_REST_API_TOKEN.";
+}
+
+function setupAdmin() {
+  const tokenForm = document.querySelector("[data-admin-token-form]");
+  const tokenInput = document.querySelector("[data-admin-token-input]");
+  if (tokenInput) tokenInput.value = loadAdminToken();
+
+  tokenForm?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    saveAdminToken(new FormData(tokenForm).get("adminToken"));
+    await refreshAdmin().catch((error) => showFlowToast(error.message || "Operations portal could not be loaded.", "warning"));
+  });
+
+  document.addEventListener("submit", async (event) => {
+    const vehicleForm = event.target.closest("[data-admin-vehicle-form]");
+    const blockForm = event.target.closest("[data-admin-block-form]");
+    if (!vehicleForm && !blockForm) return;
+    event.preventDefault();
+    const data = new FormData(event.target);
+    const slug = event.target.dataset.slug;
+    if (vehicleForm) {
+      await apiRequest("/api/admin/vehicles", {
+        method: "PATCH",
+        body: JSON.stringify({
+          slug,
+          patch: {
+            rate: data.get("rate"),
+            deposit: data.get("deposit"),
+            availabilityStatus: data.get("availabilityStatus"),
+          },
+        }),
+      });
+      showFlowToast("Vehicle pricing and availability saved.");
+    }
+    if (blockForm) {
+      await apiRequest("/api/admin/vehicles", {
+        method: "POST",
+        body: JSON.stringify({
+          slug,
+          block: {
+            start: data.get("start"),
+            end: data.get("end"),
+            reason: data.get("reason") || "Operations block",
+          },
+        }),
+      });
+      showFlowToast("Vehicle dates blocked.");
+    }
+    await refreshAdmin();
+  });
+
+  document.addEventListener("click", async (event) => {
+    const removeBlock = event.target.closest("[data-admin-remove-block]");
+    const bookingAction = event.target.closest("[data-admin-booking-action]");
+    if (removeBlock) {
+      await apiRequest("/api/admin/vehicles", {
+        method: "DELETE",
+        body: JSON.stringify({
+          slug: removeBlock.dataset.slug,
+          blockId: removeBlock.dataset.blockId,
+        }),
+      });
+      showFlowToast("Vehicle block removed.");
+      await refreshAdmin();
+    }
+    if (bookingAction) {
+      await apiRequest("/api/admin/bookings", {
+        method: "PATCH",
+        body: JSON.stringify({
+          id: bookingAction.dataset.bookingId,
+          action: bookingAction.dataset.adminBookingAction,
+        }),
+      });
+      showFlowToast(`Booking marked ${humanStatus(bookingAction.dataset.adminBookingAction)}.`);
+      await refreshAdmin();
+    }
+  });
+
+  if (loadAdminToken()) {
+    refreshAdmin().catch(() => {});
+  }
+}
+
 function setupLogin() {
   const form = document.querySelector("form");
   const reservation = loadReservation();
-  const account = loadAccount();
-  const journeyMode = loginJourneyMode();
-  let authMode = "returning";
 
-  setFieldValue(form, "fullName", account.fullName || reservation.fullName || reservation.name);
   setFieldValue(form, "email", reservation.email);
   setFieldValue(form, "phone", reservation.phone);
-  configureLoginExperience({ journeyMode, authMode });
-
-  document.querySelectorAll("[data-auth-mode]").forEach((button) => {
-    button.addEventListener("click", () => {
-      authMode = button.dataset.authMode || "returning";
-      configureLoginExperience({ journeyMode, authMode });
-      clearLoginState();
-    });
-  });
-
-  async function openClientLounge(user) {
-    mergeAuthenticatedUser(user);
-    renderLoginState({
-      tone: "success",
-      title: "Client Lounge unlocked",
-      message: "Your private Velaire account is ready. Opening your lounge now.",
-    });
-    await syncAccountToBackend(loadAccount());
-    window.setTimeout(() => navigateTo("account.html"), 500);
-    return true;
-  }
-
-  async function continueSignedIn(user) {
-    mergeAuthenticatedUser(user);
-    if (journeyMode !== "booking") {
-      return openClientLounge(user);
-    }
-
-    const context = await fetchAccountContext(user.email);
-    const existingBooking = matchingActiveVehicleBooking(context?.bookings || []);
-    if (existingBooking) {
-      saveBackendBooking(existingBooking);
-      saveReservation({
-        bookingId: existingBooking.id,
-        reference: existingBooking.reference,
-        status: existingBooking.status,
-        paymentStatus: existingBooking.paymentStatus,
-      });
-      if (existingBooking.paymentStatus === "deposit_paid") savePaidState({ booking: existingBooking });
-      renderLoginState({
-        tone: "success",
-        title: existingBooking.paymentStatus === "deposit_paid" ? "Reservation already secured" : "Existing reservation loaded",
-        message:
-          existingBooking.paymentStatus === "deposit_paid"
-            ? "This vehicle is already secured. Opening your account details now."
-            : "You already have an active reservation for this vehicle. Continuing to the existing reservation now.",
-        actions:
-          existingBooking.paymentStatus === "deposit_paid"
-            ? '<a class="secondary-button" href="account.html">Open account details</a>'
-            : '<a class="primary-button" href="payment.html">Continue existing reservation</a>',
-      });
-      window.setTimeout(
-        () => navigateTo(existingBooking.paymentStatus === "deposit_paid" ? "account.html" : "payment.html"),
-        700,
-      );
-      return false;
-    }
-
-    renderLoginState({
-      tone: "success",
-      title: "Signed in",
-      message: "Your Velaire account is active. Continuing to the reservation step.",
-    });
-    await syncAccountToBackend(loadAccount());
-    await syncBookingToBackend("pending");
-    window.setTimeout(() => navigateTo(form?.getAttribute("action") || "payment.html"), 650);
-    return true;
-  }
-
-  fetchAuthSession().then((session) => {
-    if (session?.authenticated && session.user) continueSignedIn(session.user);
-  });
-
-  form?.elements?.email?.addEventListener("blur", async () => {
-    const email = form.elements.email.value.trim();
-    if (!email) return;
-    const context = await fetchAccountContext(email);
-    if (!context) {
-      authMode = "returning";
-      configureLoginExperience({ journeyMode, authMode });
-      renderLoginState({
-        tone: "warning",
-        title: "Account check unavailable",
-        message: "Enter your password to sign in, or choose Create access only if this email is new to Velaire.",
-      });
-      return;
-    }
-    if (!emailExistsInVelaire(context)) {
-      authMode = "new";
-      configureLoginExperience({ journeyMode, authMode });
-      renderLoginState({
-        tone: "success",
-        title: "New private client profile",
-        message: "Create access once and your lounge will keep reservations, verification and handover preferences together.",
-      });
-      return;
-    }
-    const existingBooking = journeyMode === "booking" ? matchingActiveVehicleBooking(context.bookings || []) : null;
-    if (existingBooking) {
-      authMode = "returning";
-      configureLoginExperience({ journeyMode, authMode });
-      renderLoginState({
-        tone: "warning",
-        title: "Existing Velaire reservation found",
-        message:
-          existingBooking.paymentStatus === "deposit_paid"
-            ? "This vehicle is already secured for this client. Login and we will open the booking details."
-            : "This client already has an active reservation for the selected vehicle. Login and we will continue that booking.",
-      });
-      return;
-    }
-    if (emailExistsInVelaire(context)) {
-      authMode = "returning";
-      configureLoginExperience({ journeyMode, authMode });
-      renderLoginState({
-        title: "Welcome back",
-        message:
-          journeyMode === "booking"
-            ? "A Velaire account already exists for this email. Enter the account password and we will attach this reservation securely."
-            : "A Velaire account already exists for this email. Enter the account password to open your Client Lounge.",
-      });
-      return;
-    }
-
-    authMode = "new";
-    configureLoginExperience({ journeyMode, authMode });
-    renderLoginState({
-      tone: "success",
-      title: "New private client profile",
-      message: "Create access once and your lounge will keep reservations, verification and handover preferences together.",
-    });
-  });
 
   form?.addEventListener("submit", async (event) => {
     event.preventDefault();
-    clearLoginState();
     const data = new FormData(form);
-    const creatingAccess = authMode === "new";
-    const fullName = creatingAccess ? data.get("fullName") || "" : "";
     const email = data.get("email") || "";
-    const phone = creatingAccess ? data.get("phone") || "" : "";
+    const phone = data.get("phone") || "";
     const password = data.get("password") || "";
-    if (journeyMode === "booking" && creatingAccess) {
-      saveReservation({
-        name: fullName,
-        fullName,
-        email,
-        phone,
-        clientIntent: "reservation",
-      });
-    }
-    saveAccount(creatingAccess ? { fullName, email, phone } : { email });
-    const submitButton = form.querySelector('button[type="submit"]');
-    if (submitButton) {
-      submitButton.disabled = true;
-      submitButton.textContent = creatingAccess ? "Creating access..." : "Logging in...";
-    }
-    try {
-      const context = await fetchAccountContext(email);
-      if (!context) {
-        authMode = "returning";
-        configureLoginExperience({ journeyMode, authMode });
-        renderLoginState({
-          tone: "warning",
-          title: "Account check unavailable",
-          message: "We could not verify this email safely. Please login if you already have access, or try again before creating access.",
-        });
-        return;
-      }
-      const knownEmailExists = emailExistsInVelaire(context);
-      if (creatingAccess && knownEmailExists) {
-        authMode = "returning";
-        configureLoginExperience({ journeyMode, authMode });
-        renderLoginState({
-          tone: "warning",
-          title: "Account already exists",
-          message: "This email is already connected to a Velaire account. Login with your password to continue.",
-        });
-        return;
-      }
-      const existingBooking = matchingActiveVehicleBooking(context?.bookings || []);
-      if (journeyMode === "booking" && existingBooking) {
-        const authResult = await ensureBackendAccount({
-          email,
-          phone,
-          password,
-          fullName,
-          accountExists: knownEmailExists,
-          authAccountExists: hasAccountAccess(context),
-          mode: "returning",
-        });
-        if (authResult?.user) mergeAuthenticatedUser(authResult.user);
-        saveBackendBooking(existingBooking);
-        saveReservation({
-          bookingId: existingBooking.id,
-          reference: existingBooking.reference,
-          status: existingBooking.status,
-          paymentStatus: existingBooking.paymentStatus,
-        });
-        if (existingBooking.paymentStatus === "deposit_paid") savePaidState({ booking: existingBooking });
-        renderLoginState({
-          tone: "success",
-          title: existingBooking.paymentStatus === "deposit_paid" ? "Deposit already paid" : "Existing reservation loaded",
-          message:
-            existingBooking.paymentStatus === "deposit_paid"
-              ? "This reservation is already secured. Opening the booking details now."
-              : "This reservation already exists. Continuing with the saved booking now.",
-          actions:
-            existingBooking.paymentStatus === "deposit_paid"
-              ? '<a class="secondary-button" href="account.html">View booking details</a>'
-              : '<a class="primary-button" href="payment.html">Continue existing reservation</a>',
-        });
-        window.setTimeout(
-          () => navigateTo(existingBooking.paymentStatus === "deposit_paid" ? "account.html" : "payment.html"),
-          700,
-        );
-        return;
-      }
-
-      const authResult = await ensureBackendAccount({
-        email,
-        phone,
-        password,
-        fullName,
-        accountExists: knownEmailExists,
-        authAccountExists: hasAccountAccess(context),
-        mode: creatingAccess ? "new" : "returning",
-      });
-      if (authResult?.user) mergeAuthenticatedUser(authResult.user);
-      await syncAccountToBackend(loadAccount());
-      if (journeyMode === "booking") {
-        await syncBookingToBackend("pending");
-        navigateTo(form.getAttribute("action") || "payment.html");
-        return;
-      }
-      renderLoginState({
-        tone: "success",
-        title: "Client Lounge unlocked",
-        message: "Your Velaire account is active. Opening the private lounge.",
-      });
-      window.setTimeout(() => navigateTo("account.html"), 450);
-    } catch (error) {
-      renderLoginState({
-        tone: "warning",
-        title: "Sign in to continue",
-        message:
-          error.message ||
-          "A Velaire account already exists for this email. Enter the correct password to continue the reservation.",
-      });
-    } finally {
-      if (submitButton) {
-        submitButton.disabled = false;
-        submitButton.textContent = authMode === "new" ? "Sign up" : "Login";
-      }
-    }
+    saveReservation({
+      email,
+      phone,
+    });
+    saveAccount({
+      email: data.get("email") || "",
+      phone: data.get("phone") || "",
+    });
+    await ensureBackendAccount({ email, phone, password });
+    await syncAccountToBackend(loadAccount());
+    await syncBookingToBackend("client_details_saved");
+    navigateTo(form.getAttribute("action") || "payment.html");
   });
 }
 
 function setupPayment() {
   const form = document.querySelector("form");
-  const providerStatus = document.querySelector("[data-payment-provider-status]");
-  const paymentAlert = document.querySelector("[data-payment-alert]");
-  const paidPanel = document.querySelector("[data-payment-paid-panel]");
-  const submitButton = form?.querySelector('button[type="submit"]');
-  const params = new URLSearchParams(window.location.search);
-
-  function renderPaidPaymentState({ booking = loadBackendBooking(), payment = null } = {}) {
-    savePaidState({ booking, payment });
-    if (providerStatus) providerStatus.textContent = "Deposit already paid. No further checkout is required.";
-    if (paymentAlert) paymentAlert.hidden = true;
-    if (paidPanel) paidPanel.hidden = false;
-    if (submitButton) {
-      submitButton.disabled = true;
-      submitButton.textContent = "Deposit paid";
-    }
-    form?.classList.add("is-payment-confirmed");
-    updateSummary();
-  }
-
-  if (params.get("payment") === "cancelled") {
-    saveReservation({ status: "payment_pending", paymentStatus: "cancelled" });
-    if (providerStatus) providerStatus.textContent = "Checkout was cancelled. No deposit has been taken.";
-    if (paymentAlert) {
-      paymentAlert.hidden = false;
-      paymentAlert.classList.add("is-warning");
-      paymentAlert.textContent = "Payment was cancelled before completion. Your booking is not confirmed yet.";
-    }
-    if (submitButton) submitButton.textContent = "Retry secure deposit checkout";
-  }
-
-  if (isDepositPaidState()) {
-    renderPaidPaymentState();
-  } else {
-    const email = loadReservation().email || loadAccount().email || "";
-    fetchAccountPaymentState(email)
-      .then((state) => {
-        if (state.paid) renderPaidPaymentState({ booking: state.booking, payment: state.payment });
-      })
-      .catch(() => {
-        // The page remains usable offline; the submit handler still checks the server before redirecting.
-      });
-  }
-
+  hydrateFleetPricing();
   form?.addEventListener("submit", async (event) => {
     event.preventDefault();
-    if (isDepositPaidState()) {
-      renderPaidPaymentState();
-      return;
-    }
-    if (submitButton) {
-      submitButton.disabled = true;
-      submitButton.textContent = "Preparing secure Checkout...";
-    }
-    if (providerStatus) providerStatus.textContent = "Creating a secure Stripe Checkout session.";
     try {
-      await syncBookingToBackend("payment_pending");
-      const checkout = await createPaymentCheckout();
-      if (!checkout?.checkoutUrl) {
-        throw new Error("Stripe Checkout did not return a payment URL.");
-      }
-      if (providerStatus) providerStatus.textContent = "Redirecting to secure Stripe Checkout.";
-      window.location.href = checkout.checkoutUrl;
+      await hydrateFleetPricing();
+      await syncBookingToBackend("payment_review", { strict: true });
+      const payment = await createPaymentIntent();
+      saveReservation({
+        status: "Concierge review",
+        paymentStatus: payment.status || "payment_pending",
+      });
+      window.location.assign(payment.checkoutUrl);
     } catch (error) {
-      if (error.alreadyPaid) {
-        renderPaidPaymentState({ booking: error.payload?.booking, payment: error.payload?.payment });
-        showFlowToast("Deposit is already paid for this reservation.");
-        return;
-      }
-      if (providerStatus) providerStatus.textContent = "Secure Stripe Checkout could not be started.";
-      if (paymentAlert) {
-        paymentAlert.hidden = false;
-        paymentAlert.classList.add("is-warning");
-        paymentAlert.textContent =
-          error.message || "Stripe Checkout is unavailable. The deposit has not been paid and this booking is not confirmed.";
-      }
-    } finally {
-      if (submitButton) {
-        const paid = isDepositPaidState();
-        submitButton.disabled = paid;
-        submitButton.textContent = paid ? "Deposit paid" : "Create secure deposit session";
-      }
+      showFlowToast(error.message || "Stripe Checkout could not be started. Please try again.", "warning");
     }
   });
 }
 
-async function setupSuccess() {
-  const params = new URLSearchParams(window.location.search);
-  const sessionId = params.get("session_id");
-  const title = document.querySelector("[data-success-title]");
-  const message = document.querySelector("[data-success-message]");
-  const banner = document.querySelector("[data-success-payment-banner]");
-
-  if (!sessionId) {
-    saveReservation({
-      status: loadReservation().status || "payment_pending",
-      paymentStatus: loadReservation().paymentStatus || "payment_pending",
-    });
-    if (title) title.textContent = "Payment confirmation is pending.";
-    if (message) {
-      message.textContent =
-        "This confirmation screen has no Stripe session attached. Return to payment to complete the deposit securely.";
-    }
-    if (banner) {
-      banner.classList.add("is-warning");
-      banner.textContent = "No Stripe Checkout session was found for this visit.";
-    }
-    updateSummary();
-    return;
-  }
-
-  if (banner) banner.textContent = "Verifying your Stripe deposit session...";
-  const result = await verifyCheckoutSession(sessionId);
-  const status = result?.paymentStatus || result?.payment?.status || "payment_pending";
-  if (status === "deposit_paid") {
-    savePaidState({ booking: result?.booking, payment: result?.payment });
-    saveReservation({ status: "confirmed", paymentStatus: "deposit_paid", confirmedAt: new Date().toISOString() });
-    if (title) title.textContent = "Deposit paid. Your Velaire reservation is confirmed.";
-    if (message) {
-      message.textContent =
-        "Stripe has confirmed the reservation deposit. The concierge team will now finalise handover timing, documents and delivery details.";
-    }
-    if (banner) {
-      banner.classList.add("is-success");
-      banner.textContent = "Deposit paid securely through Stripe Checkout.";
-    }
-  } else {
-    saveReservation({ status: "payment_pending", paymentStatus: status });
-    if (title) title.textContent = "Payment is still pending.";
-    if (message) {
-      message.textContent =
-        "Stripe has not confirmed a paid deposit yet. Your booking is held for payment review, but it is not confirmed as paid.";
-    }
-    if (banner) {
-      banner.classList.add("is-warning");
-      banner.textContent = `Stripe status: ${humanStatus(status)}.`;
-    }
-  }
-  updateSummary();
-}
-
 const page = document.body.dataset.page;
-runGuestBookingCleanSlate();
 hydrateVehicleModels();
-if (["booking", "payment", "success", "ai"].includes(page)) hydrateOperationalFleet();
-if (page === "account") setupFlowAuthNavigation();
-showSignedOutMessage();
 if (page === "booking") setupBooking();
 if (page === "login") setupLogin();
 if (page === "payment") setupPayment();
-if (page === "success") setupSuccess();
 if (page === "account") setupAccount();
-if (page === "ai") setupConciergeAssistant();
 if (page === "admin") setupAdmin();
-if (page !== "booking") updateSummary();
+if (["success", "guest"].includes(page)) hydrateFleetPricing();
+updateSummary();

@@ -5,266 +5,106 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       name="description"
-      content="Velaire Cars operations dashboard for bookings, availability, pricing and reservation deposits."
+      content="Velaire Cars private operations portal for bookings, customers, payments, pricing and availability."
     />
     <title>Operations Portal | Velaire Cars</title>
     <link rel="stylesheet" href="flow.css" />
   </head>
   <body data-page="admin">
     <main class="flow-shell admin-shell">
-      <nav class="flow-nav" aria-label="Operations portal navigation">
+      <nav class="flow-nav" aria-label="Operations navigation">
         <a class="brand" href="/">
           <span class="brand-mark">V</span>
           <span class="brand-copy">
             <strong>Velaire Cars</strong>
-            <small>Performance, prestige, delivered</small>
+            <small>Private operations</small>
           </span>
         </a>
         <div class="flow-nav-links">
-          <a href="/#fleet">Fleet</a>
-          <a href="booking.html">Reserve</a>
+          <a href="/">Website</a>
+          <a href="booking.html">Reservation flow</a>
         </div>
-        <a class="flow-back" href="booking.html">New booking</a>
       </nav>
 
-      <section class="admin-hero flow-panel">
-        <div>
-          <p class="eyebrow">Velaire operations</p>
-          <h1>Operations portal.</h1>
+      <section class="flow-stage admin-stage">
+        <div class="flow-intro">
+          <p class="eyebrow">Operations portal</p>
+          <h1>Control live pricing, availability and reservations.</h1>
           <p>
-            View guest reservations, bookings, customer follow-ups, reply state, availability and deposit
-            activity from one polished internal Velaire workspace.
+            Changes here are saved to the Vercel KV operations store and used by the public fleet,
+            reservation and availability APIs.
           </p>
-        </div>
-        <div class="admin-status-card">
-          <span>Secure access</span>
-          <strong data-admin-mode>Portal locked</strong>
-          <small data-admin-access-status>Enter the operations password to load bookings, customers and payments.</small>
-          <form class="admin-token-form" data-admin-token-form>
-            <label>
+          <form class="flow-panel admin-token-panel" data-admin-token-form>
+            <label class="field">
               Portal password
-              <input
-                type="password"
-                name="adminToken"
-                data-admin-token-input
-                placeholder="Enter operations password"
-                autocomplete="off"
-              />
+              <input name="adminToken" type="password" data-admin-token-input autocomplete="current-password" />
             </label>
-            <div class="admin-token-actions">
-              <button type="submit">Unlock portal</button>
-              <button type="button" data-admin-token-clear>Clear</button>
-            </div>
+            <button type="submit">Unlock operations</button>
+            <small data-admin-status>Enter the operations password to load live records.</small>
           </form>
         </div>
-      </section>
 
-      <section class="admin-metrics" aria-label="Operations metrics">
-        <article>
-          <span>Bookings</span>
-          <strong data-admin-count="bookings">0</strong>
-        </article>
-        <article>
-          <span>Customers</span>
-          <strong data-admin-count="customers">0</strong>
-        </article>
-        <article>
-          <span>Pending</span>
-          <strong data-admin-count="pendingBookings">0</strong>
-        </article>
-        <article>
-          <span>Payment pending</span>
-          <strong data-admin-count="paymentPendingBookings">0</strong>
-        </article>
-        <article>
-          <span>Confirmed</span>
-          <strong data-admin-count="confirmedBookings">0</strong>
-        </article>
-        <article>
-          <span>Payments</span>
-          <strong data-admin-count="payments">0</strong>
-        </article>
-        <article>
-          <span>Needs reply</span>
-          <strong data-admin-count="needsReply">0</strong>
-        </article>
-        <article>
-          <span>Comms</span>
-          <strong data-admin-count="notifications">0</strong>
-        </article>
-      </section>
+        <div class="admin-overview-grid" aria-label="Operations metrics">
+          <article>
+            <span>Bookings</span>
+            <strong data-admin-count="bookings">0</strong>
+          </article>
+          <article>
+            <span>Customers</span>
+            <strong data-admin-count="customers">0</strong>
+          </article>
+          <article>
+            <span>Payments</span>
+            <strong data-admin-count="payments">0</strong>
+          </article>
+          <article>
+            <span>Vehicles</span>
+            <strong data-admin-count="vehicles">0</strong>
+          </article>
+        </div>
 
-      <section class="admin-grid">
-        <article class="flow-panel admin-panel">
+        <section class="admin-section admin-fleet-section">
           <div class="panel-heading">
-            <p class="eyebrow">Reservation requests</p>
-            <h2>Bookings.</h2>
-            <span>Approve, reject or review client details and handover summaries.</span>
-          </div>
-          <form class="admin-filter-bar" data-admin-booking-filters aria-label="Booking filters">
-            <label class="admin-filter-search">
-              Search bookings
-              <input
-                type="search"
-                name="query"
-                data-admin-filter="query"
-                placeholder="Name, email, vehicle or reference"
-                autocomplete="off"
-              />
-            </label>
-            <label>
-              Booking status
-              <select name="status" data-admin-filter="status">
-                <option value="">All statuses</option>
-                <option value="pending">Pending</option>
-                <option value="payment_pending">Payment pending</option>
-                <option value="confirmed">Confirmed</option>
-                <option value="cancelled">Cancelled</option>
-                <option value="completed">Completed</option>
-                <option value="rejected">Rejected</option>
-              </select>
-            </label>
-            <label>
-              Deposit status
-              <select name="paymentStatus" data-admin-filter="paymentStatus">
-                <option value="">All deposits</option>
-                <option value="payment_pending">Payment pending</option>
-                <option value="deposit_paid">Deposit paid</option>
-                <option value="failed">Failed</option>
-                <option value="cancelled">Cancelled</option>
-                <option value="refunded">Refunded</option>
-              </select>
-            </label>
-            <label>
-              Pickup date
-              <input type="date" name="date" data-admin-filter="date" />
-            </label>
-            <button type="button" data-admin-clear-filters>Clear</button>
-          </form>
-          <div class="admin-result-strip" data-admin-booking-results>
-            <span>Unlock the portal to load booking requests.</span>
-          </div>
-          <div class="admin-table-shell">
-            <table class="admin-table">
-              <thead>
-                <tr>
-                  <th>Reference</th>
-                  <th>Vehicle</th>
-                  <th>Dates</th>
-                  <th>Customer</th>
-                  <th>Status</th>
-                  <th>Payment</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody data-admin-bookings>
-                <tr>
-                  <td colspan="7">Loading bookings...</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </article>
-
-        <aside class="flow-panel admin-panel">
-          <div class="panel-heading">
-            <p class="eyebrow">Fleet availability</p>
-            <h2>Vehicles.</h2>
-            <span>Change pricing, block dates and see live pending or confirmed reservations.</span>
+            <p class="eyebrow">Fleet operations</p>
+            <h2>Pricing and availability</h2>
           </div>
           <div class="admin-vehicle-list" data-admin-vehicles>
-            <article class="admin-empty">Loading vehicle operations...</article>
+            <article class="admin-empty">Unlock operations to load vehicles.</article>
           </div>
-        </aside>
-      </section>
+        </section>
 
-      <section class="admin-ops-grid">
-        <article class="flow-panel admin-panel">
+        <section class="admin-section admin-bookings-section">
           <div class="panel-heading">
-            <p class="eyebrow">Deposit operations</p>
-            <h2>Payments.</h2>
-            <span>Review deposit state, Stripe session references and operational payment status.</span>
+            <p class="eyebrow">Reservations</p>
+            <h2>Bookings</h2>
           </div>
-          <div class="admin-table-shell">
-            <table class="admin-table">
-              <thead>
-                <tr>
-                  <th>Deposit</th>
-                  <th>Booking</th>
-                  <th>Client</th>
-                  <th>Status</th>
-                  <th>Provider</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody data-admin-payments>
-                <tr>
-                  <td colspan="6">Loading payments...</td>
-                </tr>
-              </tbody>
-            </table>
+          <div class="admin-record-list" data-admin-bookings>
+            <article class="admin-empty">Unlock operations to load bookings.</article>
           </div>
-        </article>
+        </section>
 
-        <article class="flow-panel admin-panel">
+        <section class="admin-section admin-customers-section">
           <div class="panel-heading">
-            <p class="eyebrow">Customer messages</p>
-            <h2>Reply state.</h2>
-            <span>Track concierge prompts, recommended vehicles, email follow-up and response status.</span>
+            <p class="eyebrow">Clients</p>
+            <h2>Customers</h2>
           </div>
-          <div class="admin-lead-list" data-admin-leads>
-            <article class="admin-empty">Loading concierge leads...</article>
+          <div class="admin-record-list" data-admin-customers>
+            <article class="admin-empty">Unlock operations to load customers.</article>
           </div>
-        </article>
-      </section>
+        </section>
 
-      <section class="flow-panel admin-panel admin-communication-panel">
-        <div class="panel-heading">
-          <p class="eyebrow">Client communications</p>
-          <h2>Notification log.</h2>
-          <span>Track customer and internal emails for booking requests, deposits, approvals, failed payments and handover reminders.</span>
-        </div>
-        <div class="admin-notification-list" data-admin-notifications>
-          <article class="admin-empty">Loading notification records...</article>
-        </div>
+        <section class="admin-section admin-payments-section">
+          <div class="panel-heading">
+            <p class="eyebrow">Deposits</p>
+            <h2>Payment records</h2>
+          </div>
+          <div class="admin-record-list" data-admin-payments>
+            <article class="admin-empty">Unlock operations to load payments.</article>
+          </div>
+        </section>
       </section>
-
-      <section class="flow-panel admin-panel admin-customer-panel">
-        <div class="panel-heading">
-          <p class="eyebrow">Guest customer operations</p>
-          <h2>Customers and reservations.</h2>
-          <span>Review guest contact details, billing context, who booked what and last enquiry activity.</span>
-        </div>
-        <div class="admin-table-shell">
-          <table class="admin-table">
-            <thead>
-              <tr>
-                <th>Client</th>
-                <th>Contact</th>
-                <th>Verification</th>
-                <th>Bookings</th>
-                <th>Last request</th>
-                <th>Estimated value</th>
-              </tr>
-            </thead>
-            <tbody data-admin-customers>
-              <tr>
-                <td colspan="6">Loading customers...</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      <aside class="admin-detail-drawer" data-admin-detail hidden>
-        <div class="flow-panel admin-detail-card">
-          <button type="button" class="admin-detail-close" data-admin-detail-close aria-label="Close booking detail">
-            Close
-          </button>
-          <div data-admin-detail-content></div>
-        </div>
-      </aside>
     </main>
+
     <script type="module" src="/flow.js"></script>
   </body>
 </html>

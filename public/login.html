@@ -3,11 +3,14 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="Velaire Cars now uses premium guest reservations without customer account passwords." />
-    <title>Guest Reservations | Velaire Cars</title>
+    <meta
+      name="description"
+      content="Velaire Cars now uses a premium guest reservation flow with no account or password required."
+    />
+    <title>Guest Reservation | Velaire Cars</title>
     <link rel="stylesheet" href="flow.css" />
   </head>
-  <body data-page="guest-access">
+  <body data-page="login">
     <main class="flow-shell">
       <nav class="flow-nav" aria-label="Guest reservation navigation">
         <a class="brand" href="/">
@@ -19,20 +22,18 @@
         </a>
         <div class="flow-nav-links">
           <a href="/#fleet">Fleet</a>
-          <a href="/#experience">Experience</a>
           <a href="booking.html">Reserve</a>
-          <a href="ai.html">AI concierge</a>
         </div>
-        <a class="flow-back" href="booking.html">Start booking</a>
+        <a class="flow-back" href="booking.html">Back to booking</a>
       </nav>
 
       <section class="flow-stage compact-stage">
         <div class="flow-intro">
-          <p class="eyebrow">Guest reservations</p>
-          <h1>No account required.</h1>
+          <p class="eyebrow">Guest checkout</p>
+          <h1>No account needed to reserve.</h1>
           <p>
-            Velaire reservations now move through a polished guest flow. Choose the car, add your
-            contact and billing details, secure the Stripe deposit and let concierge handle the rest.
+            Velaire reservations now move through a cleaner guest flow. Choose a vehicle, enter
+            your details once, then continue to the secure deposit step.
           </p>
           <div class="step-row" aria-label="Booking progress">
             <span class="step active">Car</span>
@@ -45,30 +46,25 @@
         <div class="flow-workspace account-workspace">
           <section class="flow-panel form-grid account-card">
             <div class="mini-summary">
-              <span>Premium guest model</span>
-              <strong>Reserve without passwords</strong>
+              <span>Guest reservation</span>
+              <strong data-bind="vehicleName">Velaire fleet</strong>
             </div>
 
             <div class="panel-heading">
-              <p class="eyebrow">Guest booking</p>
-              <h2>Continue straight to reservation.</h2>
-              <span>
-                The customer account step has been removed from the booking funnel. Your details are
-                collected during booking and sent to operations with the reservation and deposit state.
-              </span>
+              <p class="eyebrow">Private handover</p>
+              <h2>Continue as a guest.</h2>
             </div>
 
-            <div class="guest-assurance-grid" aria-label="Guest reservation benefits">
-              <span>No login loop</span>
-              <span>No password required</span>
-              <span>Operations still receives the booking</span>
-            </div>
+            <p class="secure-note">
+              The old client lounge sign-in step has been removed from the reservation journey.
+              Your concierge receives the guest details from the booking form directly.
+            </p>
 
             <a class="primary-button full-width" href="booking.html">Start guest reservation</a>
-            <a class="secondary-button full-width" href="/#fleet">View fleet</a>
+            <a class="secondary-button full-width" href="payment.html">Continue to deposit</a>
           </section>
 
-          <aside class="flow-panel client-proof" aria-label="Guest reservation assurances">
+          <aside class="flow-panel client-proof" aria-label="Guest checkout assurances">
             <div class="summary-media compact-media">
               <figure
                 class="flow-vehicle-photo vehicle-model vehicle-model-lamborghini-urus vehicle-model-suv"
@@ -78,20 +74,20 @@
                 aria-label="3D studio mockup of Lamborghini Urus 2021, orange exterior"
               ></figure>
             </div>
-            <p class="eyebrow">Concierge handling</p>
-            <h2>Guest booking, premium service.</h2>
+            <p class="eyebrow">Concierge managed</p>
+            <h2>Fast, polished and account-free.</h2>
             <ul class="feature-list">
               <li>
-                <strong>Contact captured once</strong>
-                <span>Name, email, phone and billing details are collected on the booking page.</span>
+                <strong>Guest details only</strong>
+                <span>Name, email, phone and delivery details are collected during booking.</span>
               </li>
               <li>
-                <strong>Stripe deposit</strong>
-                <span>The secure payment step remains hosted by Stripe Checkout.</span>
+                <strong>No password friction</strong>
+                <span>Customers are never asked to create an account before reserving.</span>
               </li>
               <li>
-                <strong>Operations-ready</strong>
-                <span>Bookings, customer details and payment state still appear in the portal.</span>
+                <strong>Operations still receives everything</strong>
+                <span>Bookings, customers and deposit status continue into the admin portal.</span>
               </li>
             </ul>
           </aside>

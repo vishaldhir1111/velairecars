@@ -5,14 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       name="description"
-      content="Manage your Velaire Cars client profile, bookings, verification, payment details and concierge preferences."
+      content="Velaire Cars reservations are handled through a premium guest checkout flow with no customer account required."
     />
-    <title>Client Lounge | Velaire Cars</title>
+    <title>Guest Checkout | Velaire Cars</title>
     <link rel="stylesheet" href="flow.css" />
   </head>
-  <body data-page="account">
-    <main class="flow-shell account-shell">
-      <nav class="flow-nav" aria-label="Client account navigation">
+  <body data-page="guest">
+    <main class="flow-shell success-shell">
+      <nav class="flow-nav" aria-label="Guest checkout navigation">
         <a class="brand" href="/">
           <span class="brand-mark">V</span>
           <span class="brand-copy">
@@ -22,399 +22,51 @@
         </a>
         <div class="flow-nav-links">
           <a href="/#fleet">Fleet</a>
-          <a href="/#experience">Experience</a>
           <a href="booking.html">Reserve</a>
-          <a href="ai.html">AI concierge</a>
-          <a href="account.html">Client Lounge</a>
         </div>
         <a class="flow-back" href="booking.html">Reserve</a>
       </nav>
 
-      <section class="account-hero">
-        <div class="flow-intro account-intro">
-          <p class="eyebrow">Private client lounge</p>
-          <h1>Your Velaire account, handled with polish.</h1>
+      <section class="success-experience">
+        <div class="success-card">
+          <p class="eyebrow">Guest reservations</p>
+          <span class="success-mark" aria-hidden="true">V</span>
+          <h1>The client lounge is no longer required.</h1>
           <p>
-            Manage reservations, verification, payments and personal preferences from a private
-            client area built around premium handover and concierge service.
+            Velaire now accepts reservations through a premium guest checkout. Enter your details
+            during booking, secure the deposit, and our concierge team will handle the rest.
           </p>
-        </div>
 
-        <aside class="flow-panel account-client-card" aria-label="Client account summary">
-          <div class="client-avatar" id="client-avatar">VC</div>
-          <div>
-            <p class="eyebrow">Client profile</p>
-            <h2 data-account-bind="displayName">Velaire Client</h2>
-            <span data-account-bind="membership">Private client status</span>
-          </div>
-          <div class="client-session-card" data-account-session-state>
-            <span>Secure client session</span>
-            <strong>Checking your lounge access</strong>
-            <small>Only signed-in Velaire clients can open this area.</small>
-          </div>
-          <div class="account-status-grid">
-            <div>
-              <strong data-account-bind="upcomingCount">1</strong>
-              <span>Upcoming</span>
-            </div>
-            <div>
-              <strong data-account-bind="verificationStatus">In review</strong>
-              <span>Verification</span>
-            </div>
-          </div>
-          <div class="account-logout-actions">
-            <button class="secondary-button account-logout" type="button" data-logout>Sign out</button>
-            <button class="text-button account-logout-draft" type="button" data-logout-keep-draft>
-              Sign out, keep booking draft
-            </button>
-          </div>
-        </aside>
-      </section>
-
-      <section class="account-layout" aria-label="Client account workspace">
-        <aside class="flow-panel account-sidebar">
-          <a href="#overview">Overview</a>
-          <a href="#profile">Profile</a>
-          <a href="#verification">Verification</a>
-          <a href="#payments">Payments</a>
-          <a href="#receipts">Receipts</a>
-          <a href="#preferences">Preferences</a>
-          <a href="#locations">Locations</a>
-          <a href="ai.html">AI concierge</a>
-        </aside>
-
-        <div class="account-content">
-          <section class="flow-panel account-section" id="overview">
-            <div class="panel-heading">
-              <p class="eyebrow">Account dashboard</p>
-              <h2>Overview.</h2>
+          <div class="confirmation-layout">
+            <div class="notice-card">
+              <strong>No account. No password. No friction.</strong>
+              <p>
+                Customer details are collected directly in the reservation form and sent into
+                Operations with the booking, vehicle, delivery and payment status.
+              </p>
             </div>
 
-            <div class="account-metric-grid">
-              <article>
-                <span>Upcoming booking</span>
-                <strong data-bind="vehicleName">Lamborghini Urus 2021</strong>
-                <small data-bind="handoverLocation">Delivery location pending</small>
-              </article>
-              <article>
-                <span>Verification</span>
-                <strong data-account-bind="verificationStatus">In review</strong>
-                <small>Licence, address and ID checks</small>
-              </article>
-              <article>
-                <span>Deposit status</span>
-                <strong data-bind="paymentStatus">Payment pending</strong>
-                <small>Updated from the reservation checkout flow</small>
-              </article>
-              <article>
-                <span>Documents</span>
-                <strong data-account-bind="documentCount">0/4 files</strong>
-                <small>Photo, licence, address and ID metadata</small>
-              </article>
-            </div>
-
-            <div class="client-command-grid" aria-label="Private client readiness">
-              <article class="client-command-card">
-                <div>
-                  <p class="eyebrow">Private client status</p>
-                  <h3 data-account-bind="portalStatus">Concierge profile in progress</h3>
-                  <p data-account-bind="portalSummary">
-                    Complete verification, deposit and handover preferences to prepare your Velaire release.
-                  </p>
-                </div>
-                <div class="client-command-actions" data-account-primary-actions>
-                  <span class="status-pill muted">Loading booking state</span>
-                </div>
-              </article>
-
-              <article class="client-readiness-card">
-                <p class="eyebrow">Release readiness</p>
-                <ol class="client-readiness-list" data-client-readiness>
-                  <li>
-                    <strong>Client profile</strong>
-                    <span>Loading account checks</span>
-                  </li>
-                </ol>
-              </article>
-            </div>
-
-            <div class="account-current-reservation" data-current-reservation>
-              <article class="account-empty-state">
-                <strong>Loading reservation status</strong>
-                <span>Your current or most recent Velaire booking will appear here.</span>
-              </article>
-            </div>
-
-            <div class="account-card-grid compact-grid">
-              <article class="account-card">
-                <p class="eyebrow">Upcoming</p>
-                <h3 data-bind="vehicleName">Lamborghini Urus 2021</h3>
-                <div class="summary-card">
-                  <div class="summary-row">
-                    <span>Hire estimate</span>
-                    <strong data-bind="hireEstimate">£1,790</strong>
-                  </div>
-                  <div class="summary-row">
-                    <span>Rental length</span>
-                    <strong data-bind="rentalDays">2 days</strong>
-                  </div>
-                  <div class="summary-row">
-                    <span>Reference</span>
-                    <strong data-bind="reference">VEL-LAUR-1087</strong>
-                  </div>
-                </div>
-              </article>
-
-              <article class="account-card">
-                <p class="eyebrow">Past bookings</p>
-                <h3>Previous experiences</h3>
-                <ul class="account-list" data-booking-history>
-                  <li>
-                    <strong>Tesla Model 3 Performance</strong>
-                    <span>Completed private airport handover</span>
-                  </li>
-                  <li>
-                    <strong>Range Rover Sport SVR</strong>
-                    <span>Completed weekend booking</span>
-                  </li>
-                </ul>
-              </article>
-            </div>
-          </section>
-
-          <section class="flow-panel account-section" id="profile">
-            <div class="panel-heading">
-              <p class="eyebrow">Profile</p>
-              <h2>Client details.</h2>
-            </div>
-
-            <form class="form-grid account-form" data-account-form="profile">
-              <div class="profile-photo-row">
-                <div class="client-avatar large" id="profile-avatar">VC</div>
-                <label class="upload-tile compact-upload">
-                  <input type="file" name="displayPhoto" accept="image/*" data-file-input="displayPhoto" />
-                  <span>Display photo</span>
-                  <strong data-file-label="displayPhoto">Upload a polished client image</strong>
-                </label>
+            <div class="summary-card">
+              <div class="summary-row">
+                <span>Reservation model</span>
+                <strong>Guest checkout</strong>
               </div>
-
-              <div class="form-grid two-column">
-                <label class="field">
-                  Full name
-                  <input type="text" name="fullName" placeholder="Full name" autocomplete="name" />
-                </label>
-                <label class="field">
-                  Email address
-                  <input type="email" name="email" placeholder="you@example.com" autocomplete="email" />
-                </label>
-                <label class="field">
-                  Mobile number
-                  <input type="tel" name="phone" placeholder="+44" autocomplete="tel" />
-                </label>
-                <label class="field">
-                  Preferred contact
-                  <select name="preferredContact">
-                    <option>Email</option>
-                    <option>Phone</option>
-                    <option>WhatsApp</option>
-                    <option>SMS</option>
-                  </select>
-                </label>
-                <label class="field">
-                  Driving licence country
-                  <select name="licenceCountry">
-                    <option>United Kingdom</option>
-                    <option>United States</option>
-                    <option>United Arab Emirates</option>
-                    <option>European Union</option>
-                    <option>Other</option>
-                  </select>
-                </label>
-                <label class="field">
-                  Address first line
-                  <input type="text" name="billingAddressLine1" placeholder="Street address" autocomplete="address-line1" />
-                </label>
-                <label class="field">
-                  Address second line
-                  <input type="text" name="billingAddressLine2" placeholder="Apartment, suite, building" autocomplete="address-line2" />
-                </label>
-                <label class="field">
-                  Town
-                  <input type="text" name="billingTown" placeholder="Town" autocomplete="address-level3" />
-                </label>
-                <label class="field">
-                  City
-                  <input type="text" name="billingCity" placeholder="City" autocomplete="address-level2" />
-                </label>
-                <label class="field">
-                  Postcode
-                  <input type="text" name="billingPostcode" placeholder="Postcode" autocomplete="postal-code" />
-                </label>
-                <label class="field">
-                  Country
-                  <select name="billingCountry" autocomplete="country-name">
-                    <option>United Kingdom</option>
-                    <option>United States</option>
-                    <option>United Arab Emirates</option>
-                    <option>France</option>
-                    <option>Germany</option>
-                    <option>Spain</option>
-                    <option>Italy</option>
-                    <option>Other</option>
-                  </select>
-                </label>
+              <div class="summary-row">
+                <span>Customer details</span>
+                <strong>Collected during booking</strong>
               </div>
-
-              <button class="primary-button" type="submit">Save profile</button>
-            </form>
-          </section>
-
-          <section class="flow-panel account-section" id="verification">
-            <div class="panel-heading">
-              <p class="eyebrow">Verification</p>
-              <h2>Release-ready checks.</h2>
-            </div>
-
-            <div class="verification-layout">
-              <div class="upload-grid">
-                <label class="upload-tile">
-                  <input type="file" name="drivingLicence" accept="image/*,.pdf" data-file-input="drivingLicence" />
-                  <span>Driving licence</span>
-                  <strong data-file-label="drivingLicence">Upload front and back or PDF</strong>
-                </label>
-                <label class="upload-tile">
-                  <input type="file" name="proofOfAddress" accept="image/*,.pdf" data-file-input="proofOfAddress" />
-                  <span>Proof of address</span>
-                  <strong data-file-label="proofOfAddress">Utility bill or bank statement</strong>
-                </label>
-                <label class="upload-tile">
-                  <input type="file" name="selfieId" accept="image/*" data-file-input="selfieId" />
-                  <span>Selfie / ID image</span>
-                  <strong data-file-label="selfieId">Upload a clear verification image</strong>
-                </label>
+              <div class="summary-row">
+                <span>Operations visibility</span>
+                <strong>Bookings and customers retained</strong>
               </div>
-
-              <aside class="verification-status-card">
-                <span>Current status</span>
-                <strong data-account-bind="verificationStatus">In review</strong>
-                <p>
-                  Once all documents are selected, the concierge team can review licence eligibility,
-                  address confirmation and vehicle release requirements.
-                </p>
-                <small data-account-bind="documentCount">0/4 files</small>
-              </aside>
             </div>
-          </section>
+          </div>
 
-          <section class="flow-panel account-section" id="payments">
-            <div class="panel-heading">
-              <p class="eyebrow">Payments</p>
-              <h2>Cards, deposits and refunds.</h2>
-            </div>
-
-            <div class="payment-account-grid">
-              <article class="account-card premium-card-summary">
-                <span>Deposit status</span>
-                <strong data-account-bind="cardSummary">No saved card</strong>
-                <small data-account-bind="cardName">Reservation payment status appears here after checkout.</small>
-                <div data-account-payment-actions>
-                  <span class="status-pill muted">Loading payment state</span>
-                </div>
-              </article>
-            </div>
-
-            <div class="account-card-grid compact-grid">
-              <article class="account-card">
-                <p class="eyebrow">Payment history</p>
-                <h3>Reservation activity</h3>
-                <ul class="account-list" data-payment-history>
-                  <li>
-                    <strong>Loading payment activity</strong>
-                    <span>Deposit records will appear after reservation checkout.</span>
-                  </li>
-                </ul>
-              </article>
-              <article class="account-card">
-                <p class="eyebrow">Deposit / refund</p>
-                <h3>Current guidance</h3>
-                <p class="summary-copy">
-                  Deposit levels depend on vehicle, duration, licence checks and handover location.
-                  Refunds are reviewed after return inspection.
-                </p>
-              </article>
-            </div>
-          </section>
-
-          <section class="flow-panel account-section" id="receipts">
-            <div class="panel-heading">
-              <p class="eyebrow">Invoices and receipts</p>
-              <h2>Payment records.</h2>
-              <span>Customer-facing receipt summaries for deposits, refunds and reservation payments.</span>
-            </div>
-            <div class="receipt-grid" data-receipt-list>
-              <article class="receipt-card">
-                <strong>No receipts yet</strong>
-                <span>Successful Stripe deposit receipts will appear here.</span>
-              </article>
-            </div>
-          </section>
-
-          <section class="flow-panel account-section" id="preferences">
-            <div class="panel-heading">
-              <p class="eyebrow">Preferences</p>
-              <h2>How Velaire should serve you.</h2>
-            </div>
-
-            <form class="form-grid account-form" data-account-form="preferences">
-              <div class="preference-grid">
-                <fieldset>
-                  <legend>Preferred vehicle categories</legend>
-                  <label><input type="checkbox" name="vehicleCategories" value="Super SUV" /> Super SUV</label>
-                  <label><input type="checkbox" name="vehicleCategories" value="Luxury SUV" /> Luxury SUV</label>
-                  <label><input type="checkbox" name="vehicleCategories" value="Convertible GT" /> Convertible GT</label>
-                  <label><input type="checkbox" name="vehicleCategories" value="Electric performance" /> Electric performance</label>
-                </fieldset>
-
-                <fieldset>
-                  <legend>Preferred handover type</legend>
-                  <label><input type="radio" name="handoverType" value="Concierge delivery" /> Concierge delivery</label>
-                  <label><input type="radio" name="handoverType" value="Private collection" /> Private collection</label>
-                  <label><input type="radio" name="handoverType" value="Airport handover" /> Airport handover</label>
-                  <label><input type="radio" name="handoverType" value="Hotel handover" /> Hotel handover</label>
-                </fieldset>
-
-                <fieldset>
-                  <legend>Communication preferences</legend>
-                  <label><input type="checkbox" name="communication" value="Availability alerts" /> Availability alerts</label>
-                  <label><input type="checkbox" name="communication" value="Concierge updates" /> Concierge updates</label>
-                  <label><input type="checkbox" name="communication" value="Offers" /> Private offers</label>
-                  <label><input type="checkbox" name="communication" value="Event fleet suggestions" /> Event fleet suggestions</label>
-                </fieldset>
-              </div>
-
-              <label class="field">
-                Preferred branch / location
-                <input type="text" name="preferredLocation" placeholder="Mayfair, Heathrow, Manchester, private address" />
-              </label>
-              <button class="primary-button" type="submit">Save preferences</button>
-            </form>
-          </section>
-
-          <section class="flow-panel account-section" id="locations">
-            <div class="panel-heading">
-              <p class="eyebrow">Saved handover locations</p>
-              <h2>Delivery preferences.</h2>
-              <span>Reuse preferred homes, hotels, offices and airports for future concierge handovers.</span>
-            </div>
-            <div class="location-grid" data-saved-locations>
-              <article class="location-card">
-                <strong>No saved locations yet</strong>
-                <span>Save a delivery address from the booking flow to reuse it next time.</span>
-              </article>
-            </div>
-            <button class="secondary-button" type="button" data-save-current-location>Save current booking location</button>
-          </section>
-
+          <div class="success-actions">
+            <a class="primary-button" href="booking.html">Start guest reservation</a>
+            <a class="secondary-button" href="/#fleet">View fleet</a>
+            <a class="secondary-button" href="/">Return home</a>
+          </div>
         </div>
       </section>
     </main>

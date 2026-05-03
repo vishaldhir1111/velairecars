@@ -22,9 +22,7 @@
         </a>
         <div class="flow-nav-links">
           <a href="/#fleet">Fleet</a>
-          <a href="/#experience">Experience</a>
           <a href="booking.html">Reserve</a>
-          <a href="ai.html">AI concierge</a>
         </div>
         <a class="flow-back" href="/">Home</a>
       </nav>
@@ -58,7 +56,7 @@
           </p>
           <div class="step-row" aria-label="Booking progress">
             <span class="step active">Car</span>
-            <span class="step active">Details</span>
+            <span class="step">Details</span>
             <span class="step">Reserve</span>
             <span class="step">Confirm</span>
           </div>
@@ -81,59 +79,177 @@
               <h2>Choose your arrival.</h2>
             </div>
 
-            <div class="choice-grid live-fleet-grid" data-live-fleet-grid aria-label="Available Velaire vehicles">
-              <article class="choice-card choice-card-loading">
-                <span class="choice-name">Loading live fleet</span>
-                <small>Rates and availability are loading from Velaire Operations.</small>
-                <strong>Live pricing</strong>
-              </article>
+            <div class="choice-grid" aria-label="Available Velaire vehicles">
+              <label class="choice-card" data-vehicle-card>
+                <input type="radio" name="vehicle" value="tesla-model-3-performance" />
+                <span
+                  class="choice-visual flow-choice-photo vehicle-model vehicle-model-mini vehicle-model-tesla-model-3-performance vehicle-model-saloon has-photo"
+                  data-vehicle-model
+                  data-fallback-image="/cars/studio-tesla-model-3-performance-2020.png"
+                  style="--vehicle-card-image: url('/cars/studio-tesla-model-3-performance-2020.png')"
+                  role="img"
+                  aria-label="3D studio mockup of Tesla Model 3 Performance 2020, white exterior and white interior"
+                >
+                  <img
+                    class="vehicle-media-image"
+                    src="/cars/studio-tesla-model-3-performance-2020.png"
+                    data-canonical-src="/cars/studio-tesla-model-3-performance-2020.png"
+                    data-local-src="public/cars/studio-tesla-model-3-performance-2020.png"
+                    alt="White Tesla Model 3 Performance 2020 with white interior"
+                    loading="eager"
+                    decoding="async"
+                    onerror="if(!this.dataset.triedLocal&&this.dataset.localSrc){this.dataset.triedLocal='true';this.src=this.dataset.localSrc}"
+                  />
+                  <span class="vehicle-media-backup" aria-hidden="true"></span>
+                </span>
+                <span class="choice-name">Tesla Model 3 Performance</span>
+                <small>White exterior / white interior</small>
+                <strong>£195/day</strong>
+              </label>
+              <label class="choice-card" data-vehicle-card>
+                <input type="radio" name="vehicle" value="lamborghini-urus" checked />
+                <span
+                  class="choice-visual flow-choice-photo vehicle-model vehicle-model-mini vehicle-model-lamborghini-urus vehicle-model-suv has-photo"
+                  data-vehicle-model
+                  data-fallback-image="/cars/studio-lamborghini-urus-2021-orange.png"
+                  style="--vehicle-card-image: url('/cars/studio-lamborghini-urus-2021-orange.png')"
+                  role="img"
+                  aria-label="3D studio mockup of Lamborghini Urus 2021, orange exterior"
+                >
+                  <img
+                    class="vehicle-media-image"
+                    src="/cars/studio-lamborghini-urus-2021-orange.png"
+                    data-canonical-src="/cars/studio-lamborghini-urus-2021-orange.png"
+                    data-local-src="public/cars/studio-lamborghini-urus-2021-orange.png"
+                    alt="Orange Lamborghini Urus 2021 super SUV"
+                    loading="eager"
+                    decoding="async"
+                    onerror="if(!this.dataset.triedLocal&&this.dataset.localSrc){this.dataset.triedLocal='true';this.src=this.dataset.localSrc}"
+                  />
+                  <span class="vehicle-media-backup" aria-hidden="true"></span>
+                </span>
+                <span class="choice-name">Lamborghini Urus</span>
+                <small>Orange exterior / super SUV presence</small>
+                <strong>£895/day</strong>
+              </label>
+              <label class="choice-card" data-vehicle-card>
+                <input type="radio" name="vehicle" value="range-rover-sport-svr" />
+                <span
+                  class="choice-visual flow-choice-photo vehicle-model vehicle-model-mini vehicle-model-range-rover-sport-svr vehicle-model-suv has-photo"
+                  data-vehicle-model
+                  data-fallback-image="/cars/studio-range-rover-sport-svr-2021.png"
+                  style="--vehicle-card-image: url('/cars/studio-range-rover-sport-svr-2021.png')"
+                  role="img"
+                  aria-label="3D studio mockup of Range Rover Sport SVR 2021, performance SUV"
+                >
+                  <img
+                    class="vehicle-media-image"
+                    src="/cars/studio-range-rover-sport-svr-2021.png"
+                    data-canonical-src="/cars/studio-range-rover-sport-svr-2021.png"
+                    data-local-src="public/cars/studio-range-rover-sport-svr-2021.png"
+                    alt="Land Rover Range Rover Sport SVR 2021 performance SUV full vehicle"
+                    loading="eager"
+                    decoding="async"
+                    onerror="if(!this.dataset.triedLocal&&this.dataset.localSrc){this.dataset.triedLocal='true';this.src=this.dataset.localSrc}"
+                  />
+                  <span class="vehicle-media-backup" aria-hidden="true"></span>
+                </span>
+                <span class="choice-name">Range Rover Sport SVR</span>
+                <small>Supercharged performance SUV</small>
+                <strong>£495/day</strong>
+              </label>
+              <label class="choice-card" data-vehicle-card>
+                <input type="radio" name="vehicle" value="bmw-m440i-convertible" />
+                <span
+                  class="choice-visual flow-choice-photo vehicle-model vehicle-model-mini vehicle-model-bmw-m440i-convertible vehicle-model-convertible has-photo"
+                  data-vehicle-model
+                  data-fallback-image="/cars/studio-bmw-m440i-convertible-2022-sky-blue.png"
+                  style="--vehicle-card-image: url('/cars/studio-bmw-m440i-convertible-2022-sky-blue.png')"
+                  role="img"
+                  aria-label="3D studio mockup of BMW M440i Convertible 2022, sky blue wrap"
+                >
+                  <img
+                    class="vehicle-media-image"
+                    src="/cars/studio-bmw-m440i-convertible-2022-sky-blue.png"
+                    data-canonical-src="/cars/studio-bmw-m440i-convertible-2022-sky-blue.png"
+                    data-local-src="public/cars/studio-bmw-m440i-convertible-2022-sky-blue.png"
+                    alt="BMW M440i Convertible 2022 with sky blue wrap full vehicle"
+                    loading="eager"
+                    decoding="async"
+                    onerror="if(!this.dataset.triedLocal&&this.dataset.localSrc){this.dataset.triedLocal='true';this.src=this.dataset.localSrc}"
+                  />
+                  <span class="vehicle-media-backup" aria-hidden="true"></span>
+                </span>
+                <span class="choice-name">BMW M440i Convertible</span>
+                <small>Sky blue wrap / open-top GT</small>
+                <strong>£295/day</strong>
+              </label>
+              <label class="choice-card" data-vehicle-card>
+                <input type="radio" name="vehicle" value="bmw-m140i-shadow-edition" />
+                <span
+                  class="choice-visual flow-choice-photo vehicle-model vehicle-model-mini vehicle-model-bmw-m140i-shadow-edition vehicle-model-hatch has-photo"
+                  data-vehicle-model
+                  data-fallback-image="/cars/studio-bmw-m140i-shadow-edition-2019.png"
+                  style="--vehicle-card-image: url('/cars/studio-bmw-m140i-shadow-edition-2019.png')"
+                  role="img"
+                  aria-label="3D studio mockup of BMW M140i Shadow Edition 2019"
+                >
+                  <img
+                    class="vehicle-media-image"
+                    src="/cars/studio-bmw-m140i-shadow-edition-2019.png"
+                    data-canonical-src="/cars/studio-bmw-m140i-shadow-edition-2019.png"
+                    data-local-src="public/cars/studio-bmw-m140i-shadow-edition-2019.png"
+                    alt="BMW M140i Shadow Edition 2019 full vehicle"
+                    loading="eager"
+                    decoding="async"
+                    onerror="if(!this.dataset.triedLocal&&this.dataset.localSrc){this.dataset.triedLocal='true';this.src=this.dataset.localSrc}"
+                  />
+                  <span class="vehicle-media-backup" aria-hidden="true"></span>
+                </span>
+                <span class="choice-name">BMW M140i Shadow Edition</span>
+                <small>Shadow Edition compact performance</small>
+                <strong>£175/day</strong>
+              </label>
             </div>
 
-            <section class="guest-concierge-card" aria-label="Guest concierge reservation details">
-              <div class="guest-concierge-top">
-                <div class="panel-heading compact-heading">
-                  <p class="eyebrow">Guest reservation</p>
-                  <h2>Your concierge details.</h2>
-                  <span>No sign in required. We use these details to connect the reservation, deposit and handover notes to the correct client.</span>
-                </div>
-                <div class="guest-reservation-badge" aria-label="Guest reservation access">
-                  <span>Guest access</span>
-                  <strong>Reserve without an account</strong>
-                </div>
+            <div class="guest-details-card">
+              <div class="panel-heading compact-heading">
+                <p class="eyebrow">Guest reservation</p>
+                <h2>Your details.</h2>
+                <span>No account or password required. Your concierge uses these details to prepare the handover.</span>
               </div>
 
-              <div class="form-grid two-column guest-detail-grid">
+              <div class="form-grid two-column">
                 <label class="field">
                   Full name
-                  <input type="text" name="fullName" placeholder="Your full name" autocomplete="name" required />
+                  <input type="text" name="fullName" placeholder="Full name" autocomplete="name" required />
                 </label>
                 <label class="field">
                   Email address
                   <input type="email" name="email" placeholder="you@example.com" autocomplete="email" required />
                 </label>
                 <label class="field">
-                  Phone number
+                  Mobile number
                   <input type="tel" name="phone" placeholder="+44" autocomplete="tel" required />
                 </label>
-                <label class="field guest-reservation-mode">
-                  Booking type
-                  <input type="text" value="Premium guest reservation" readonly />
+                <label class="field">
+                  Country
+                  <select name="billingCountry" autocomplete="country-name">
+                    <option>United Kingdom</option>
+                    <option>Ireland</option>
+                    <option>United States</option>
+                    <option>United Arab Emirates</option>
+                    <option>European Union</option>
+                    <option>Other</option>
+                  </select>
                 </label>
-              </div>
-
-              <div class="guest-form-section-label">
-                <span>Billing details</span>
-                <small>Used for reservation records, deposit receipts and concierge follow-up.</small>
-              </div>
-
-              <div class="form-grid two-column guest-detail-grid">
                 <label class="field">
                   Address first line
-                  <input type="text" name="billingAddressLine1" placeholder="Street address" autocomplete="address-line1" required />
+                  <input type="text" name="billingAddress1" placeholder="House number and street" autocomplete="address-line1" />
                 </label>
                 <label class="field">
                   Address second line
-                  <input type="text" name="billingAddressLine2" placeholder="Apartment, suite or building" autocomplete="address-line2" />
+                  <input type="text" name="billingAddress2" placeholder="Apartment, building or company" autocomplete="address-line2" />
                 </label>
                 <label class="field">
                   Town
@@ -141,32 +257,14 @@
                 </label>
                 <label class="field">
                   City
-                  <input type="text" name="billingCity" placeholder="City" autocomplete="address-level2" required />
+                  <input type="text" name="billingCity" placeholder="City" autocomplete="address-level2" />
                 </label>
                 <label class="field">
                   Postcode
-                  <input type="text" name="billingPostcode" placeholder="Postcode" autocomplete="postal-code" required />
-                </label>
-                <label class="field">
-                  Country
-                  <select name="billingCountry" autocomplete="country-name" required>
-                    <option>United Kingdom</option>
-                    <option>Ireland</option>
-                    <option>France</option>
-                    <option>Germany</option>
-                    <option>Spain</option>
-                    <option>United Arab Emirates</option>
-                    <option>United States</option>
-                  </select>
+                  <input type="text" name="billingPostcode" placeholder="Postcode" autocomplete="postal-code" />
                 </label>
               </div>
-
-              <div class="guest-assurance-grid" aria-label="Guest booking assurances">
-                <span>Stripe deposit follows next</span>
-                <span>Concierge team receives your details</span>
-                <span>No password step</span>
-              </div>
-            </section>
+            </div>
 
             <div class="form-grid two-column">
               <label class="field date-field">
@@ -303,27 +401,41 @@
           <aside class="flow-panel vehicle-summary" aria-label="Vehicle reservation summary">
             <div class="summary-media">
               <figure
-                class="flow-vehicle-photo vehicle-model vehicle-model-lamborghini-urus vehicle-model-suv"
+                class="flow-vehicle-photo vehicle-model vehicle-model-lamborghini-urus vehicle-model-suv has-photo"
                 data-bind-vehicle-media
                 data-vehicle-model
+                data-fallback-image="/cars/studio-lamborghini-urus-2021-orange.png"
+                style="--vehicle-card-image: url('/cars/studio-lamborghini-urus-2021-orange.png')"
                 role="img"
-                aria-label="Selected Velaire vehicle"
-              ></figure>
+                aria-label="3D studio mockup of Lamborghini Urus 2021, orange exterior"
+              >
+                <img
+                  class="vehicle-media-image"
+                  src="/cars/studio-lamborghini-urus-2021-orange.png"
+                  data-canonical-src="/cars/studio-lamborghini-urus-2021-orange.png"
+                  data-local-src="public/cars/studio-lamborghini-urus-2021-orange.png"
+                  alt="Orange Lamborghini Urus 2021 super SUV"
+                  loading="eager"
+                  decoding="async"
+                  onerror="if(!this.dataset.triedLocal&&this.dataset.localSrc){this.dataset.triedLocal='true';this.src=this.dataset.localSrc}"
+                />
+                <span class="vehicle-media-backup" aria-hidden="true"></span>
+              </figure>
             </div>
             <div class="panel-heading compact-heading">
               <p class="eyebrow">Selected vehicle</p>
-              <h2 data-bind="vehicleName">Loading live fleet data</h2>
-              <span data-bind="vehicleCategory">Operations-managed availability</span>
+              <h2 data-bind="vehicleName">Lamborghini Urus 2021</h2>
+              <span data-bind="vehicleCategory">Super SUV</span>
             </div>
 
             <p class="summary-copy" data-bind="vehicleDescription">
-              Live pricing and availability will load from Velaire Operations.
+              An orange Lamborghini Urus with flagship super SUV presence and unmistakable arrival impact.
             </p>
 
             <div class="summary-card">
               <div class="summary-row">
                 <span>Daily rate</span>
-                <strong data-bind="dailyRate">Loading</strong>
+                <strong data-bind="dailyRate">£895</strong>
               </div>
               <div class="summary-row">
                 <span>Rental length</span>
@@ -331,11 +443,11 @@
               </div>
               <div class="summary-row">
                 <span>Estimated hire</span>
-                <strong data-bind="hireEstimate">Pending</strong>
+                <strong data-bind="hireEstimate">£1,790</strong>
               </div>
               <div class="summary-row">
                 <span>Reserve deposit</span>
-                <strong data-bind="deposit">Loading</strong>
+                <strong data-bind="deposit">From £2,500</strong>
               </div>
               <div class="summary-row">
                 <span>Handover</span>
@@ -351,6 +463,6 @@
         </div>
       </section>
     </main>
-    <script type="module" src="/flow.js"></script>
+    <script type="module" src="flow.js"></script>
   </body>
 </html>

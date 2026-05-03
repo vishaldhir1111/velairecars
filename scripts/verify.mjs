@@ -16,6 +16,14 @@ const requiredFiles = [
   "success.html",
   "flow.css",
   "flow.js",
+  "public/booking.html",
+  "public/login.html",
+  "public/account.html",
+  "public/admin.html",
+  "public/payment.html",
+  "public/success.html",
+  "public/flow.css",
+  "public/flow.js",
   "src/data/fleet.js",
   "api/fleet.js",
   "api/bookings.js",
@@ -47,6 +55,8 @@ const requiredFiles = [
 
 const read = (file) => fs.readFileSync(path.join(root, file), "utf8");
 
+const mirroredPublicFiles = ["booking.html", "login.html", "account.html", "admin.html", "payment.html", "success.html", "flow.css", "flow.js"];
+
 for (const file of requiredFiles) {
   if (!fs.existsSync(path.join(root, file))) {
     throw new Error(`Missing active file: ${file}`);
@@ -54,6 +64,12 @@ for (const file of requiredFiles) {
 }
 
 JSON.parse(read("package.json"));
+
+for (const file of mirroredPublicFiles) {
+  if (read(file) !== read(`public/${file}`)) {
+    throw new Error(`public/${file} must mirror ${file}; stale public overrides break the live Vercel flow`);
+  }
+}
 
 const index = read("index.html");
 if (!index.includes('src="/src/main.jsx"')) {
