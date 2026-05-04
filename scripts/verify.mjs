@@ -81,6 +81,21 @@ const mirroredPublicFiles = [
   "flow.js",
 ];
 
+const customerHtmlPages = [
+  "index.html",
+  "booking.html",
+  "login.html",
+  "account.html",
+  "admin.html",
+  "payment.html",
+  "success.html",
+  "terms.html",
+  "privacy.html",
+  "cancellation.html",
+  "rental-requirements.html",
+  "deposit-policy.html",
+];
+
 for (const file of requiredFiles) {
   if (!fs.existsSync(path.join(root, file))) {
     throw new Error(`Missing active file: ${file}`);
@@ -92,6 +107,13 @@ JSON.parse(read("package.json"));
 for (const file of mirroredPublicFiles) {
   if (read(file) !== read(`public/${file}`)) {
     throw new Error(`public/${file} must mirror ${file}; stale public overrides break the live Vercel flow`);
+  }
+}
+
+for (const file of customerHtmlPages) {
+  const html = read(file);
+  if (!html.includes("window.va") || !html.includes('/_vercel/insights/script.js')) {
+    throw new Error(`${file} must include Vercel Web Analytics tracking`);
   }
 }
 
