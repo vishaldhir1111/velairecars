@@ -79,7 +79,8 @@
               <span data-bind="vehicleCategory">Super SUV</span>
             </div>
 
-            <div class="summary-card">
+            <div class="summary-card success-receipt-card">
+              <p class="eyebrow">Reservation receipt</p>
               <div class="summary-row">
                 <span>Booking reference</span>
                 <strong data-bind="reference">VEL-URUS-1087</strong>
@@ -89,29 +90,50 @@
                 <strong data-bind="vehicleName">Lamborghini Urus 2021</strong>
               </div>
               <div class="summary-row">
-                <span>Status</span>
-                <strong>Concierge review</strong>
+                <span>Pickup</span>
+                <strong data-bind="pickupDate">Pickup pending</strong>
+              </div>
+              <div class="summary-row">
+                <span>Return</span>
+                <strong data-bind="returnDate">Return pending</strong>
+              </div>
+              <div class="summary-row">
+                <span>Deposit</span>
+                <strong data-bind="depositValue">From £600</strong>
+              </div>
+              <div class="summary-row">
+                <span>Payment status</span>
+                <strong data-bind="paymentStatusDisplay">Deposit Paid</strong>
               </div>
               <div class="summary-row">
                 <span>Delivery</span>
                 <strong data-bind="handoverLocation">Delivery location pending</strong>
               </div>
               <div class="summary-row">
-                <span>Next step</span>
-                <strong>Handover confirmation</strong>
+                <span>Client</span>
+                <strong data-bind="customerName">Guest client</strong>
               </div>
             </div>
 
-            <div class="notice-card">
-              <strong>Premium support included</strong>
+            <div class="notice-card success-receipt-note">
+              <strong>What happens next</strong>
               <p>
-                Expect a concise confirmation message with delivery timing, document checks and any
-                final route notes.
+                Velaire will review the reservation, confirm handover timing and contact you with
+                any final driver or delivery details.
               </p>
+              <div class="receipt-mini-list">
+                <span>Email</span>
+                <strong data-bind="customerEmail">Email supplied at checkout</strong>
+                <span>Phone</span>
+                <strong data-bind="customerPhone">Phone supplied at checkout</strong>
+                <span>Billing</span>
+                <strong data-bind="billingAddress">Billing details supplied</strong>
+              </div>
             </div>
           </div>
 
           <div class="success-actions">
+            <button class="secondary-button" type="button" data-print-confirmation>Print confirmation</button>
             <a class="primary-button" href="/">Return to homepage</a>
             <a class="secondary-button" href="booking.html">Reserve another vehicle</a>
             <a class="secondary-button" href="/#fleet">Continue browsing</a>

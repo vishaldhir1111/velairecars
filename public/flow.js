@@ -871,6 +871,9 @@ function updateSummary() {
   const vehicle = selectedVehicle(slug);
   const days = Math.max(Number.parseInt(reservation.days || "2", 10), 1);
   const location = reservation.formattedAddress || reservation.location || "Delivery location pending";
+  const pickupLine = [formatDisplayDate(reservation.pickup) || reservation.pickup, reservation.pickupTime].filter(Boolean).join(" at ") || "Pickup pending";
+  const returnLine = [formatDisplayDate(reservation.return) || reservation.return, reservation.returnTime].filter(Boolean).join(" at ") || "Return pending";
+  const paymentStatus = reservation.paymentStatus || (new URLSearchParams(window.location.search).get("session_id") ? "deposit_paid" : "payment_pending");
 
   bindText("vehicleName", vehicle.name);
   bindText("vehicleShortName", vehicle.shortName);
@@ -886,6 +889,20 @@ function updateSummary() {
   bindText("rentalDays", displayDays(days));
   bindText("handoverLocation", location);
   bindText("reference", referenceFor(slug));
+  bindText("pickupDate", pickupLine);
+  bindText("returnDate", returnLine);
+  bindText("paymentStatusDisplay", humanStatus(paymentStatus));
+  bindText("customerName", reservation.name || reservation.fullName || "Guest client");
+  bindText("customerEmail", reservation.email || "Email supplied at checkout");
+  bindText("customerPhone", reservation.phone || "Phone supplied at checkout");
+  bindText("billingAddress", [
+    reservation.billingAddress1,
+    reservation.billingAddress2,
+    reservation.billingTown,
+    reservation.billingCity,
+    reservation.billingPostcode,
+    reservation.billingCountry,
+  ].filter(Boolean).join(", ") || "Billing details supplied");
   bindVehicleMedia(vehicle);
   updateSelectedLocationPanel(reservation);
 }
@@ -2468,6 +2485,77 @@ function bookingAddressLine(booking = {}) {
     .join(", ");
 }
 
+function bookingReceiptRows(booking = {}, payment = null) {
+  const totals = booking.totals || {};
+  return [
+    ["Reference", booking.reference || booking.id || "Velaire reservation"],
+    ["Client", booking.customerName || "Guest client"],
+    ["Email", booking.customerEmail || "Not supplied"],
+    ["Phone", booking.customerPhone || "Not supplied"],
+    ["Vehicle", booking.vehicleName || booking.vehicleSlug || "Selected Velaire vehicle"],
+    ["Dates", bookingDateLine(booking)],
+    ["Handover", booking.location || "Concierge handover to be confirmed"],
+    ["Booking status", humanStatus(booking.status || "pending")],
+    ["Deposit status", humanStatus(payment?.status || booking.paymentStatus || "payment_pending")],
+    ["Deposit", payment?.amount ? money(Number(payment.amount)) : totals.deposit ? money(Number(totals.deposit)) : "To be confirmed"],
+    ["Hire estimate", totals.hireEstimate ? money(Number(totals.hireEstimate)) : "To be confirmed"],
+    ["Billing", bookingAddressLine(booking) || "Not supplied"],
+  ];
+}
+
+function printableReceiptHtml(booking = {}, payment = null, { title = "Booking summary", subtitle = "Velaire Cars" } = {}) {
+  const rows = bookingReceiptRows(booking, payment)
+    .map(
+      ([label, value]) => `
+        <div class="print-receipt-row">
+          <span>${escapeHtml(label)}</span>
+          <strong>${escapeHtml(value)}</strong>
+        </div>
+      `,
+    )
+    .join("");
+  return `
+    <section class="print-receipt">
+      <div class="print-receipt-brand">
+        <span>V</span>
+        <div>
+          <strong>Velaire Cars</strong>
+          <small>Concierge handover, depart with class</small>
+        </div>
+      </div>
+      <div class="print-receipt-heading">
+        <p>${escapeHtml(subtitle)}</p>
+        <h1>${escapeHtml(title)}</h1>
+      </div>
+      <div class="print-receipt-grid">
+        ${rows}
+      </div>
+      <p class="print-receipt-note">
+        This summary confirms the reservation details held by Velaire Cars at the time of printing. Final handover,
+        driver checks and any remaining balance are confirmed privately by the concierge team.
+      </p>
+    </section>
+  `;
+}
+
+function printReceipt(booking = {}, payment = null, options = {}) {
+  let root = document.querySelector("[data-print-receipt-root]");
+  if (!root) {
+    root = document.createElement("div");
+    root.className = "print-receipt-root";
+    root.dataset.printReceiptRoot = "true";
+    document.body.appendChild(root);
+  }
+  root.innerHTML = printableReceiptHtml(booking, payment, options);
+  document.body.classList.add("print-receipt-active");
+  window.setTimeout(() => {
+    window.print();
+    window.setTimeout(() => {
+      document.body.classList.remove("print-receipt-active");
+    }, 400);
+  }, 80);
+}
+
 function adminDetailRow(label, value) {
   return `
     <div class="admin-detail-row">
@@ -2611,6 +2699,7 @@ function renderAdminBookingDetail(bookingId = adminState.selectedBookingId) {
     </section>
 
     <div class="admin-detail-actions">
+      <button type="button" data-admin-print-booking data-booking-id="${escapeHtml(booking.id)}">Print summary</button>
       <button type="button" data-admin-booking-action="confirm" data-booking-id="${escapeHtml(booking.id)}">Confirm booking</button>
       <button type="button" data-admin-booking-action="cancel" data-booking-id="${escapeHtml(booking.id)}">Cancel booking</button>
       <button type="button" data-admin-booking-action="complete" data-booking-id="${escapeHtml(booking.id)}">Mark complete</button>
@@ -2785,6 +2874,7 @@ function setupAdmin() {
     const removeBlock = event.target.closest("[data-admin-remove-block]");
     const bookingAction = event.target.closest("[data-admin-booking-action]");
     const emailAction = event.target.closest("[data-admin-email-kind]");
+    const printBooking = event.target.closest("[data-admin-print-booking]");
     const openBooking = event.target.closest("[data-admin-open-booking], [data-admin-booking-card]");
     const closeBooking = event.target.closest("[data-admin-close-booking]");
     if (closeBooking) {
@@ -2793,6 +2883,21 @@ function setupAdmin() {
     }
     if (openBooking && !bookingAction) {
       openAdminBookingDetail(openBooking.dataset.bookingId);
+      return;
+    }
+    if (printBooking) {
+      const booking = adminState.bookings.find((item) => item.id === printBooking.dataset.bookingId);
+      if (!booking) {
+        showFlowToast("Booking summary could not be found.", "warning");
+        return;
+      }
+      printReceipt(booking, bookingPaymentRecord(booking), {
+        title: `${booking.reference || "Velaire"} booking summary`,
+        subtitle: "Operations receipt",
+      });
+      trackVelaireEvent("Admin Booking Summary Printed", {
+        hasBooking: true,
+      });
       return;
     }
     if (emailAction) {
@@ -2936,6 +3041,69 @@ function setupPayment() {
   });
 }
 
+function bookingFromReservation(reservation = loadReservation()) {
+  const vehicle = selectedVehicle(reservation.vehicle);
+  const days = Math.max(Number.parseInt(reservation.days || "2", 10), 1);
+  const paymentStatus = reservation.paymentStatus || (new URLSearchParams(window.location.search).get("session_id") ? "deposit_paid" : "payment_pending");
+  return {
+    id: reservation.bookingId || "",
+    reference: reservation.reference || referenceFor(vehicle.slug),
+    customerName: reservation.name || reservation.fullName || "Guest client",
+    customerEmail: reservation.email || "",
+    customerPhone: reservation.phone || "",
+    vehicleSlug: vehicle.slug,
+    vehicleName: vehicle.name,
+    status: paymentStatus === "deposit_paid" ? "confirmed" : "pending",
+    paymentStatus,
+    pickup: reservation.pickup || "",
+    pickupTime: reservation.pickupTime || "",
+    return: reservation.return || "",
+    returnTime: reservation.returnTime || "",
+    location: reservation.formattedAddress || reservation.location || "",
+    lat: reservation.lat || "",
+    lng: reservation.lng || "",
+    handoverNotes: reservation.handoverNotes || "",
+    billingAddress1: reservation.billingAddress1 || "",
+    billingAddress2: reservation.billingAddress2 || "",
+    billingTown: reservation.billingTown || "",
+    billingCity: reservation.billingCity || "",
+    billingPostcode: reservation.billingPostcode || "",
+    billingCountry: reservation.billingCountry || "",
+    totals: {
+      days,
+      hireEstimate: vehicle.rate * days,
+      deposit: vehicle.deposit,
+      currency: "GBP",
+    },
+  };
+}
+
+function setupSuccess() {
+  const params = new URLSearchParams(window.location.search);
+  const sessionId = params.get("session_id") || "";
+  const bookingId = params.get("booking") || "";
+  if (sessionId || bookingId) {
+    saveReservation({
+      checkoutSessionId: sessionId || loadReservation().checkoutSessionId || "",
+      bookingId: bookingId || loadReservation().bookingId || "",
+      paymentStatus: sessionId ? "deposit_paid" : loadReservation().paymentStatus || "payment_pending",
+    });
+  }
+  updateSummary();
+
+  document.querySelector("[data-print-confirmation]")?.addEventListener("click", () => {
+    const booking = bookingFromReservation();
+    printReceipt(booking, null, {
+      title: `${booking.reference || "Velaire"} confirmation`,
+      subtitle: "Customer confirmation",
+    });
+    trackVelaireEvent("Customer Confirmation Printed", {
+      vehicle: booking.vehicleSlug,
+      paymentStatus: booking.paymentStatus,
+    });
+  });
+}
+
 const page = document.body.dataset.page;
 hydrateVehicleModels();
 if (page === "booking") setupBooking();
@@ -2945,6 +3113,7 @@ if (page === "account") setupAccount();
 if (page === "admin") setupAdmin();
 if (["success", "guest"].includes(page)) hydrateFleetPricing();
 if (page === "success") {
+  setupSuccess();
   const reservation = loadReservation();
   const vehicle = selectedVehicle(reservation.vehicle);
   if (reservation.reference || reservation.bookingId || reservation.checkoutSessionId || reservation.paymentStatus) {

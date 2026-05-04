@@ -444,6 +444,17 @@ if (
 }
 
 if (
+  !read("flow.js").includes("printReceipt") ||
+  !read("flow.js").includes("data-admin-print-booking") ||
+  !read("flow.js").includes("data-print-confirmation") ||
+  !read("flow.css").includes("@media print") ||
+  !read("success.html").includes("Reservation receipt") ||
+  !read("success.html").includes("Print confirmation")
+) {
+  throw new Error("Admin and customer receipt printing must stay wired into booking summaries");
+}
+
+if (
   !read("api/_lib/stripe.js").includes("STRIPE_SECRET_KEY") ||
   !read("api/_lib/stripe.js").includes("checkout/sessions") ||
   !read("api/_lib/stripe.js").includes("STRIPE_WEBHOOK_SECRET") ||
