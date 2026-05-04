@@ -652,6 +652,57 @@ h2 {
   max-width: 780px;
 }
 
+.area-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.area-card,
+.area-highlight {
+  border: 1px solid rgba(215, 161, 140, 0.22);
+  border-radius: var(--radius);
+  background:
+    linear-gradient(145deg, rgba(215, 161, 140, 0.09), rgba(248, 242, 236, 0.022)),
+    rgba(5, 5, 5, 0.32);
+  padding: 18px;
+}
+
+.area-card span {
+  display: block;
+  margin-bottom: 10px;
+  color: var(--rose);
+  font-size: 0.72rem;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.area-card strong,
+.area-highlight strong {
+  display: block;
+  color: var(--ivory);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.2rem;
+  font-weight: 500;
+  line-height: 1.18;
+}
+
+.area-card p,
+.area-highlight p {
+  margin-top: 12px;
+}
+
+.area-highlight {
+  display: grid;
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.area-highlight .primary-button {
+  width: fit-content;
+}
+
 .guest-details-card {
   display: grid;
   gap: 16px;
@@ -3510,6 +3561,10 @@ h2 {
     overflow-x: auto;
   }
 
+  .area-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .admin-vehicle-actions {
     grid-template-columns: 1fr;
   }
@@ -3619,6 +3674,10 @@ h2 {
   }
 
   .legal-toc {
+    grid-template-columns: 1fr;
+  }
+
+  .area-grid {
     grid-template-columns: 1fr;
   }
 

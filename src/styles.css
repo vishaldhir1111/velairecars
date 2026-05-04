@@ -1398,6 +1398,103 @@ select {
   font-size: 0.86rem;
 }
 
+.faq-section {
+  background:
+    radial-gradient(circle at 82% 18%, rgba(215, 161, 140, 0.14), transparent 30rem),
+    linear-gradient(180deg, #0b0909, #050505);
+}
+
+.faq-layout {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.52fr) minmax(0, 1fr);
+  gap: 22px;
+  align-items: start;
+}
+
+.faq-feature,
+.faq-item {
+  border: 1px solid rgba(215, 161, 140, 0.24);
+  border-radius: var(--radius);
+  background:
+    linear-gradient(145deg, rgba(248, 242, 236, 0.06), rgba(248, 242, 236, 0.018)),
+    rgba(9, 8, 8, 0.74);
+  box-shadow: var(--shadow);
+}
+
+.faq-feature {
+  position: sticky;
+  top: 102px;
+  display: grid;
+  gap: 20px;
+  padding: 28px;
+}
+
+.faq-feature span {
+  color: var(--rose);
+  font-size: 0.76rem;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.faq-feature strong {
+  color: var(--ivory);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(1.8rem, 2.7vw, 3rem);
+  font-weight: 500;
+  line-height: 1.02;
+}
+
+.faq-list {
+  display: grid;
+  gap: 12px;
+}
+
+.faq-item {
+  overflow: hidden;
+}
+
+.faq-item summary {
+  position: relative;
+  display: block;
+  min-height: 66px;
+  padding: 22px 58px 20px 22px;
+  color: var(--ivory);
+  font-weight: 850;
+  list-style: none;
+  cursor: pointer;
+}
+
+.faq-item summary::-webkit-details-marker {
+  display: none;
+}
+
+.faq-item summary::after {
+  position: absolute;
+  top: 22px;
+  right: 22px;
+  display: grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  border: 1px solid rgba(215, 161, 140, 0.34);
+  border-radius: 50%;
+  color: var(--rose);
+  content: "+";
+  font-weight: 850;
+}
+
+.faq-item[open] summary::after {
+  content: "-";
+}
+
+.faq-item p {
+  margin: 0;
+  border-top: 1px solid rgba(215, 161, 140, 0.16);
+  color: var(--muted);
+  line-height: 1.72;
+  padding: 0 22px 22px;
+}
+
 .footer {
   display: grid;
   grid-template-columns: minmax(280px, 1fr) auto auto auto;
@@ -1720,8 +1817,13 @@ select {
 
   .trust-strip,
   .service-grid,
-  .reviews-grid {
+  .reviews-grid,
+  .faq-layout {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .faq-feature {
+    position: static;
   }
 
   .footer {
@@ -1786,6 +1888,7 @@ select {
   .fleet-grid,
   .service-grid,
   .reviews-grid,
+  .faq-layout,
   .detail-meta,
   .footer {
     grid-template-columns: 1fr;

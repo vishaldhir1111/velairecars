@@ -14,6 +14,7 @@ const requiredFiles = [
   "admin.html",
   "payment.html",
   "success.html",
+  "areas-served.html",
   "terms.html",
   "privacy.html",
   "cancellation.html",
@@ -30,6 +31,7 @@ const requiredFiles = [
   "public/admin.html",
   "public/payment.html",
   "public/success.html",
+  "public/areas-served.html",
   "public/terms.html",
   "public/privacy.html",
   "public/cancellation.html",
@@ -78,6 +80,7 @@ const mirroredPublicFiles = [
   "admin.html",
   "payment.html",
   "success.html",
+  "areas-served.html",
   "terms.html",
   "privacy.html",
   "cancellation.html",
@@ -98,6 +101,7 @@ const customerHtmlPages = [
   "admin.html",
   "payment.html",
   "success.html",
+  "areas-served.html",
   "terms.html",
   "privacy.html",
   "cancellation.html",
@@ -135,7 +139,16 @@ for (const file of ["robots.txt", "sitemap.xml", "favicon.svg"]) {
   }
 }
 
-const indexablePages = ["index.html", "booking.html", "terms.html", "privacy.html", "cancellation.html", "rental-requirements.html", "deposit-policy.html"];
+const indexablePages = [
+  "index.html",
+  "booking.html",
+  "areas-served.html",
+  "terms.html",
+  "privacy.html",
+  "cancellation.html",
+  "rental-requirements.html",
+  "deposit-policy.html",
+];
 for (const file of indexablePages) {
   const html = read(file);
   if (
@@ -197,9 +210,21 @@ if (
   !read("robots.txt").includes("Sitemap: https://www.velairecars.com/sitemap.xml") ||
   !read("robots.txt").includes("Disallow: /portal") ||
   !read("sitemap.xml").includes("https://www.velairecars.com/booking.html") ||
+  !read("sitemap.xml").includes("https://www.velairecars.com/areas-served.html") ||
   !read("sitemap.xml").includes("https://www.velairecars.com/deposit-policy.html")
 ) {
   throw new Error("SEO crawler files must expose public pages and hide private/transaction pages");
+}
+
+if (
+  !read("src/App.jsx").includes("Clear answers for a smoother handover.") ||
+  !read("src/App.jsx").includes("areas-served.html") ||
+  !read("src/styles.css").includes(".faq-section") ||
+  !read("flow.css").includes(".area-grid") ||
+  !read("areas-served.html").includes("Mayfair, Knightsbridge, Belgravia, Chelsea") ||
+  !read("areas-served.html").includes("Heathrow, Gatwick, Luton, Stansted, London City")
+) {
+  throw new Error("Homepage FAQ and Areas Served SEO page must stay wired and styled");
 }
 
 const index = read("index.html");
@@ -292,6 +317,7 @@ for (const page of [
   "cancellation.html",
   "rental-requirements.html",
   "deposit-policy.html",
+  "areas-served.html",
 ]) {
   if (!vite.includes(page)) {
     throw new Error(`vite.config.js is missing ${page} as a build input`);
@@ -320,6 +346,10 @@ for (const page of ["terms.html", "privacy.html", "cancellation.html", "rental-r
   if (!html.includes('data-page="legal"') || !html.includes('class="legal-stage"') || !html.includes('href="flow.css"')) {
     throw new Error(`${page} must use the premium legal page shell and shared flow.css`);
   }
+}
+
+if (!read("areas-served.html").includes('data-page="areas"') || !read("areas-served.html").includes('class="legal-stage areas-stage"')) {
+  throw new Error("areas-served.html must use the premium areas page shell");
 }
 
 if (

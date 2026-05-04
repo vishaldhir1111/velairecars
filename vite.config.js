@@ -18,6 +18,7 @@ export default defineConfig({
         cancellation: new URL("./cancellation.html", import.meta.url).pathname,
         rentalRequirements: new URL("./rental-requirements.html", import.meta.url).pathname,
         depositPolicy: new URL("./deposit-policy.html", import.meta.url).pathname,
+        areasServed: new URL("./areas-served.html", import.meta.url).pathname,
       },
     },
   },

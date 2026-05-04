@@ -48,6 +48,39 @@ const reviews = [
   },
 ];
 
+const faqs = [
+  {
+    question: "Do I need an account to reserve?",
+    answer:
+      "No. Velaire uses a premium guest reservation flow. Choose the vehicle, enter your details, select the handover location and secure the deposit through Stripe-hosted checkout.",
+  },
+  {
+    question: "How does the deposit work?",
+    answer:
+      "The deposit amount is shown before checkout and handled securely by Stripe. Velaire does not store raw card details. Deposit handling is reviewed against the confirmed hire terms, vehicle condition and any open charges after return.",
+  },
+  {
+    question: "What checks are required before handover?",
+    answer:
+      "Velaire may request driving licence details, proof of address and identity checks before the vehicle is released. Requirements can vary by vehicle, insurer, driver profile and booking type.",
+  },
+  {
+    question: "Can Velaire deliver to hotels, airports or events?",
+    answer:
+      "Yes. Concierge handover can be arranged for homes, hotels, airports and event venues where practical. The booking flow captures your delivery location and the team confirms final timing.",
+  },
+  {
+    question: "How quickly is a booking confirmed?",
+    answer:
+      "After the deposit step, the booking enters concierge review. Velaire confirms availability, driver eligibility and handover details before final release of the vehicle.",
+  },
+  {
+    question: "Can prices or availability change?",
+    answer:
+      "Yes. Premium fleet pricing and availability can change based on demand, blocked dates, vehicle status and operational requirements. The booking flow reads the current operations-managed pricing.",
+  },
+];
+
 function formatCurrency(value) {
   return new Intl.NumberFormat("en-GB", {
     style: "currency",
@@ -489,6 +522,7 @@ function App() {
           <a href="booking.html" onClick={() => trackVelaireEvent("Booking Started", { source: "header_nav" })}>
             Reserve
           </a>
+          <a href="areas-served.html">Areas</a>
         </nav>
 
         <a className="nav-cta" href="booking.html" onClick={() => trackVelaireEvent("Booking Started", { source: "header_cta" })}>
@@ -655,6 +689,35 @@ function App() {
             ))}
           </div>
         </section>
+
+        <section className="section faq-section" id="faq">
+          <div className="section-heading">
+            <p className="eyebrow">Before you reserve</p>
+            <h2>Clear answers for a smoother handover.</h2>
+            <p>
+              The Velaire flow is built to feel polished from enquiry to keys: simple guest
+              booking, secure deposits and concierge support where detail matters.
+            </p>
+          </div>
+
+          <div className="faq-layout">
+            <div className="faq-feature">
+              <span>Concierge clarity</span>
+              <strong>Deposits, delivery and driver checks explained before you commit.</strong>
+              <a className="secondary-button" href="areas-served.html">
+                View areas served
+              </a>
+            </div>
+            <div className="faq-list">
+              {faqs.map((item, index) => (
+                <details className="faq-item" key={item.question} open={index === 0}>
+                  <summary>{item.question}</summary>
+                  <p>{item.answer}</p>
+                </details>
+              ))}
+            </div>
+          </div>
+        </section>
       </main>
 
       <footer className="footer">
@@ -676,6 +739,8 @@ function App() {
           <strong>Explore</strong>
           <a href="#fleet">Fleet</a>
           <a href="#reviews">Reviews</a>
+          <a href="#faq">FAQ</a>
+          <a href="areas-served.html">Areas served</a>
         </div>
 
         <div className="footer-column">
