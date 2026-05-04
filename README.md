@@ -60,6 +60,15 @@ Vercel. Add these environment variables in Vercel to enable live email delivery:
 If `RESEND_API_KEY` is missing, bookings and payments continue to work and notification attempts are
 recorded as skipped in the operations data instead of blocking the customer flow.
 
+The Operations booking detail drawer can also trigger protected manual communication through
+`api/admin/notifications.js`:
+
+- resend booking confirmation
+- resend deposit receipt
+- send booking status update
+
+Each attempt is stored in the same notification history inside the operations data.
+
 ## Stripe Deposits
 
 The deposit step creates a real Stripe Checkout Session in `api/payments/intent.js`, then Stripe

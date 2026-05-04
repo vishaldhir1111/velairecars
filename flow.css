@@ -1266,7 +1266,8 @@ body.admin-drawer-open {
 }
 
 .admin-drawer-close,
-.admin-detail-actions button {
+.admin-detail-actions button,
+.admin-email-actions button {
   min-height: 38px;
   border: 1px solid rgba(215, 161, 140, 0.24);
   border-radius: 999px;
@@ -1284,7 +1285,9 @@ body.admin-drawer-open {
 .admin-drawer-close:hover,
 .admin-drawer-close:focus-visible,
 .admin-detail-actions button:hover,
-.admin-detail-actions button:focus-visible {
+.admin-detail-actions button:focus-visible,
+.admin-email-actions button:hover,
+.admin-email-actions button:focus-visible {
   border-color: var(--rose);
   background: rgba(215, 161, 140, 0.14);
   outline: none;
@@ -1461,6 +1464,33 @@ body.admin-drawer-open {
 
 .admin-detail-actions button {
   padding: 0 15px;
+}
+
+.admin-email-actions-card {
+  margin-top: 12px;
+}
+
+.admin-email-actions-card p:not(.admin-record-kicker) {
+  margin: 0;
+  color: rgba(248, 242, 236, 0.62);
+  font-size: 0.9rem;
+  line-height: 1.55;
+}
+
+.admin-email-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.admin-email-actions button {
+  padding: 0 15px;
+}
+
+.admin-email-actions button:disabled {
+  cursor: wait;
+  opacity: 0.58;
+  transform: none;
 }
 
 .admin-card-heading {
@@ -4157,6 +4187,10 @@ body.admin-drawer-open {
 
   .admin-detail-actions button {
     flex: 1 1 140px;
+  }
+
+  .admin-email-actions button {
+    flex: 1 1 160px;
   }
 
   .summary-media {

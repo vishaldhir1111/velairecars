@@ -4,6 +4,7 @@ import {
   sendBookingCreatedNotifications,
   sendBookingStatusUpdateNotifications,
   sendDepositPaidNotifications,
+  sendManualBookingCommunication,
   sendPaymentPendingNotifications,
 } from "./notifications.js";
 
@@ -753,6 +754,23 @@ export async function updatePaymentRecord(idValue, patch = {}) {
     notifications = await dispatchNotifications(() => sendPaymentPendingNotifications({ payment: result, booking }));
   }
   return { payment: result, state, persistence, notifications };
+}
+
+export async function sendBookingCommunication(bookingId, kind = "confirmation") {
+  const state = await loadOperationsState();
+  const booking = (state.bookings || []).map(publicBooking).find((item) => item.id === bookingId);
+  if (!booking) {
+    const error = new Error("Booking not found.");
+    error.status = 404;
+    error.publicMessage = "Booking not found.";
+    throw error;
+  }
+  const payment =
+    (state.payments || []).map(publicPayment).find((item) => item.bookingId === booking.id) ||
+    (state.payments || []).map(publicPayment).find((item) => item.bookingReference === booking.reference) ||
+    null;
+  const notifications = await dispatchNotifications(() => sendManualBookingCommunication({ booking, payment, kind }));
+  return { booking, payment, notifications };
 }
 
 export async function updateVehicleOperationsRecord(slug, patch = {}) {

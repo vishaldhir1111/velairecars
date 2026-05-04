@@ -59,6 +59,7 @@ const requiredFiles = [
   "api/admin/bookings.js",
   "api/admin/payments.js",
   "api/admin/customers.js",
+  "api/admin/notifications.js",
   "api/_lib/fleet-data.js",
   "api/_lib/admin-auth.js",
   "api/_lib/http.js",
@@ -428,9 +429,14 @@ if (
   !read("api/_lib/notifications.js").includes("sendBookingCreatedNotifications") ||
   !read("api/_lib/notifications.js").includes("sendDepositPaidNotifications") ||
   !read("api/_lib/notifications.js").includes("sendBookingStatusUpdateNotifications") ||
+  !read("api/_lib/notifications.js").includes("sendManualBookingCommunication") ||
   !read("api/_lib/operations-store.js").includes("sendBookingCreatedNotifications") ||
+  !read("api/_lib/operations-store.js").includes("sendBookingCommunication") ||
   !read("api/_lib/operations-store.js").includes("notifications: []") ||
   !read("api/_lib/operations-store.js").includes("recordNotificationEvents") ||
+  !read("api/admin/notifications.js").includes("sendBookingCommunication") ||
+  !read("flow.js").includes("/api/admin/notifications") ||
+  !read("flow.js").includes("Resend confirmation") ||
   !read("api/bookings.js").includes("notifications") ||
   !read("api/payments/intent.js").includes("notifications")
 ) {

@@ -393,3 +393,86 @@ export async function sendBookingStatusUpdateNotifications({ booking, status } =
     }),
   ]);
 }
+
+export async function sendManualBookingCommunication({ booking, payment, kind = "confirmation" } = {}) {
+  const config = emailConfig();
+  const reference = bookingReference(booking || payment);
+  const paymentAmount = payment?.amount || booking?.totals?.deposit || 0;
+  const commonRows = bookingRows(booking);
+  const stamp = Date.now();
+
+  if (kind === "deposit_receipt") {
+    return Promise.all([
+      sendEmail({
+        type: "manual_deposit_receipt",
+        audience: "customer",
+        to: booking?.customerEmail || payment?.customerEmail,
+        subject: `Velaire deposit receipt: ${reference}`,
+        booking,
+        payment,
+        html: emailShell({
+          preheader: "Your Velaire deposit receipt has been resent.",
+          title: "Deposit receipt.",
+          intro: "Here is your Velaire deposit receipt. Our concierge team will continue to manage final approval, handover timing and vehicle preparation.",
+          rows: [
+            ["Reference", reference],
+            ["Vehicle", booking?.vehicleName || payment?.vehicleName || "Selected Velaire vehicle"],
+            ["Deposit", money(paymentAmount, payment?.currency || booking?.totals?.currency || "GBP")],
+            ["Payment status", statusLabel(payment?.status || booking?.paymentStatus || "payment_pending")],
+          ],
+          footnote: "Velaire never stores raw card details. Deposits are processed securely through Stripe.",
+        }),
+        text: `Your Velaire deposit receipt for ${reference}.`,
+        idempotencyKey: `manual-deposit-receipt:${booking?.id || payment?.id || reference}:${stamp}`,
+      }),
+    ]);
+  }
+
+  if (kind === "status_update") {
+    const label = statusLabel(booking?.status || "pending");
+    return Promise.all([
+      sendEmail({
+        type: "manual_status_update",
+        audience: "customer",
+        to: booking?.customerEmail,
+        subject: `Velaire booking status: ${reference}`,
+        booking,
+        html: emailShell({
+          preheader: `Your Velaire booking is ${label}.`,
+          title: "Booking status update.",
+          intro: `Your reservation is currently ${label}. The Velaire concierge team will contact you privately if any further details are required.`,
+          rows: [
+            ["Reference", reference],
+            ["Vehicle", booking?.vehicleName || "Selected Velaire vehicle"],
+            ["Booking status", label],
+            ["Payment status", statusLabel(booking?.paymentStatus || payment?.status || "payment_pending")],
+            ["Handover", booking?.location || "Concierge handover to be confirmed"],
+          ],
+        }),
+        text: `Your Velaire booking ${reference} is currently ${label}.`,
+        idempotencyKey: `manual-status-update:${booking?.id || reference}:${booking?.status || "pending"}:${stamp}`,
+      }),
+    ]);
+  }
+
+  return Promise.all([
+    sendEmail({
+      type: "manual_booking_confirmation",
+      audience: "customer",
+      to: booking?.customerEmail,
+      subject: `Velaire reservation details: ${reference}`,
+      booking,
+      html: emailShell({
+        preheader: "Your Velaire reservation details have been resent.",
+        title: "Reservation details.",
+        intro: "As requested, here are your Velaire reservation details. Our concierge team will manage approval, vehicle preparation and handover with care.",
+        rows: commonRows,
+        ctaLabel: "Browse Velaire",
+        ctaUrl: `${config.siteUrl}/#fleet`,
+        footnote: "No account is required. The concierge team will contact you using the details supplied with your reservation.",
+      }),
+      text: `Your Velaire reservation details for ${reference}.`,
+      idempotencyKey: `manual-booking-confirmation:${booking?.id || reference}:${stamp}`,
+    }),
+  ]);
+}

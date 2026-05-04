@@ -2304,7 +2304,7 @@ function setupBooking() {
   setupMapboxDeliveryPicker(form);
 }
 
-let adminState = { bookings: [], vehicles: [], customers: [], payments: [], selectedBookingId: "" };
+let adminState = { bookings: [], vehicles: [], customers: [], payments: [], notifications: [], selectedBookingId: "" };
 
 function renderAdminCounts(counts = {}) {
   document.querySelectorAll("[data-admin-count]").forEach((node) => {
@@ -2615,6 +2615,16 @@ function renderAdminBookingDetail(bookingId = adminState.selectedBookingId) {
       <button type="button" data-admin-booking-action="cancel" data-booking-id="${escapeHtml(booking.id)}">Cancel booking</button>
       <button type="button" data-admin-booking-action="complete" data-booking-id="${escapeHtml(booking.id)}">Mark complete</button>
     </div>
+
+    <section class="admin-detail-card admin-detail-card-wide admin-email-actions-card">
+      <p class="admin-record-kicker">Client communication</p>
+      <p>Send polished Velaire emails directly from Operations. Attempts are logged in notification history.</p>
+      <div class="admin-email-actions">
+        <button type="button" data-admin-email-kind="confirmation" data-booking-id="${escapeHtml(booking.id)}">Resend confirmation</button>
+        <button type="button" data-admin-email-kind="deposit_receipt" data-booking-id="${escapeHtml(booking.id)}">Send deposit receipt</button>
+        <button type="button" data-admin-email-kind="status_update" data-booking-id="${escapeHtml(booking.id)}">Send status update</button>
+      </div>
+    </section>
   `;
 }
 
@@ -2680,6 +2690,7 @@ async function refreshAdmin() {
     vehicles: summary.vehicles || [],
     customers: summary.customers || [],
     payments: summary.payments || [],
+    notifications: summary.notifications || [],
     selectedBookingId: adminState.selectedBookingId || "",
   };
   renderAdminCounts(summary.counts || {});
@@ -2773,6 +2784,7 @@ function setupAdmin() {
   document.addEventListener("click", async (event) => {
     const removeBlock = event.target.closest("[data-admin-remove-block]");
     const bookingAction = event.target.closest("[data-admin-booking-action]");
+    const emailAction = event.target.closest("[data-admin-email-kind]");
     const openBooking = event.target.closest("[data-admin-open-booking], [data-admin-booking-card]");
     const closeBooking = event.target.closest("[data-admin-close-booking]");
     if (closeBooking) {
@@ -2781,6 +2793,35 @@ function setupAdmin() {
     }
     if (openBooking && !bookingAction) {
       openAdminBookingDetail(openBooking.dataset.bookingId);
+      return;
+    }
+    if (emailAction) {
+      emailAction.disabled = true;
+      const label = emailAction.textContent;
+      emailAction.textContent = "Sending...";
+      try {
+        const result = await apiRequest("/api/admin/notifications", {
+          method: "POST",
+          body: JSON.stringify({
+            bookingId: emailAction.dataset.bookingId,
+            kind: emailAction.dataset.adminEmailKind,
+          }),
+        });
+        const sent = (result.notifications || []).filter((item) => item.status === "sent").length;
+        const failed = (result.notifications || []).filter((item) => item.status === "failed").length;
+        trackVelaireEvent("Admin Email Sent", {
+          kind: emailAction.dataset.adminEmailKind,
+          sent,
+          failed,
+        });
+        showFlowToast(sent ? "Velaire email sent." : "Email attempt logged. Check notification status.", failed ? "warning" : "default");
+        await refreshAdmin();
+      } catch (error) {
+        showFlowToast(error.message || "Email could not be sent.", "warning");
+      } finally {
+        emailAction.disabled = false;
+        emailAction.textContent = label;
+      }
       return;
     }
     if (removeBlock) {
