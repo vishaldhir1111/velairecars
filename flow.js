@@ -2421,6 +2421,7 @@ function renderAdminBookings(bookings = []) {
           <div class="admin-booking-statuses" aria-label="Booking status">
             <span class="status-pill">${humanStatus(booking.status)}</span>
             <span class="status-pill">${humanStatus(booking.paymentStatus)}</span>
+            <span class="status-pill follow-up-pill">${humanStatus(booking.followUpStatus || "new")}</span>
           </div>
           <div class="admin-action-row">
             <button type="button" data-admin-open-booking data-booking-id="${escapeHtml(booking.id)}">View</button>
@@ -2543,6 +2544,7 @@ function renderAdminBookingDetail(bookingId = adminState.selectedBookingId) {
     <div class="admin-detail-status-row">
       <span class="status-pill">${humanStatus(booking.status)}</span>
       <span class="status-pill">${humanStatus(booking.paymentStatus)}</span>
+      <span class="status-pill follow-up-pill">${humanStatus(booking.followUpStatus || "new")}</span>
     </div>
 
     <div class="admin-detail-grid">
@@ -2583,6 +2585,23 @@ function renderAdminBookingDetail(bookingId = adminState.selectedBookingId) {
         ${adminDetailRow("Reference", payment?.providerReference || payment?.stripePaymentIntentId || payment?.id || booking.paymentIntentId)}
       </section>
     </div>
+
+    <section class="admin-detail-card admin-detail-card-wide">
+      <p class="admin-record-kicker">Operations follow-up</p>
+      <form class="admin-detail-form" data-admin-booking-followup-form data-booking-id="${escapeHtml(booking.id)}">
+        <label class="field">Follow-up status
+          <select name="followUpStatus">
+            ${["new", "needs_reply", "driver_checks", "handover_confirmed", "ready"].map(
+              (status) => `<option value="${status}" ${String(booking.followUpStatus || "new") === status ? "selected" : ""}>${humanStatus(status)}</option>`,
+            ).join("")}
+          </select>
+        </label>
+        <label class="field">Internal notes
+          <textarea name="internalNotes" rows="5" placeholder="Add driver checks, customer preferences, handover prep or team notes.">${escapeHtml(booking.internalNotes || "")}</textarea>
+        </label>
+        <button type="submit">Save follow-up</button>
+      </form>
+    </section>
 
     <section class="admin-detail-card admin-detail-card-wide">
       <p class="admin-record-kicker">Timeline</p>
@@ -2687,10 +2706,29 @@ function setupAdmin() {
   document.addEventListener("submit", async (event) => {
     const vehicleForm = event.target.closest("[data-admin-vehicle-form]");
     const blockForm = event.target.closest("[data-admin-block-form]");
-    if (!vehicleForm && !blockForm) return;
+    const followupForm = event.target.closest("[data-admin-booking-followup-form]");
+    if (!vehicleForm && !blockForm && !followupForm) return;
     event.preventDefault();
     const data = new FormData(event.target);
     const slug = event.target.dataset.slug;
+    if (followupForm) {
+      await apiRequest("/api/admin/bookings", {
+        method: "PATCH",
+        body: JSON.stringify({
+          id: followupForm.dataset.bookingId,
+          patch: {
+            followUpStatus: data.get("followUpStatus") || "new",
+            internalNotes: data.get("internalNotes") || "",
+          },
+        }),
+      });
+      trackVelaireEvent("Admin Follow Up Updated", {
+        followUpStatus: String(data.get("followUpStatus") || "new"),
+      });
+      showFlowToast("Booking follow-up saved.");
+      await refreshAdmin();
+      return;
+    }
     if (vehicleForm) {
       await apiRequest("/api/admin/vehicles", {
         method: "PATCH",

@@ -1188,6 +1188,14 @@ h2 {
   white-space: nowrap;
 }
 
+.follow-up-pill {
+  border-color: rgba(248, 242, 236, 0.18);
+  background:
+    linear-gradient(135deg, rgba(248, 242, 236, 0.08), rgba(215, 161, 140, 0.055)),
+    rgba(255, 255, 255, 0.035);
+  color: rgba(248, 242, 236, 0.78);
+}
+
 .admin-booking-card .admin-action-row {
   justify-content: flex-end;
   gap: 7px;
@@ -1342,6 +1350,74 @@ body.admin-drawer-open {
   margin: 0;
   padding: 0;
   list-style: none;
+}
+
+.admin-detail-form {
+  display: grid;
+  gap: 14px;
+}
+
+.admin-detail-form .field {
+  color: rgba(248, 242, 236, 0.62);
+  font-size: 0.72rem;
+  font-weight: 850;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.admin-detail-form select,
+.admin-detail-form textarea {
+  width: 100%;
+  min-height: 48px;
+  margin-top: 8px;
+  border: 1px solid rgba(215, 161, 140, 0.18);
+  border-radius: 16px;
+  background:
+    linear-gradient(135deg, rgba(248, 242, 236, 0.065), rgba(248, 242, 236, 0.025)),
+    rgba(255, 255, 255, 0.035);
+  color: var(--ivory);
+  font: inherit;
+  font-size: 0.92rem;
+  letter-spacing: 0;
+  outline: none;
+  text-transform: none;
+  transition: border-color 180ms ease, background 180ms ease, box-shadow 180ms ease;
+}
+
+.admin-detail-form select {
+  padding: 0 13px;
+}
+
+.admin-detail-form textarea {
+  min-height: 132px;
+  padding: 13px;
+  resize: vertical;
+}
+
+.admin-detail-form select:focus,
+.admin-detail-form textarea:focus {
+  border-color: rgba(215, 161, 140, 0.58);
+  background: rgba(255, 255, 255, 0.055);
+  box-shadow: 0 0 0 3px rgba(215, 161, 140, 0.1);
+}
+
+.admin-detail-form button {
+  justify-self: start;
+  min-height: 42px;
+  border: 1px solid rgba(215, 161, 140, 0.28);
+  border-radius: 999px;
+  background: var(--rose);
+  color: #120d0b;
+  padding: 0 18px;
+  font-weight: 900;
+  transition: transform 180ms ease, box-shadow 180ms ease;
+}
+
+.admin-detail-form button:hover,
+.admin-detail-form button:focus-visible {
+  outline: none;
+  transform: translateY(-1px);
+  box-shadow: 0 14px 30px rgba(215, 161, 140, 0.16);
 }
 
 .admin-detail-timeline li {

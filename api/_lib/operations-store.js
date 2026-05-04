@@ -261,6 +261,8 @@ function publicBooking(booking = {}) {
     vehicleName: safeBooking.vehicleName,
     status: safeBooking.status || "draft",
     paymentStatus: safeBooking.paymentStatus || "not_started",
+    followUpStatus: safeBooking.followUpStatus || "new",
+    internalNotes: safeBooking.internalNotes || "",
     paymentIntentId: safeBooking.paymentIntentId || "",
     pickup: safeBooking.pickup || "",
     pickupTime: safeBooking.pickupTime || "",
@@ -592,6 +594,8 @@ export async function createBookingRecord({ userId = null, reservation = {}, sta
       vehicleName: `${vehicle.name} ${vehicle.year}`,
       status,
       paymentStatus: "not_started",
+      followUpStatus: "new",
+      internalNotes: "",
       pickup: reservation.pickup || "",
       pickupTime: reservation.pickupTime || "",
       return: reservation.return || "",
@@ -669,7 +673,14 @@ export async function updateBookingRecord(idValue, patch = {}) {
       });
     }
     Object.assign(booking, bookingPatch, { updatedAt: now() });
-    booking.timeline = [...(booking.timeline || []), { label: bookingPatch.status ? `Status changed to ${bookingPatch.status}` : "Booking updated", at: now() }];
+    const updateLabel = bookingPatch.status
+      ? `Status changed to ${bookingPatch.status}`
+      : bookingPatch.followUpStatus
+        ? `Follow-up changed to ${bookingPatch.followUpStatus}`
+        : Object.prototype.hasOwnProperty.call(bookingPatch, "internalNotes")
+          ? "Internal notes updated"
+          : "Booking updated";
+    booking.timeline = [...(booking.timeline || []), { label: updateLabel, at: now() }];
     syncCustomers(draft);
     return publicBooking(booking);
   });
