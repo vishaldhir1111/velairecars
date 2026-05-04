@@ -2407,17 +2407,21 @@ function renderAdminBookings(bookings = []) {
   target.innerHTML = bookings
     .map(
       (booking) => `
-        <article class="admin-record-card">
-          <div>
+        <article class="admin-record-card admin-booking-card">
+          <div class="admin-booking-client">
+            <span class="admin-record-kicker">Client</span>
             <strong>${escapeHtml(booking.customerName || "Guest client")}</strong>
             <span>${escapeHtml(booking.customerEmail || "No email")} · ${escapeHtml(booking.customerPhone || "No phone")}</span>
           </div>
-          <div>
+          <div class="admin-booking-vehicle">
+            <span class="admin-record-kicker">Reservation</span>
             <strong>${escapeHtml(booking.vehicleName || booking.vehicleSlug)}</strong>
             <span>${escapeHtml(booking.pickup || "Pickup pending")} to ${escapeHtml(booking.return || "Return pending")}</span>
           </div>
-          <span class="status-pill">${humanStatus(booking.status)}</span>
-          <span class="status-pill">${humanStatus(booking.paymentStatus)}</span>
+          <div class="admin-booking-statuses" aria-label="Booking status">
+            <span class="status-pill">${humanStatus(booking.status)}</span>
+            <span class="status-pill">${humanStatus(booking.paymentStatus)}</span>
+          </div>
           <div class="admin-action-row">
             <button type="button" data-admin-booking-action="confirm" data-booking-id="${escapeHtml(booking.id)}">Confirm</button>
             <button type="button" data-admin-booking-action="cancel" data-booking-id="${escapeHtml(booking.id)}">Cancel</button>

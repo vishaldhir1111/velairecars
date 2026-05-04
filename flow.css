@@ -1096,6 +1096,92 @@ h2 {
   align-items: center;
 }
 
+.admin-bookings-section {
+  overflow: hidden;
+}
+
+.admin-bookings-section .panel-heading {
+  margin-bottom: 18px;
+}
+
+.admin-bookings-section .admin-record-list {
+  gap: 10px;
+}
+
+.admin-booking-card {
+  grid-template-columns: minmax(220px, 1fr) minmax(260px, 1.15fr) minmax(185px, 0.72fr) minmax(250px, auto);
+  gap: 16px;
+  min-height: 96px;
+  padding: 16px 18px;
+  background:
+    linear-gradient(135deg, rgba(215, 161, 140, 0.08), rgba(248, 242, 236, 0.035)),
+    rgba(8, 7, 7, 0.62);
+  box-shadow:
+    inset 0 1px 0 rgba(248, 242, 236, 0.065),
+    0 20px 56px rgba(0, 0, 0, 0.2);
+}
+
+.admin-booking-card > div {
+  min-width: 0;
+}
+
+.admin-booking-client,
+.admin-booking-vehicle {
+  display: grid;
+  gap: 5px;
+}
+
+.admin-record-kicker {
+  color: var(--rose-3);
+  font-size: 0.68rem;
+  font-weight: 850;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.admin-booking-card strong,
+.admin-booking-card span {
+  min-width: 0;
+}
+
+.admin-booking-card strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-booking-card .admin-booking-client > span:not(.admin-record-kicker),
+.admin-booking-card .admin-booking-vehicle > span:not(.admin-record-kicker) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-booking-statuses {
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+}
+
+.admin-booking-card .status-pill {
+  justify-content: center;
+  width: 100%;
+  min-height: 34px;
+  padding: 7px 12px;
+  font-size: 0.72rem;
+  font-weight: 850;
+  white-space: nowrap;
+}
+
+.admin-booking-card .admin-action-row {
+  justify-content: flex-end;
+  gap: 7px;
+}
+
+.admin-booking-card .admin-action-row button {
+  min-width: 78px;
+}
+
 .admin-card-heading {
   grid-template-columns: 1fr auto;
   margin-bottom: 16px;
@@ -3583,6 +3669,24 @@ h2 {
   .admin-payments-section {
     grid-column: 1 / -1;
   }
+
+  .admin-booking-card {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .admin-booking-statuses {
+    grid-template-columns: repeat(2, max-content);
+    justify-items: start;
+  }
+
+  .admin-booking-card .status-pill {
+    width: auto;
+  }
+
+  .admin-booking-card .admin-action-row {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+  }
 }
 
 @media (max-width: 1060px) {
@@ -3720,6 +3824,28 @@ h2 {
   .vehicle-summary,
   .success-card {
     padding: 18px;
+  }
+
+  .admin-booking-card {
+    grid-template-columns: 1fr;
+    padding: 16px;
+  }
+
+  .admin-booking-statuses {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-booking-card .status-pill {
+    justify-content: flex-start;
+    width: 100%;
+  }
+
+  .admin-booking-card .admin-action-row {
+    justify-content: stretch;
+  }
+
+  .admin-booking-card .admin-action-row button {
+    flex: 1 1 86px;
   }
 
   .summary-media {
