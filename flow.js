@@ -2304,7 +2304,7 @@ function setupBooking() {
   setupMapboxDeliveryPicker(form);
 }
 
-let adminState = { bookings: [], vehicles: [], customers: [], payments: [] };
+let adminState = { bookings: [], vehicles: [], customers: [], payments: [], selectedBookingId: "" };
 
 function renderAdminCounts(counts = {}) {
   document.querySelectorAll("[data-admin-count]").forEach((node) => {
@@ -2407,7 +2407,7 @@ function renderAdminBookings(bookings = []) {
   target.innerHTML = bookings
     .map(
       (booking) => `
-        <article class="admin-record-card admin-booking-card">
+        <article class="admin-record-card admin-booking-card" data-admin-booking-card data-booking-id="${escapeHtml(booking.id)}" tabindex="0" role="button" aria-label="Open booking ${escapeHtml(booking.reference || booking.id)}">
           <div class="admin-booking-client">
             <span class="admin-record-kicker">Client</span>
             <strong>${escapeHtml(booking.customerName || "Guest client")}</strong>
@@ -2423,6 +2423,7 @@ function renderAdminBookings(bookings = []) {
             <span class="status-pill">${humanStatus(booking.paymentStatus)}</span>
           </div>
           <div class="admin-action-row">
+            <button type="button" data-admin-open-booking data-booking-id="${escapeHtml(booking.id)}">View</button>
             <button type="button" data-admin-booking-action="confirm" data-booking-id="${escapeHtml(booking.id)}">Confirm</button>
             <button type="button" data-admin-booking-action="cancel" data-booking-id="${escapeHtml(booking.id)}">Cancel</button>
             <button type="button" data-admin-booking-action="complete" data-booking-id="${escapeHtml(booking.id)}">Complete</button>
@@ -2431,6 +2432,189 @@ function renderAdminBookings(bookings = []) {
       `,
     )
     .join("");
+}
+
+function bookingPaymentRecord(booking = {}) {
+  return (
+    adminState.payments.find((payment) => payment.bookingId === booking.id) ||
+    adminState.payments.find((payment) => payment.id && payment.id === booking.paymentIntentId) ||
+    adminState.payments.find((payment) => payment.bookingReference && payment.bookingReference === booking.reference) ||
+    null
+  );
+}
+
+function displayValue(value, fallback = "Not supplied") {
+  const clean = String(value || "").trim();
+  return clean ? escapeHtml(clean) : fallback;
+}
+
+function bookingDateLine(booking = {}) {
+  const pickup = [formatDisplayDate(booking.pickup) || booking.pickup, booking.pickupTime].filter(Boolean).join(" at ");
+  const returnDate = [formatDisplayDate(booking.return) || booking.return, booking.returnTime].filter(Boolean).join(" at ");
+  return `${pickup || "Pickup pending"} to ${returnDate || "Return pending"}`;
+}
+
+function bookingAddressLine(booking = {}) {
+  return [
+    booking.billingAddress1,
+    booking.billingAddress2,
+    booking.billingTown,
+    booking.billingCity,
+    booking.billingPostcode,
+    booking.billingCountry,
+  ]
+    .filter(Boolean)
+    .join(", ");
+}
+
+function adminDetailRow(label, value) {
+  return `
+    <div class="admin-detail-row">
+      <span>${escapeHtml(label)}</span>
+      <strong>${displayValue(value)}</strong>
+    </div>
+  `;
+}
+
+function adminTimelineItems(booking = {}) {
+  const timeline = Array.isArray(booking.timeline) ? booking.timeline : [];
+  if (!timeline.length) {
+    return `<li><span></span><p>No timeline events yet.</p></li>`;
+  }
+  return timeline
+    .slice()
+    .reverse()
+    .map(
+      (item) => `
+        <li>
+          <span></span>
+          <p>
+            <strong>${escapeHtml(item.label || "Booking update")}</strong>
+            <small>${escapeHtml(item.at ? new Date(item.at).toLocaleString("en-GB") : "")}</small>
+          </p>
+        </li>
+      `,
+    )
+    .join("");
+}
+
+function ensureAdminBookingDrawer() {
+  let drawer = document.querySelector("[data-admin-booking-drawer]");
+  if (drawer) return drawer;
+  document.body.insertAdjacentHTML(
+    "beforeend",
+    `
+      <div class="admin-drawer" data-admin-booking-drawer hidden>
+        <button class="admin-drawer-backdrop" type="button" data-admin-close-booking aria-label="Close booking detail"></button>
+        <aside class="admin-drawer-panel" aria-label="Booking detail" aria-modal="true" role="dialog">
+          <div data-admin-booking-detail></div>
+        </aside>
+      </div>
+    `,
+  );
+  return document.querySelector("[data-admin-booking-drawer]");
+}
+
+function renderAdminBookingDetail(bookingId = adminState.selectedBookingId) {
+  const drawer = ensureAdminBookingDrawer();
+  const target = drawer?.querySelector("[data-admin-booking-detail]");
+  if (!drawer || !target) return;
+  const booking = adminState.bookings.find((item) => item.id === bookingId);
+  if (!booking) {
+    drawer.hidden = true;
+    document.body.classList.remove("admin-drawer-open");
+    adminState.selectedBookingId = "";
+    return;
+  }
+  const payment = bookingPaymentRecord(booking);
+  const totals = booking.totals || {};
+  const billingAddress = bookingAddressLine(booking);
+  adminState.selectedBookingId = booking.id;
+  target.innerHTML = `
+    <div class="admin-drawer-header">
+      <div>
+        <p class="eyebrow">Booking detail</p>
+        <h2>${escapeHtml(booking.reference || "Velaire reservation")}</h2>
+        <span>${escapeHtml(booking.vehicleName || booking.vehicleSlug || "Vehicle pending")}</span>
+      </div>
+      <button class="admin-drawer-close" type="button" data-admin-close-booking aria-label="Close booking detail">Close</button>
+    </div>
+
+    <div class="admin-detail-status-row">
+      <span class="status-pill">${humanStatus(booking.status)}</span>
+      <span class="status-pill">${humanStatus(booking.paymentStatus)}</span>
+    </div>
+
+    <div class="admin-detail-grid">
+      <section class="admin-detail-card">
+        <p class="admin-record-kicker">Client</p>
+        ${adminDetailRow("Name", booking.customerName || "Guest client")}
+        ${adminDetailRow("Email", booking.customerEmail)}
+        ${adminDetailRow("Phone", booking.customerPhone)}
+      </section>
+
+      <section class="admin-detail-card">
+        <p class="admin-record-kicker">Reservation</p>
+        ${adminDetailRow("Vehicle", booking.vehicleName || booking.vehicleSlug)}
+        ${adminDetailRow("Dates", bookingDateLine(booking))}
+        ${adminDetailRow("Hire estimate", totals.hireEstimate ? money(Number(totals.hireEstimate)) : "")}
+        ${adminDetailRow("Deposit", totals.deposit ? money(Number(totals.deposit)) : "")}
+      </section>
+
+      <section class="admin-detail-card admin-detail-card-wide">
+        <p class="admin-record-kicker">Handover</p>
+        ${adminDetailRow("Location", booking.location)}
+        ${adminDetailRow("Coordinates", booking.lat && booking.lng ? `${booking.lat}, ${booking.lng}` : "")}
+        ${adminDetailRow("Notes", booking.handoverNotes)}
+      </section>
+
+      <section class="admin-detail-card">
+        <p class="admin-record-kicker">Billing</p>
+        ${adminDetailRow("Address", billingAddress)}
+        ${adminDetailRow("Postcode", booking.billingPostcode)}
+        ${adminDetailRow("Country", booking.billingCountry)}
+      </section>
+
+      <section class="admin-detail-card">
+        <p class="admin-record-kicker">Payment</p>
+        ${adminDetailRow("Status", payment?.status || booking.paymentStatus)}
+        ${adminDetailRow("Amount", payment?.amount ? money(Number(payment.amount)) : totals.deposit ? money(Number(totals.deposit)) : "")}
+        ${adminDetailRow("Provider", payment?.provider || "Stripe deposit")}
+        ${adminDetailRow("Reference", payment?.providerReference || payment?.stripePaymentIntentId || payment?.id || booking.paymentIntentId)}
+      </section>
+    </div>
+
+    <section class="admin-detail-card admin-detail-card-wide">
+      <p class="admin-record-kicker">Timeline</p>
+      <ol class="admin-detail-timeline">
+        ${adminTimelineItems(booking)}
+      </ol>
+    </section>
+
+    <div class="admin-detail-actions">
+      <button type="button" data-admin-booking-action="confirm" data-booking-id="${escapeHtml(booking.id)}">Confirm booking</button>
+      <button type="button" data-admin-booking-action="cancel" data-booking-id="${escapeHtml(booking.id)}">Cancel booking</button>
+      <button type="button" data-admin-booking-action="complete" data-booking-id="${escapeHtml(booking.id)}">Mark complete</button>
+    </div>
+  `;
+}
+
+function openAdminBookingDetail(bookingId) {
+  const drawer = ensureAdminBookingDrawer();
+  adminState.selectedBookingId = bookingId;
+  renderAdminBookingDetail(bookingId);
+  drawer.hidden = false;
+  document.body.classList.add("admin-drawer-open");
+  trackVelaireEvent("Admin Booking Detail Opened", {
+    hasBooking: Boolean(bookingId),
+  });
+}
+
+function closeAdminBookingDetail() {
+  const drawer = document.querySelector("[data-admin-booking-drawer]");
+  if (drawer) drawer.hidden = true;
+  document.body.classList.remove("admin-drawer-open");
+  adminState.selectedBookingId = "";
 }
 
 function renderAdminCustomers(customers = []) {
@@ -2477,12 +2661,14 @@ async function refreshAdmin() {
     vehicles: summary.vehicles || [],
     customers: summary.customers || [],
     payments: summary.payments || [],
+    selectedBookingId: adminState.selectedBookingId || "",
   };
   renderAdminCounts(summary.counts || {});
   renderAdminVehicles(adminState.vehicles);
   renderAdminBookings(adminState.bookings);
   renderAdminCustomers(adminState.customers);
   renderAdminPayments(adminState.payments);
+  if (adminState.selectedBookingId) renderAdminBookingDetail(adminState.selectedBookingId);
   const status = document.querySelector("[data-admin-status]");
   if (status) status.textContent = summary.meta?.available ? "Connected to Vercel KV operations storage." : "Using memory fallback. Check KV_REST_API_URL and KV_REST_API_TOKEN.";
 }
@@ -2549,6 +2735,16 @@ function setupAdmin() {
   document.addEventListener("click", async (event) => {
     const removeBlock = event.target.closest("[data-admin-remove-block]");
     const bookingAction = event.target.closest("[data-admin-booking-action]");
+    const openBooking = event.target.closest("[data-admin-open-booking], [data-admin-booking-card]");
+    const closeBooking = event.target.closest("[data-admin-close-booking]");
+    if (closeBooking) {
+      closeAdminBookingDetail();
+      return;
+    }
+    if (openBooking && !bookingAction) {
+      openAdminBookingDetail(openBooking.dataset.bookingId);
+      return;
+    }
     if (removeBlock) {
       await apiRequest("/api/admin/vehicles", {
         method: "DELETE",
@@ -2576,6 +2772,17 @@ function setupAdmin() {
       });
       showFlowToast(`Booking marked ${humanStatus(bookingAction.dataset.adminBookingAction)}.`);
       await refreshAdmin();
+    }
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && adminState.selectedBookingId) {
+      closeAdminBookingDetail();
+      return;
+    }
+    if ((event.key === "Enter" || event.key === " ") && event.target.closest("[data-admin-booking-card]")) {
+      event.preventDefault();
+      openAdminBookingDetail(event.target.closest("[data-admin-booking-card]").dataset.bookingId);
     }
   });
 
