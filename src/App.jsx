@@ -60,6 +60,27 @@ function reserveLink(car) {
   return `booking.html?vehicle=${car.slug}`;
 }
 
+function trackVelaireEvent(name, data = {}) {
+  try {
+    if (typeof window === "undefined" || typeof window.va !== "function") return;
+    const safeData = Object.fromEntries(
+      Object.entries(data).filter(([key, value]) => {
+        if (/email|phone|name|address|postcode|lat|lng|token|password|secret/i.test(key)) return false;
+        return ["string", "number", "boolean"].includes(typeof value);
+      }),
+    );
+    window.va("event", {
+      name,
+      data: {
+        page: "home",
+        ...safeData,
+      },
+    });
+  } catch {
+    // Analytics should never affect the customer experience.
+  }
+}
+
 function mergeOperationsFleet(baseFleet, operationsFleet = []) {
   const operationsBySlug = new Map(operationsFleet.map((vehicle) => [vehicle.slug, vehicle]));
   return baseFleet.map((car) => {
@@ -361,7 +382,18 @@ function VehicleDetailModal({ car, onClose }) {
           </ul>
           <p className="best-for">{car.bestFor}</p>
           <div className="vehicle-modal-actions">
-            <a className="primary-button" href={reserveLink(car)}>
+            <a
+              className="primary-button"
+              href={reserveLink(car)}
+              onClick={() =>
+                trackVelaireEvent("Car Selected", {
+                  source: "vehicle_detail_modal",
+                  vehicle: car.slug,
+                  dailyRate: car.rate,
+                  deposit: car.deposit,
+                })
+              }
+            >
               Reserve this vehicle
             </a>
             <button className="secondary-button" type="button" onClick={onClose}>
@@ -454,10 +486,12 @@ function App() {
 
         <nav className="nav-links">
           <a href="#fleet">Fleet</a>
-          <a href="booking.html">Reserve</a>
+          <a href="booking.html" onClick={() => trackVelaireEvent("Booking Started", { source: "header_nav" })}>
+            Reserve
+          </a>
         </nav>
 
-        <a className="nav-cta" href="booking.html">
+        <a className="nav-cta" href="booking.html" onClick={() => trackVelaireEvent("Booking Started", { source: "header_cta" })}>
           Reserve now
         </a>
       </header>
@@ -478,7 +512,7 @@ function App() {
                 <a className="primary-button" href="#fleet">
                   View the fleet
                 </a>
-                <a className="secondary-button" href="booking.html">
+                <a className="secondary-button" href="booking.html" onClick={() => trackVelaireEvent("Booking Started", { source: "hero_cta" })}>
                   Start reservation
                 </a>
               </div>
@@ -531,11 +565,27 @@ function App() {
                       type="button"
                       onClick={() => {
                         setDetailCarSlug(car.slug);
+                        trackVelaireEvent("Vehicle Details Opened", {
+                          vehicle: car.slug,
+                          dailyRate: car.rate,
+                          deposit: car.deposit,
+                        });
                       }}
                     >
                       View details
                     </button>
-                    <a className="card-link" href={reserveLink(car)}>
+                    <a
+                      className="card-link"
+                      href={reserveLink(car)}
+                      onClick={() =>
+                        trackVelaireEvent("Car Selected", {
+                          source: "homepage_fleet",
+                          vehicle: car.slug,
+                          dailyRate: car.rate,
+                          deposit: car.deposit,
+                        })
+                      }
+                    >
                       Reserve
                     </a>
                   </div>
@@ -581,7 +631,7 @@ function App() {
               <span>Delivery preview</span>
               <strong>London, airports and event venues</strong>
             </div>
-            <a className="primary-button full-button" href="booking.html">
+            <a className="primary-button full-button" href="booking.html" onClick={() => trackVelaireEvent("Booking Started", { source: "booking_band" })}>
               Start booking
             </a>
           </div>
@@ -648,7 +698,10 @@ function App() {
         <button
           className="concierge-launcher"
           type="button"
-          onClick={() => setIsConciergeOpen((open) => !open)}
+          onClick={() => {
+            setIsConciergeOpen((open) => !open);
+            trackVelaireEvent("Concierge Opened", { source: "launcher" });
+          }}
           aria-expanded={isConciergeOpen}
         >
           <span>AI Concierge</span>
@@ -668,7 +721,14 @@ function App() {
 
           <div className="concierge-chip-row" aria-label="Suggested concierge prompts">
             {conciergePromptChips.map((prompt) => (
-              <button type="button" key={prompt} onClick={() => askConcierge(prompt)}>
+              <button
+                type="button"
+                key={prompt}
+                onClick={() => {
+                  trackVelaireEvent("Concierge Prompt Submitted", { source: "prompt_chip" });
+                  askConcierge(prompt);
+                }}
+              >
                 {prompt}
               </button>
             ))}
@@ -687,6 +747,7 @@ function App() {
             className="concierge-form"
             onSubmit={(event) => {
               event.preventDefault();
+              trackVelaireEvent("Concierge Prompt Submitted", { source: "manual_prompt" });
               askConcierge(conciergeInput);
             }}
           >
@@ -704,7 +765,7 @@ function App() {
           </form>
 
           <div className="concierge-reserve-row">
-            <a className="primary-button" href="booking.html">
+            <a className="primary-button" href="booking.html" onClick={() => trackVelaireEvent("Booking Started", { source: "concierge_cta" })}>
               Start guest reservation
             </a>
           </div>

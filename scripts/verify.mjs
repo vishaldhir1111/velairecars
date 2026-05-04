@@ -164,6 +164,35 @@ if (
   throw new Error("Homepage must include AutoRental JSON-LD with the Velaire fleet");
 }
 
+const analyticsEvents = [
+  "Booking Started",
+  "Car Selected",
+  "Vehicle Details Opened",
+  "Guest Details Completed",
+  "Deposit Button Clicked",
+  "Stripe Checkout Opened",
+  "Booking Confirmed",
+  "Admin Price Updated",
+  "Admin Dates Blocked",
+  "Admin Booking Status Updated",
+  "Concierge Prompt Submitted",
+];
+const analyticsSources = `${read("flow.js")}\n${read("src/App.jsx")}`;
+if (!analyticsSources.includes("trackVelaireEvent") || !analyticsSources.includes('window.va("event"')) {
+  throw new Error("Custom Vercel Analytics events must use the plain HTML window.va event API");
+}
+for (const eventName of analyticsEvents) {
+  if (!analyticsSources.includes(eventName)) {
+    throw new Error(`Missing custom analytics event: ${eventName}`);
+  }
+}
+if (
+  !read("flow.js").includes("blockedAnalyticsKey") ||
+  !read("flow.js").includes("email|phone|name|address|postcode|lat|lng|token|password|secret")
+) {
+  throw new Error("Custom analytics payloads must redact personal data keys");
+}
+
 if (
   !read("robots.txt").includes("Sitemap: https://www.velairecars.com/sitemap.xml") ||
   !read("robots.txt").includes("Disallow: /portal") ||

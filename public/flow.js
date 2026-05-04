@@ -264,6 +264,52 @@ function escapeHtml(value = "") {
     .replaceAll("'", "&#039;");
 }
 
+const blockedAnalyticsKey = /email|phone|name|address|postcode|lat|lng|token|password|secret/i;
+
+function cleanAnalyticsData(data = {}) {
+  const safe = {
+    page: document.body?.dataset.page || "unknown",
+  };
+  Object.entries(data || {}).forEach(([key, value]) => {
+    if (blockedAnalyticsKey.test(key)) return;
+    if (typeof value === "boolean") {
+      safe[key] = value;
+      return;
+    }
+    if (typeof value === "number" && Number.isFinite(value)) {
+      safe[key] = value;
+      return;
+    }
+    if (typeof value === "string") {
+      safe[key] = value.trim().slice(0, 96);
+    }
+  });
+  return safe;
+}
+
+function trackVelaireEvent(name, data = {}) {
+  try {
+    if (typeof window.va !== "function") return;
+    window.va("event", {
+      name,
+      data: cleanAnalyticsData(data),
+    });
+  } catch {
+    // Analytics must never interrupt booking, payment or operations flows.
+  }
+}
+
+function trackVelaireEventOnce(key, name, data = {}) {
+  try {
+    const storageKey = `velaireAnalytics:${key}`;
+    if (window.sessionStorage.getItem(storageKey)) return;
+    window.sessionStorage.setItem(storageKey, "1");
+  } catch {
+    // If sessionStorage is unavailable, still allow the event attempt.
+  }
+  trackVelaireEvent(name, data);
+}
+
 function humanStatus(value = "") {
   return String(value || "pending")
     .replaceAll("_", " ")
@@ -2160,6 +2206,16 @@ function setupBooking() {
   setFieldValue(form, "billingPostcode", reservation.billingPostcode);
   setFieldValue(form, "billingCountry", reservation.billingCountry);
 
+  function trackBookingStarted(source = "form_interaction") {
+    const vehicle = selectedVehicle();
+    trackVelaireEventOnce(`booking-started:${source}`, "Booking Started", {
+      source,
+      vehicle: vehicle.slug,
+      dailyRate: vehicle.rate,
+      deposit: vehicle.deposit,
+    });
+  }
+
   function refreshCards() {
     document.querySelectorAll("[data-vehicle-card]").forEach((card) => {
       const input = card.querySelector('input[name="vehicle"]');
@@ -2186,6 +2242,14 @@ function setupBooking() {
     input.addEventListener("change", () => {
       refreshCards();
       persistDraft();
+      const vehicle = selectedVehicle(input.value);
+      trackBookingStarted("vehicle_selection");
+      trackVelaireEvent("Car Selected", {
+        source: "booking_page",
+        vehicle: vehicle.slug,
+        dailyRate: vehicle.rate,
+        deposit: vehicle.deposit,
+      });
     });
   });
 
@@ -2193,19 +2257,41 @@ function setupBooking() {
   refreshCards();
   updateSummary();
 
-  form?.addEventListener("input", persistDraft);
+  form?.addEventListener("input", () => {
+    trackBookingStarted("form_interaction");
+    persistDraft();
+  });
   form?.addEventListener("submit", async (event) => {
     event.preventDefault();
-    saveReservation(readBookingForm(form));
+    const draft = saveReservation(readBookingForm(form));
     try {
+      trackVelaireEvent("Booking Form Submitted", {
+        vehicle: draft.vehicle,
+        days: Number.parseInt(draft.days || "1", 10) || 1,
+        hasDeliveryLocation: Boolean(draft.formattedAddress || draft.location),
+      });
       const availability = await checkAvailability();
       if (availability && availability.available === false) {
+        trackVelaireEvent("Booking Availability Blocked", {
+          vehicle: draft.vehicle,
+          status: availability.status || "unavailable",
+        });
         showFlowToast(availability.message || "That vehicle is unavailable for the selected dates.", "warning");
         return;
       }
-      await syncBookingToBackend("draft", { strict: true });
+      const booking = await syncBookingToBackend("draft", { strict: true });
+      trackVelaireEvent("Guest Details Completed", {
+        vehicle: draft.vehicle,
+        days: Number.parseInt(draft.days || "1", 10) || 1,
+        hasDeliveryLocation: Boolean(draft.formattedAddress || draft.location),
+        bookingCreated: Boolean(booking?.id),
+      });
       navigateTo(form.getAttribute("action") || "payment.html");
     } catch (error) {
+      trackVelaireEvent("Booking Save Failed", {
+        vehicle: draft.vehicle,
+        status: error.status ? String(error.status) : "error",
+      });
       showFlowToast(error.message || "Those reservation details could not be saved. Please adjust the selection.", "warning");
     }
   });
@@ -2427,6 +2513,12 @@ function setupAdmin() {
           },
         }),
       });
+      trackVelaireEvent("Admin Price Updated", {
+        vehicle: slug,
+        dailyRate: Number(data.get("rate") || 0),
+        deposit: Number(data.get("deposit") || 0),
+        availabilityStatus: String(data.get("availabilityStatus") || ""),
+      });
       showFlowToast("Vehicle pricing and availability saved.");
     }
     if (blockForm) {
@@ -2440,6 +2532,10 @@ function setupAdmin() {
             reason: data.get("reason") || "Operations block",
           },
         }),
+      });
+      trackVelaireEvent("Admin Dates Blocked", {
+        vehicle: slug,
+        hasReason: Boolean(data.get("reason")),
       });
       showFlowToast("Vehicle dates blocked.");
     }
@@ -2457,6 +2553,9 @@ function setupAdmin() {
           blockId: removeBlock.dataset.blockId,
         }),
       });
+      trackVelaireEvent("Admin Date Block Removed", {
+        vehicle: removeBlock.dataset.slug,
+      });
       showFlowToast("Vehicle block removed.");
       await refreshAdmin();
     }
@@ -2467,6 +2566,9 @@ function setupAdmin() {
           id: bookingAction.dataset.bookingId,
           action: bookingAction.dataset.adminBookingAction,
         }),
+      });
+      trackVelaireEvent("Admin Booking Status Updated", {
+        action: bookingAction.dataset.adminBookingAction,
       });
       showFlowToast(`Booking marked ${humanStatus(bookingAction.dataset.adminBookingAction)}.`);
       await refreshAdmin();
@@ -2511,6 +2613,14 @@ function setupPayment() {
   hydrateFleetPricing();
   form?.addEventListener("submit", async (event) => {
     event.preventDefault();
+    const reservation = loadReservation();
+    const vehicle = selectedVehicle(reservation.vehicle);
+    trackVelaireEvent("Deposit Button Clicked", {
+      vehicle: vehicle.slug,
+      dailyRate: vehicle.rate,
+      deposit: vehicle.deposit,
+      days: Number.parseInt(reservation.days || "1", 10) || 1,
+    });
     try {
       await hydrateFleetPricing();
       await syncBookingToBackend("payment_review", { strict: true });
@@ -2519,8 +2629,18 @@ function setupPayment() {
         status: "Concierge review",
         paymentStatus: payment.status || "payment_pending",
       });
+      trackVelaireEvent("Stripe Checkout Opened", {
+        vehicle: vehicle.slug,
+        deposit: vehicle.deposit,
+        paymentStatus: payment.status || "payment_pending",
+        hasCheckoutUrl: Boolean(payment.checkoutUrl),
+      });
       window.location.assign(payment.checkoutUrl);
     } catch (error) {
+      trackVelaireEvent("Stripe Checkout Failed", {
+        vehicle: vehicle.slug,
+        status: error.status ? String(error.status) : "error",
+      });
       showFlowToast(error.message || "Stripe Checkout could not be started. Please try again.", "warning");
     }
   });
@@ -2534,4 +2654,15 @@ if (page === "payment") setupPayment();
 if (page === "account") setupAccount();
 if (page === "admin") setupAdmin();
 if (["success", "guest"].includes(page)) hydrateFleetPricing();
+if (page === "success") {
+  const reservation = loadReservation();
+  const vehicle = selectedVehicle(reservation.vehicle);
+  if (reservation.reference || reservation.bookingId || reservation.checkoutSessionId || reservation.paymentStatus) {
+    trackVelaireEventOnce(`booking-confirmed:${reservation.reference || reservation.bookingId || vehicle.slug}`, "Booking Confirmed", {
+      vehicle: vehicle.slug,
+      paymentStatus: reservation.paymentStatus || "unknown",
+      hasReference: Boolean(reservation.reference || reservation.bookingId),
+    });
+  }
+}
 updateSummary();
