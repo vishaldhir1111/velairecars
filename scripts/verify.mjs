@@ -14,6 +14,11 @@ const requiredFiles = [
   "admin.html",
   "payment.html",
   "success.html",
+  "terms.html",
+  "privacy.html",
+  "cancellation.html",
+  "rental-requirements.html",
+  "deposit-policy.html",
   "flow.css",
   "flow.js",
   "public/booking.html",
@@ -22,6 +27,11 @@ const requiredFiles = [
   "public/admin.html",
   "public/payment.html",
   "public/success.html",
+  "public/terms.html",
+  "public/privacy.html",
+  "public/cancellation.html",
+  "public/rental-requirements.html",
+  "public/deposit-policy.html",
   "public/flow.css",
   "public/flow.js",
   "src/data/fleet.js",
@@ -55,7 +65,21 @@ const requiredFiles = [
 
 const read = (file) => fs.readFileSync(path.join(root, file), "utf8");
 
-const mirroredPublicFiles = ["booking.html", "login.html", "account.html", "admin.html", "payment.html", "success.html", "flow.css", "flow.js"];
+const mirroredPublicFiles = [
+  "booking.html",
+  "login.html",
+  "account.html",
+  "admin.html",
+  "payment.html",
+  "success.html",
+  "terms.html",
+  "privacy.html",
+  "cancellation.html",
+  "rental-requirements.html",
+  "deposit-policy.html",
+  "flow.css",
+  "flow.js",
+];
 
 for (const file of requiredFiles) {
   if (!fs.existsSync(path.join(root, file))) {
@@ -103,6 +127,11 @@ if (
 ) {
   throw new Error("Removed customer-facing experience/save/local-sync UI must stay removed");
 }
+for (const page of ["terms.html", "privacy.html", "cancellation.html", "rental-requirements.html", "deposit-policy.html"]) {
+  if (!app.includes(page)) {
+    throw new Error(`Homepage footer must link to ${page}`);
+  }
+}
 if (!read("src/styles.css").includes('/cars/hero-g63-cinematic.png') || !read("flow.css").includes('/cars/hero-g63-cinematic.png')) {
   throw new Error("Homepage and flow backgrounds must use the local Mercedes G63 AMG asset");
 }
@@ -144,7 +173,19 @@ if (
 }
 
 const vite = read("vite.config.js");
-for (const page of ["booking.html", "login.html", "account.html", "admin.html", "payment.html", "success.html"]) {
+for (const page of [
+  "booking.html",
+  "login.html",
+  "account.html",
+  "admin.html",
+  "payment.html",
+  "success.html",
+  "terms.html",
+  "privacy.html",
+  "cancellation.html",
+  "rental-requirements.html",
+  "deposit-policy.html",
+]) {
   if (!vite.includes(page)) {
     throw new Error(`vite.config.js is missing ${page} as a build input`);
   }
@@ -165,6 +206,22 @@ for (const page of ["booking.html", "login.html", "account.html", "admin.html", 
   if (!html.includes('type="module" src="/flow.js"') && !html.includes('type="module" src="flow.js"')) {
     throw new Error(`${page} does not load flow.js`);
   }
+}
+
+for (const page of ["terms.html", "privacy.html", "cancellation.html", "rental-requirements.html", "deposit-policy.html"]) {
+  const html = read(page);
+  if (!html.includes('data-page="legal"') || !html.includes('class="legal-stage"') || !html.includes('href="flow.css"')) {
+    throw new Error(`${page} must use the premium legal page shell and shared flow.css`);
+  }
+}
+
+if (
+  !read("flow.css").includes(".legal-stage") ||
+  !read("flow.css").includes(".legal-toc") ||
+  !read("flow.css").includes(".legal-card") ||
+  !read("flow.css").includes(".legal-note")
+) {
+  throw new Error("Legal trust pages must have dedicated premium flow.css styling");
 }
 
 const booking = read("booking.html");

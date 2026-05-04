@@ -1400,7 +1400,7 @@ select {
 
 .footer {
   display: grid;
-  grid-template-columns: minmax(280px, 1fr) auto auto;
+  grid-template-columns: minmax(280px, 1fr) auto auto auto;
   gap: 44px;
   padding: 42px 72px;
   border-top: 1px solid var(--line);
@@ -1725,7 +1725,7 @@ select {
   }
 
   .footer {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     padding: 38px 28px;
   }
 }
