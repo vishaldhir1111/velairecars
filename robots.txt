@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+Disallow: /portal
+Disallow: /admin.html
+Disallow: /payment.html
+Disallow: /success.html
+Disallow: /account.html
+Disallow: /login.html
+
+Sitemap: https://www.velairecars.com/sitemap.xml

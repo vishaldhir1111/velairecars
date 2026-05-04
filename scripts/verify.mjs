@@ -21,6 +21,9 @@ const requiredFiles = [
   "deposit-policy.html",
   "flow.css",
   "flow.js",
+  "robots.txt",
+  "sitemap.xml",
+  "favicon.svg",
   "public/booking.html",
   "public/login.html",
   "public/account.html",
@@ -34,6 +37,9 @@ const requiredFiles = [
   "public/deposit-policy.html",
   "public/flow.css",
   "public/flow.js",
+  "public/robots.txt",
+  "public/sitemap.xml",
+  "public/favicon.svg",
   "src/data/fleet.js",
   "api/fleet.js",
   "api/bookings.js",
@@ -79,6 +85,9 @@ const mirroredPublicFiles = [
   "deposit-policy.html",
   "flow.css",
   "flow.js",
+  "robots.txt",
+  "sitemap.xml",
+  "favicon.svg",
 ];
 
 const customerHtmlPages = [
@@ -115,6 +124,53 @@ for (const file of customerHtmlPages) {
   if (!html.includes("window.va") || !html.includes('/_vercel/insights/script.js')) {
     throw new Error(`${file} must include Vercel Web Analytics tracking`);
   }
+  if (!html.includes('rel="canonical"') || !html.includes('rel="icon" href="/favicon.svg"') || !html.includes('meta name="theme-color"')) {
+    throw new Error(`${file} must include SEO canonical, favicon and theme-color metadata`);
+  }
+}
+
+for (const file of ["robots.txt", "sitemap.xml", "favicon.svg"]) {
+  if (read(file) !== read(`public/${file}`)) {
+    throw new Error(`public/${file} must mirror ${file}`);
+  }
+}
+
+const indexablePages = ["index.html", "booking.html", "terms.html", "privacy.html", "cancellation.html", "rental-requirements.html", "deposit-policy.html"];
+for (const file of indexablePages) {
+  const html = read(file);
+  if (
+    !html.includes('meta name="robots" content="index, follow"') ||
+    !html.includes('property="og:title"') ||
+    !html.includes('property="og:description"') ||
+    !html.includes('property="og:url"') ||
+    !html.includes('name="twitter:card" content="summary_large_image"') ||
+    !html.includes("https://www.velairecars.com/cars/hero-g63-cinematic.png")
+  ) {
+    throw new Error(`${file} must include indexable SEO and social preview metadata`);
+  }
+}
+
+for (const file of ["login.html", "account.html", "admin.html", "payment.html", "success.html"]) {
+  if (!read(file).includes('meta name="robots" content="noindex, nofollow"')) {
+    throw new Error(`${file} must be noindex/nofollow because it is private or transactional`);
+  }
+}
+
+if (
+  !read("index.html").includes('"@type": "AutoRental"') ||
+  !read("index.html").includes("Tesla Model 3 Performance 2020") ||
+  !read("index.html").includes("BMW M140i Shadow Edition 2019")
+) {
+  throw new Error("Homepage must include AutoRental JSON-LD with the Velaire fleet");
+}
+
+if (
+  !read("robots.txt").includes("Sitemap: https://www.velairecars.com/sitemap.xml") ||
+  !read("robots.txt").includes("Disallow: /portal") ||
+  !read("sitemap.xml").includes("https://www.velairecars.com/booking.html") ||
+  !read("sitemap.xml").includes("https://www.velairecars.com/deposit-policy.html")
+) {
+  throw new Error("SEO crawler files must expose public pages and hide private/transaction pages");
 }
 
 const index = read("index.html");

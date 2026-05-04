@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Velaire Cars">
+  <rect width="64" height="64" rx="32" fill="#050505"/>
+  <circle cx="32" cy="32" r="28" fill="none" stroke="#d7a18c" stroke-width="2"/>
+  <path d="M20 17h7l5 28 5-28h7L36 48h-8L20 17z" fill="#f8f2ec"/>
+  <path d="M27 17h10l-5 28-5-28z" fill="#d7a18c" opacity=".82"/>
+</svg>
