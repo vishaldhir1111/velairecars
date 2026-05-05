@@ -51,8 +51,8 @@
           <p class="eyebrow">Step 3 of 4</p>
           <h1>Review and secure the reservation.</h1>
           <p>
-            Confirm the vehicle, estimated hire and deposit guidance in a polished reservation
-            screen built for premium client confidence.
+            Confirm the vehicle, estimated hire and reserve deposit before Stripe opens a secure
+            hosted checkout. Your concierge receives the paid hold instantly.
           </p>
           <div class="step-row" aria-label="Booking progress">
             <span class="step">Car</span>
@@ -109,6 +109,14 @@
                 delivery details and handover timing.
               </p>
             </div>
+
+            <div class="summary-assurance">
+              <strong>Deposit handling</strong>
+              <span>
+                The deposit is recorded against this reservation and reviewed after handover in line
+                with the confirmed hire terms.
+              </span>
+            </div>
           </aside>
 
           <form class="flow-panel form-grid payment-card" action="success.html">
@@ -122,9 +130,39 @@
               <span>Continue to Stripe Checkout to complete the deposit securely. Velaire never stores card details.</span>
             </div>
 
+            <div class="payment-trust-grid" aria-label="Secure deposit reassurance">
+              <div>
+                <strong>Stripe hosted</strong>
+                <span>Card entry stays with Stripe.</span>
+              </div>
+              <div>
+                <strong>Instant status</strong>
+                <span>Operations receives the paid hold.</span>
+              </div>
+              <div>
+                <strong>Concierge review</strong>
+                <span>Handover details are confirmed next.</span>
+              </div>
+            </div>
+
+            <div class="checkout-timeline" aria-label="What happens after payment">
+              <div>
+                <span>1</span>
+                <p><strong>Pay deposit</strong> Stripe confirms the secure hold.</p>
+              </div>
+              <div>
+                <span>2</span>
+                <p><strong>Receive confirmation</strong> Your booking record is updated.</p>
+              </div>
+              <div>
+                <span>3</span>
+                <p><strong>Concierge handover</strong> Velaire finalises timings and delivery.</p>
+              </div>
+            </div>
+
             <button class="primary-button full-width" type="submit">Create secure deposit session</button>
             <p class="secure-note">
-              After payment, Stripe returns you to Velaire and Operations receives the paid deposit state.
+              If checkout is cancelled or fails, your reservation will not be treated as deposit paid.
             </p>
           </form>
         </div>

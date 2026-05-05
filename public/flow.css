@@ -3302,6 +3302,10 @@ body.admin-drawer-open {
 .availability,
 .secure-band,
 .notice-card,
+.conversion-panel,
+.summary-assurance,
+.payment-trust-grid > div,
+.checkout-timeline,
 .mini-summary {
   border: 1px solid rgba(215, 161, 140, 0.2);
   border-radius: var(--radius);
@@ -3331,10 +3335,135 @@ body.admin-drawer-open {
 
 .notice-card,
 .mini-summary,
+.conversion-panel,
+.summary-assurance,
+.checkout-timeline,
 .secure-band {
   display: grid;
   gap: 8px;
   padding: 16px;
+}
+
+.conversion-panel {
+  grid-template-columns: minmax(0, 0.9fr) minmax(260px, 1fr);
+  gap: 18px;
+  align-items: center;
+  border-color: rgba(248, 242, 236, 0.12);
+  background:
+    linear-gradient(135deg, rgba(215, 161, 140, 0.13), rgba(248, 242, 236, 0.035)),
+    rgba(8, 7, 7, 0.58);
+}
+
+.conversion-panel .eyebrow {
+  margin-bottom: 8px;
+}
+
+.conversion-panel strong,
+.summary-assurance strong {
+  display: block;
+  color: var(--ivory);
+}
+
+.conversion-panel span,
+.summary-assurance span,
+.button-reassurance {
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.55;
+}
+
+.conversion-steps {
+  display: grid;
+  gap: 10px;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.conversion-steps li {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  color: rgba(248, 242, 236, 0.84);
+  font-size: 0.88rem;
+  font-weight: 850;
+}
+
+.conversion-steps span,
+.checkout-timeline span {
+  display: inline-grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border: 1px solid rgba(215, 161, 140, 0.34);
+  border-radius: 50%;
+  background: rgba(215, 161, 140, 0.13);
+  color: var(--rose);
+  font-size: 0.78rem;
+  font-weight: 950;
+}
+
+.button-reassurance {
+  max-width: 680px;
+  margin: -6px 0 0;
+  text-align: center;
+}
+
+.summary-assurance {
+  margin-top: 16px;
+  border-color: rgba(248, 242, 236, 0.1);
+  background: rgba(248, 242, 236, 0.045);
+}
+
+.payment-trust-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.payment-trust-grid > div {
+  display: grid;
+  gap: 7px;
+  padding: 14px;
+  background: rgba(248, 242, 236, 0.045);
+}
+
+.payment-trust-grid strong {
+  color: var(--ivory);
+  font-size: 0.9rem;
+}
+
+.payment-trust-grid span {
+  color: var(--muted);
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+.checkout-timeline {
+  gap: 12px;
+  background:
+    linear-gradient(135deg, rgba(248, 242, 236, 0.052), rgba(215, 161, 140, 0.09)),
+    rgba(5, 5, 5, 0.14);
+}
+
+.checkout-timeline div {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+}
+
+.checkout-timeline p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.86rem;
+  line-height: 1.5;
+}
+
+.checkout-timeline strong {
+  display: block;
+  color: var(--ivory);
 }
 
 .notice-card strong,
@@ -4257,6 +4386,11 @@ body.admin-drawer-open {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
+  .conversion-panel {
+    grid-template-columns: minmax(0, 0.8fr) minmax(360px, 1fr);
+    padding: 14px 16px;
+  }
+
   .guest-details-card,
   .location-picker {
     padding: 16px;
@@ -4598,6 +4732,11 @@ body.admin-drawer-open {
 
   .summary-row strong {
     text-align: left;
+  }
+
+  .conversion-panel,
+  .payment-trust-grid {
+    grid-template-columns: 1fr;
   }
 
   .delivery-map {
