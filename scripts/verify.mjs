@@ -219,6 +219,7 @@ const analyticsEvents = [
   "Admin Price Updated",
   "Admin Dates Blocked",
   "Admin Booking Status Updated",
+  "Admin Manual Booking Created",
   "Concierge Prompt Submitted",
 ];
 const analyticsSources = `${read("flow.js")}\n${read("src/App.jsx")}`;
@@ -479,11 +480,34 @@ for (const match of read("flow.js").matchAll(/^  "([^"]+)": \{/gm)) {
 
 if (
   !read("admin.html").includes("data-admin-export-bookings") ||
+  !read("admin.html").includes("data-admin-export-customers") ||
+  !read("admin.html").includes("data-admin-export-payments") ||
+  !read("admin.html").includes("data-admin-manual-booking-form") ||
+  !read("admin.html").includes('data-admin-filter="query"') ||
+  !read("admin.html").includes("data-admin-reminders") ||
   !read("flow.js").includes("exportAdminBookingsCsv") ||
+  !read("flow.js").includes("filteredAdminBookings") ||
+  !read("flow.js").includes("exportAdminCustomersCsv") ||
+  !read("flow.js").includes("exportAdminPaymentsCsv") ||
+  !read("flow.js").includes("Admin Manual Booking Created") ||
   !read("flow.js").includes("velaire-bookings-") ||
+  !read("flow.css").includes(".admin-filter-panel") ||
   !read("flow.css").includes(".admin-utility-button")
 ) {
-  throw new Error("Operations bookings export must stay wired into the premium admin bookings section");
+  throw new Error("Operations admin productivity tools must stay wired into the premium bookings section");
+}
+
+if (
+  !read("terms.html").includes("Mileage and late return") ||
+  !read("terms.html").includes("Prohibited use includes") ||
+  !read("rental-requirements.html").includes("Age and licence history") ||
+  !read("rental-requirements.html").includes("Insurance conditions and excess") ||
+  !read("deposit-policy.html").includes("Deposit return timing") ||
+  !read("privacy.html").includes("privacy@velairecars.com") ||
+  !read("privacy.html").includes("restriction, objection, portability") ||
+  !read("cancellation.html").includes("UK guidance explains")
+) {
+  throw new Error("Legal trust pages must cover mileage, late return, excess, licence rules, deposit timing and privacy contact details");
 }
 
 if (
