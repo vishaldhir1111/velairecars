@@ -10,7 +10,16 @@ const vehicleSeoPages = [
   "bmw-m440i-hire-london.html",
   "bmw-m140i-hire-london.html",
 ];
+const localSeoPages = [
+  "luxury-car-hire-london.html",
+  "luxury-car-hire-mayfair.html",
+  "luxury-car-hire-knightsbridge.html",
+  "luxury-car-hire-chelsea.html",
+  "luxury-car-hire-heathrow.html",
+  "wedding-car-hire-london.html",
+];
 const vehicleSeoPublicPages = vehicleSeoPages.map((file) => `public/${file}`);
+const localSeoPublicPages = localSeoPages.map((file) => `public/${file}`);
 const requiredFiles = [
   "index.html",
   "src/main.jsx",
@@ -24,6 +33,7 @@ const requiredFiles = [
   "success.html",
   "areas-served.html",
   ...vehicleSeoPages,
+  ...localSeoPages,
   "terms.html",
   "privacy.html",
   "cancellation.html",
@@ -42,6 +52,7 @@ const requiredFiles = [
   "public/success.html",
   "public/areas-served.html",
   ...vehicleSeoPublicPages,
+  ...localSeoPublicPages,
   "public/terms.html",
   "public/privacy.html",
   "public/cancellation.html",
@@ -93,6 +104,7 @@ const mirroredPublicFiles = [
   "success.html",
   "areas-served.html",
   ...vehicleSeoPages,
+  ...localSeoPages,
   "terms.html",
   "privacy.html",
   "cancellation.html",
@@ -115,6 +127,7 @@ const customerHtmlPages = [
   "success.html",
   "areas-served.html",
   ...vehicleSeoPages,
+  ...localSeoPages,
   "terms.html",
   "privacy.html",
   "cancellation.html",
@@ -157,6 +170,7 @@ const indexablePages = [
   "booking.html",
   "areas-served.html",
   ...vehicleSeoPages,
+  ...localSeoPages,
   "terms.html",
   "privacy.html",
   "cancellation.html",
@@ -233,7 +247,13 @@ if (
   !read("sitemap.xml").includes("https://www.velairecars.com/range-rover-svr-hire-london.html") ||
   !read("sitemap.xml").includes("https://www.velairecars.com/tesla-model-3-hire-london.html") ||
   !read("sitemap.xml").includes("https://www.velairecars.com/bmw-m440i-hire-london.html") ||
-  !read("sitemap.xml").includes("https://www.velairecars.com/bmw-m140i-hire-london.html")
+  !read("sitemap.xml").includes("https://www.velairecars.com/bmw-m140i-hire-london.html") ||
+  !read("sitemap.xml").includes("https://www.velairecars.com/luxury-car-hire-london.html") ||
+  !read("sitemap.xml").includes("https://www.velairecars.com/luxury-car-hire-mayfair.html") ||
+  !read("sitemap.xml").includes("https://www.velairecars.com/luxury-car-hire-knightsbridge.html") ||
+  !read("sitemap.xml").includes("https://www.velairecars.com/luxury-car-hire-chelsea.html") ||
+  !read("sitemap.xml").includes("https://www.velairecars.com/luxury-car-hire-heathrow.html") ||
+  !read("sitemap.xml").includes("https://www.velairecars.com/wedding-car-hire-london.html")
 ) {
   throw new Error("SEO crawler files must expose public pages and hide private/transaction pages");
 }
@@ -243,6 +263,10 @@ if (
   !read("src/App.jsx").includes("areas-served.html") ||
   !read("src/App.jsx").includes("Popular hire") ||
   !read("src/App.jsx").includes("lamborghini-urus-hire-london.html") ||
+  !read("src/App.jsx").includes("luxury-car-hire-mayfair.html") ||
+  !read("src/App.jsx").includes("How Velaire works") ||
+  !read("src/styles.css").includes(".process-section") ||
+  !read("src/styles.css").includes(".seo-link-strip") ||
   !read("src/styles.css").includes(".faq-section") ||
   !read("flow.css").includes(".area-grid") ||
   !read("areas-served.html").includes("Mayfair, Knightsbridge, Belgravia, Chelsea") ||
@@ -269,6 +293,19 @@ if (
   !read("flow.css").includes(".seo-vehicle-media")
 ) {
   throw new Error("Vehicle SEO pages must have dedicated premium flow.css styling");
+}
+
+for (const page of localSeoPages) {
+  const html = read(page);
+  if (
+    !html.includes('data-page="seo-area"') ||
+    !html.includes('"@type": "AutoRental"') ||
+    !html.includes('"@type": "BreadcrumbList"') ||
+    !html.includes("booking.html") ||
+    !html.includes("https://www.velairecars.com/cars/hero-g63-cinematic.png")
+  ) {
+    throw new Error(`${page} must use the premium local SEO shell, structured data and booking CTA`);
+  }
 }
 
 const index = read("index.html");
@@ -363,6 +400,7 @@ for (const page of [
   "deposit-policy.html",
   "areas-served.html",
   ...vehicleSeoPages,
+  ...localSeoPages,
 ]) {
   if (!vite.includes(page)) {
     throw new Error(`vite.config.js is missing ${page} as a build input`);
@@ -437,6 +475,15 @@ for (const match of read("flow.js").matchAll(/^  "([^"]+)": \{/gm)) {
   if (!read("booking.html").includes(`value="${match[1]}"`)) {
     throw new Error(`flow.js vehicle ${match[1]} is not present in booking.html`);
   }
+}
+
+if (
+  !read("admin.html").includes("data-admin-export-bookings") ||
+  !read("flow.js").includes("exportAdminBookingsCsv") ||
+  !read("flow.js").includes("velaire-bookings-") ||
+  !read("flow.css").includes(".admin-utility-button")
+) {
+  throw new Error("Operations bookings export must stay wired into the premium admin bookings section");
 }
 
 if (

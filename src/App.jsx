@@ -27,6 +27,30 @@ const serviceCards = [
   },
 ];
 
+const bookingSteps = [
+  {
+    title: "Choose the right presence",
+    text: "Pick the vehicle that fits the brief: discreet electric performance, SUV confidence, open-top touring or full statement arrival.",
+  },
+  {
+    title: "Set the handover",
+    text: "Add the guest details, dates and delivery location so Velaire can review timing, access and release requirements.",
+  },
+  {
+    title: "Secure the deposit",
+    text: "Continue through Stripe-hosted checkout, then Velaire confirms availability and the final handover plan.",
+  },
+];
+
+const seoServiceLinks = [
+  { label: "Luxury car hire London", href: "luxury-car-hire-london.html" },
+  { label: "Mayfair", href: "luxury-car-hire-mayfair.html" },
+  { label: "Knightsbridge", href: "luxury-car-hire-knightsbridge.html" },
+  { label: "Chelsea", href: "luxury-car-hire-chelsea.html" },
+  { label: "Heathrow", href: "luxury-car-hire-heathrow.html" },
+  { label: "Wedding hire", href: "wedding-car-hire-london.html" },
+];
+
 const reviews = [
   {
     quote:
@@ -671,6 +695,35 @@ function App() {
           </div>
         </section>
 
+        <section className="section process-section">
+          <div className="section-heading">
+            <p className="eyebrow">How Velaire works</p>
+            <h2>A cleaner route from vehicle choice to concierge handover.</h2>
+            <p>
+              The booking journey is built for speed and confidence: no account requirement, clear
+              handover details and a secure deposit step before final operations review.
+            </p>
+          </div>
+
+          <div className="process-grid">
+            {bookingSteps.map((step, index) => (
+              <article className="process-card" key={step.title}>
+                <span>{String(index + 1).padStart(2, "0")}</span>
+                <h3>{step.title}</h3>
+                <p>{step.text}</p>
+              </article>
+            ))}
+          </div>
+
+          <div className="seo-link-strip" aria-label="Popular Velaire Cars hire pages">
+            {seoServiceLinks.map((link) => (
+              <a key={link.href} href={link.href}>
+                {link.label}
+              </a>
+            ))}
+          </div>
+        </section>
+
         <section className="section section-light reviews-section" id="reviews">
           <div className="section-heading">
             <p className="eyebrow">Client proof</p>
@@ -751,11 +804,21 @@ function App() {
 
         <div className="footer-column">
           <strong>Popular hire</strong>
+          <a href="luxury-car-hire-london.html">Luxury car hire London</a>
           <a href="lamborghini-urus-hire-london.html">Lamborghini Urus hire</a>
           <a href="range-rover-svr-hire-london.html">Range Rover SVR hire</a>
           <a href="tesla-model-3-hire-london.html">Tesla Model 3 hire</a>
           <a href="bmw-m440i-hire-london.html">BMW M440i hire</a>
           <a href="bmw-m140i-hire-london.html">BMW M140i hire</a>
+        </div>
+
+        <div className="footer-column">
+          <strong>Areas</strong>
+          <a href="luxury-car-hire-mayfair.html">Mayfair</a>
+          <a href="luxury-car-hire-knightsbridge.html">Knightsbridge</a>
+          <a href="luxury-car-hire-chelsea.html">Chelsea</a>
+          <a href="luxury-car-hire-heathrow.html">Heathrow</a>
+          <a href="wedding-car-hire-london.html">Wedding hire</a>
         </div>
 
         <div className="footer-column">

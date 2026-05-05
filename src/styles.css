@@ -1349,6 +1349,81 @@ select {
   font-weight: 500;
 }
 
+.process-section {
+  background:
+    radial-gradient(circle at 82% 18%, rgba(215, 161, 140, 0.14), transparent 32%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.012)),
+    #090807;
+}
+
+.process-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.process-card {
+  min-height: 250px;
+  border: 1px solid rgba(215, 161, 140, 0.2);
+  border-radius: var(--radius);
+  background:
+    linear-gradient(145deg, rgba(248, 242, 236, 0.065), rgba(248, 242, 236, 0.018)),
+    rgba(7, 6, 6, 0.72);
+  padding: 24px;
+  box-shadow: 0 22px 60px rgba(0, 0, 0, 0.26);
+}
+
+.process-card span {
+  display: inline-flex;
+  width: 42px;
+  height: 42px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(215, 161, 140, 0.34);
+  border-radius: 999px;
+  color: var(--rose);
+  font-size: 0.78rem;
+  font-weight: 850;
+}
+
+.process-card h3 {
+  margin: 34px 0 14px;
+  color: var(--ivory);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(1.55rem, 2vw, 2.2rem);
+  font-weight: 500;
+  line-height: 1.08;
+}
+
+.process-card p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.68;
+}
+
+.seo-link-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.seo-link-strip a {
+  border: 1px solid rgba(215, 161, 140, 0.24);
+  border-radius: 999px;
+  background: rgba(215, 161, 140, 0.08);
+  color: var(--muted);
+  padding: 10px 14px;
+  font-size: 0.82rem;
+  font-weight: 850;
+}
+
+.seo-link-strip a:hover,
+.seo-link-strip a:focus-visible {
+  border-color: rgba(215, 161, 140, 0.52);
+  color: var(--rose);
+}
+
 .reviews-section {
   background:
     linear-gradient(180deg, #f9f2eb, #efe2d8);
@@ -1497,7 +1572,7 @@ select {
 
 .footer {
   display: grid;
-  grid-template-columns: minmax(280px, 1fr) repeat(4, auto);
+  grid-template-columns: minmax(280px, 1fr) repeat(5, auto);
   gap: 44px;
   padding: 42px 72px;
   border-top: 1px solid var(--line);
@@ -1817,6 +1892,7 @@ select {
 
   .trust-strip,
   .service-grid,
+  .process-grid,
   .reviews-grid,
   .faq-layout {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1887,6 +1963,7 @@ select {
   .trust-strip,
   .fleet-grid,
   .service-grid,
+  .process-grid,
   .reviews-grid,
   .faq-layout,
   .detail-meta,
