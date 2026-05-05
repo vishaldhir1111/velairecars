@@ -1497,7 +1497,7 @@ select {
 
 .footer {
   display: grid;
-  grid-template-columns: minmax(280px, 1fr) auto auto auto;
+  grid-template-columns: minmax(280px, 1fr) repeat(4, auto);
   gap: 44px;
   padding: 42px 72px;
   border-top: 1px solid var(--line);

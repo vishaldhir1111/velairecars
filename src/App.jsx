@@ -750,6 +750,15 @@ function App() {
         </div>
 
         <div className="footer-column">
+          <strong>Popular hire</strong>
+          <a href="lamborghini-urus-hire-london.html">Lamborghini Urus hire</a>
+          <a href="range-rover-svr-hire-london.html">Range Rover SVR hire</a>
+          <a href="tesla-model-3-hire-london.html">Tesla Model 3 hire</a>
+          <a href="bmw-m440i-hire-london.html">BMW M440i hire</a>
+          <a href="bmw-m140i-hire-london.html">BMW M140i hire</a>
+        </div>
+
+        <div className="footer-column">
           <strong>Trust</strong>
           <a href="terms.html">Terms</a>
           <a href="privacy.html">Privacy</a>

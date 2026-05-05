@@ -703,6 +703,63 @@ h2 {
   width: fit-content;
 }
 
+.seo-vehicle-stage {
+  gap: 36px;
+}
+
+.seo-vehicle-layout {
+  align-items: start;
+}
+
+.seo-vehicle-card section {
+  scroll-margin-top: 128px;
+}
+
+.seo-vehicle-showcase {
+  display: grid;
+  grid-template-columns: minmax(280px, 0.88fr) minmax(0, 1fr);
+  gap: 26px;
+  align-items: center;
+}
+
+.seo-vehicle-media {
+  min-height: 270px;
+  margin: 0;
+  border: 1px solid rgba(215, 161, 140, 0.18);
+  border-radius: 24px;
+  overflow: hidden;
+}
+
+.seo-vehicle-media .flow-vehicle-photo {
+  min-height: 270px;
+}
+
+.seo-vehicle-media .flow-vehicle-photo.has-photo {
+  --studio-scale: 1.18;
+  --studio-hover-scale: 1.22;
+}
+
+.seo-vehicle-media .flow-vehicle-photo .vehicle-media-image {
+  height: 220px;
+}
+
+.seo-spec-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.seo-spec-grid span {
+  border: 1px solid rgba(215, 161, 140, 0.2);
+  border-radius: 14px;
+  background: rgba(215, 161, 140, 0.075);
+  color: rgba(248, 242, 236, 0.84);
+  padding: 11px 12px;
+  font-size: 0.82rem;
+  font-weight: 850;
+}
+
 .guest-details-card {
   display: grid;
   gap: 16px;
@@ -4123,6 +4180,10 @@ body.admin-drawer-open {
     grid-template-columns: 1fr;
   }
 
+  .seo-vehicle-showcase {
+    grid-template-columns: 1fr;
+  }
+
   .legal-toc {
     position: static;
     grid-template-columns: repeat(5, max-content);
@@ -4274,6 +4335,19 @@ body.admin-drawer-open {
   .legal-card section,
   .legal-note {
     padding: 22px 18px;
+  }
+
+  .seo-spec-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .seo-vehicle-media,
+  .seo-vehicle-media .flow-vehicle-photo {
+    min-height: 230px;
+  }
+
+  .seo-vehicle-media .flow-vehicle-photo .vehicle-media-image {
+    height: 170px;
   }
 
   h1 {
