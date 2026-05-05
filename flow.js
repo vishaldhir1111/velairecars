@@ -2452,6 +2452,63 @@ function renderAdminBookings(bookings = []) {
     .join("");
 }
 
+function csvCell(value = "") {
+  const clean = String(value ?? "").replace(/\r?\n/g, " ").trim();
+  return `"${clean.replace(/"/g, '""')}"`;
+}
+
+function exportAdminBookingsCsv() {
+  if (!adminState.bookings.length) {
+    showFlowToast("No bookings available to export yet.", "warning");
+    return;
+  }
+  const headers = [
+    "Reference",
+    "Customer",
+    "Email",
+    "Phone",
+    "Vehicle",
+    "Pickup",
+    "Return",
+    "Handover",
+    "Booking status",
+    "Payment status",
+    "Follow-up",
+    "Deposit",
+    "Hire estimate",
+  ];
+  const rows = adminState.bookings.map((booking) => {
+    const totals = booking.totals || {};
+    return [
+      booking.reference || booking.id,
+      booking.customerName || "Guest client",
+      booking.customerEmail || "",
+      booking.customerPhone || "",
+      booking.vehicleName || booking.vehicleSlug || "",
+      [booking.pickup, booking.pickupTime].filter(Boolean).join(" "),
+      [booking.return, booking.returnTime].filter(Boolean).join(" "),
+      booking.location || "",
+      humanStatus(booking.status || "pending"),
+      humanStatus(booking.paymentStatus || "payment_pending"),
+      humanStatus(booking.followUpStatus || "new"),
+      totals.deposit || "",
+      totals.hireEstimate || "",
+    ];
+  });
+  const csv = [headers, ...rows].map((row) => row.map(csvCell).join(",")).join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = `velaire-bookings-${new Date().toISOString().slice(0, 10)}.csv`;
+  document.body.appendChild(link);
+  link.click();
+  const blobUrl = link.href;
+  link.remove();
+  window.setTimeout(() => URL.revokeObjectURL(blobUrl), 500);
+  showFlowToast("Bookings export prepared.", "success");
+  trackVelaireEvent("Admin Bookings Exported", { count: adminState.bookings.length });
+}
+
 function bookingPaymentRecord(booking = {}) {
   return (
     adminState.payments.find((payment) => payment.bookingId === booking.id) ||
@@ -2875,6 +2932,7 @@ function setupAdmin() {
     const bookingAction = event.target.closest("[data-admin-booking-action]");
     const emailAction = event.target.closest("[data-admin-email-kind]");
     const printBooking = event.target.closest("[data-admin-print-booking]");
+    const exportBookings = event.target.closest("[data-admin-export-bookings]");
     const openBooking = event.target.closest("[data-admin-open-booking], [data-admin-booking-card]");
     const closeBooking = event.target.closest("[data-admin-close-booking]");
     if (closeBooking) {
@@ -2898,6 +2956,10 @@ function setupAdmin() {
       trackVelaireEvent("Admin Booking Summary Printed", {
         hasBooking: true,
       });
+      return;
+    }
+    if (exportBookings) {
+      exportAdminBookingsCsv();
       return;
     }
     if (emailAction) {
