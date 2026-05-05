@@ -75,6 +75,16 @@
           </article>
         </div>
 
+        <section class="admin-section admin-reminders-section">
+          <div class="panel-heading">
+            <p class="eyebrow">Priority desk</p>
+            <h2>Needs reply & upcoming handovers</h2>
+          </div>
+          <div class="admin-record-list admin-reminder-list" data-admin-reminders>
+            <article class="admin-empty">Unlock operations to load priority follow-ups.</article>
+          </div>
+        </section>
+
         <section class="admin-section admin-fleet-section">
           <div class="panel-heading">
             <p class="eyebrow">Fleet operations</p>
@@ -83,6 +93,60 @@
           <div class="admin-vehicle-list" data-admin-vehicles>
             <article class="admin-empty">Unlock operations to load vehicles.</article>
           </div>
+        </section>
+
+        <section class="admin-section admin-manual-section">
+          <div class="panel-heading">
+            <p class="eyebrow">Manual booking</p>
+            <h2>Create reservation from portal</h2>
+          </div>
+          <form class="admin-manual-form" data-admin-manual-booking-form>
+            <label class="field">
+              Client name
+              <input name="name" placeholder="Full name" required />
+            </label>
+            <label class="field">
+              Email
+              <input name="email" type="email" placeholder="client@example.com" required />
+            </label>
+            <label class="field">
+              Phone
+              <input name="phone" placeholder="+44..." required />
+            </label>
+            <label class="field">
+              Vehicle
+              <select name="vehicle" data-admin-manual-vehicle required>
+                <option value="">Unlock operations to load fleet</option>
+              </select>
+            </label>
+            <label class="field">
+              Pickup date
+              <input name="pickup" type="date" required />
+            </label>
+            <label class="field">
+              Return date
+              <input name="return" type="date" required />
+            </label>
+            <label class="field">
+              Pickup time
+              <input name="pickupTime" type="time" />
+            </label>
+            <label class="field">
+              Return time
+              <input name="returnTime" type="time" />
+            </label>
+            <label class="field admin-manual-wide">
+              Handover location
+              <input name="location" placeholder="Hotel, home, airport or event location" required />
+            </label>
+            <label class="field admin-manual-wide">
+              Concierge notes
+              <textarea name="handoverNotes" rows="3" placeholder="Driver checks, occasion, timing, delivery notes"></textarea>
+            </label>
+            <button class="primary-button admin-submit admin-manual-submit" type="submit">
+              Create pending booking
+            </button>
+          </form>
         </section>
 
         <section class="admin-section admin-bookings-section">
@@ -95,15 +159,72 @@
               Export CSV
             </button>
           </div>
+          <div class="admin-filter-panel" aria-label="Booking filters">
+            <label class="field">
+              Search
+              <input data-admin-filter="query" placeholder="Name, email, vehicle or reference" />
+            </label>
+            <label class="field">
+              Booking status
+              <select data-admin-filter="status">
+                <option value="all">All statuses</option>
+                <option value="draft">Draft</option>
+                <option value="pending">Pending</option>
+                <option value="payment_intent_created">Payment started</option>
+                <option value="confirmed">Confirmed</option>
+                <option value="cancelled">Cancelled</option>
+                <option value="completed">Completed</option>
+              </select>
+            </label>
+            <label class="field">
+              Payment
+              <select data-admin-filter="payment">
+                <option value="all">All payments</option>
+                <option value="not_started">Not started</option>
+                <option value="payment_pending">Payment pending</option>
+                <option value="deposit_paid">Deposit paid</option>
+                <option value="failed">Failed</option>
+                <option value="cancelled">Cancelled</option>
+              </select>
+            </label>
+            <label class="field">
+              Date
+              <input data-admin-filter="date" type="date" />
+            </label>
+            <label class="field">
+              Follow-up
+              <select data-admin-filter="followUp">
+                <option value="all">All follow-ups</option>
+                <option value="new">New</option>
+                <option value="needs_reply">Needs reply</option>
+                <option value="driver_checks">Driver checks</option>
+                <option value="handover_confirmed">Handover confirmed</option>
+                <option value="ready">Ready</option>
+              </select>
+            </label>
+            <div class="admin-filter-actions">
+              <button type="button" data-admin-filter-preset="needs_reply">Needs reply</button>
+              <button type="button" data-admin-filter-preset="reminders">Next 7 days</button>
+              <button type="button" data-admin-filter-preset="clear">Clear</button>
+            </div>
+          </div>
+          <p class="admin-filter-summary" data-admin-booking-filter-summary>
+            Unlock operations to filter bookings.
+          </p>
           <div class="admin-record-list" data-admin-bookings>
             <article class="admin-empty">Unlock operations to load bookings.</article>
           </div>
         </section>
 
         <section class="admin-section admin-customers-section">
-          <div class="panel-heading">
-            <p class="eyebrow">Clients</p>
-            <h2>Customers</h2>
+          <div class="panel-heading admin-section-heading">
+            <div>
+              <p class="eyebrow">Clients</p>
+              <h2>Customers</h2>
+            </div>
+            <button class="admin-utility-button" type="button" data-admin-export-customers>
+              Export CSV
+            </button>
           </div>
           <div class="admin-record-list" data-admin-customers>
             <article class="admin-empty">Unlock operations to load customers.</article>
@@ -111,9 +232,14 @@
         </section>
 
         <section class="admin-section admin-payments-section">
-          <div class="panel-heading">
-            <p class="eyebrow">Deposits</p>
-            <h2>Payment records</h2>
+          <div class="panel-heading admin-section-heading">
+            <div>
+              <p class="eyebrow">Deposits</p>
+              <h2>Payment records</h2>
+            </div>
+            <button class="admin-utility-button" type="button" data-admin-export-payments>
+              Export CSV
+            </button>
           </div>
           <div class="admin-record-list" data-admin-payments>
             <article class="admin-empty">Unlock operations to load payments.</article>

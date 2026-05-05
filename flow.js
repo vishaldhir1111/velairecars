@@ -2322,6 +2322,7 @@ function setupBooking() {
 }
 
 let adminState = { bookings: [], vehicles: [], customers: [], payments: [], notifications: [], selectedBookingId: "" };
+let adminFilters = { query: "", status: "all", payment: "all", followUp: "all", date: "", view: "all" };
 
 function renderAdminCounts(counts = {}) {
   document.querySelectorAll("[data-admin-count]").forEach((node) => {
@@ -2414,11 +2415,150 @@ function renderAdminVehicles(vehiclesList = []) {
     .join("");
 }
 
+function adminDateOnly(value = "") {
+  if (!value) return null;
+  const parsed = new Date(`${String(value).slice(0, 10)}T00:00:00`);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function adminBookingCoversDate(booking = {}, dateValue = "") {
+  if (!dateValue) return true;
+  const selected = adminDateOnly(dateValue);
+  if (!selected) return true;
+  const pickup = adminDateOnly(booking.pickup);
+  const returnDate = adminDateOnly(booking.return || booking.pickup);
+  if (!pickup) return false;
+  const end = returnDate && returnDate >= pickup ? returnDate : pickup;
+  return selected >= pickup && selected <= end;
+}
+
+function isUpcomingAdminBooking(booking = {}, days = 7) {
+  const pickup = adminDateOnly(booking.pickup);
+  if (!pickup) return false;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const limit = new Date(today);
+  limit.setDate(limit.getDate() + days);
+  return pickup >= today && pickup <= limit && !["cancelled", "completed"].includes(String(booking.status || "").toLowerCase());
+}
+
+function bookingMatchesAdminFilters(booking = {}) {
+  const query = adminFilters.query.trim().toLowerCase();
+  const haystack = [
+    booking.reference,
+    booking.customerName,
+    booking.customerEmail,
+    booking.customerPhone,
+    booking.vehicleName,
+    booking.vehicleSlug,
+    booking.location,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+  if (query && !haystack.includes(query)) return false;
+  if (adminFilters.status !== "all" && String(booking.status || "") !== adminFilters.status) return false;
+  if (adminFilters.payment !== "all" && String(booking.paymentStatus || "") !== adminFilters.payment) return false;
+  if (adminFilters.followUp !== "all" && String(booking.followUpStatus || "new") !== adminFilters.followUp) return false;
+  if (adminFilters.view === "needs_reply" && String(booking.followUpStatus || "new") !== "needs_reply") return false;
+  if (adminFilters.view === "reminders" && !isUpcomingAdminBooking(booking, 7)) return false;
+  if (!adminBookingCoversDate(booking, adminFilters.date)) return false;
+  return true;
+}
+
+function filteredAdminBookings() {
+  return adminState.bookings.filter(bookingMatchesAdminFilters);
+}
+
+function updateAdminFilterSummary(count = 0) {
+  const target = document.querySelector("[data-admin-booking-filter-summary]");
+  if (!target) return;
+  const total = adminState.bookings.length;
+  const active = [
+    adminFilters.query ? "search" : "",
+    adminFilters.status !== "all" ? humanStatus(adminFilters.status) : "",
+    adminFilters.payment !== "all" ? humanStatus(adminFilters.payment) : "",
+    adminFilters.followUp !== "all" ? humanStatus(adminFilters.followUp) : "",
+    adminFilters.date ? `date ${adminFilters.date}` : "",
+    adminFilters.view !== "all" ? humanStatus(adminFilters.view) : "",
+  ].filter(Boolean);
+  target.textContent = active.length
+    ? `${count} of ${total} bookings shown · ${active.join(" · ")}`
+    : `${total} bookings shown · use filters to move faster.`;
+}
+
+function syncAdminFilterInputs() {
+  document.querySelectorAll("[data-admin-filter]").forEach((field) => {
+    const key = field.dataset.adminFilter;
+    if (key in adminFilters) field.value = adminFilters[key];
+  });
+}
+
+function rerenderAdminBookingViews() {
+  renderAdminReminders(adminState.bookings);
+  renderAdminBookings(filteredAdminBookings());
+}
+
+function handleAdminFilterInput(event) {
+  const field = event.target.closest("[data-admin-filter]");
+  if (!field) return;
+  const key = field.dataset.adminFilter;
+  if (!(key in adminFilters)) return;
+  adminFilters[key] = field.value || (field.tagName === "SELECT" ? "all" : "");
+  adminFilters.view = "all";
+  rerenderAdminBookingViews();
+}
+
+function renderAdminManualVehicleOptions() {
+  const select = document.querySelector("[data-admin-manual-vehicle]");
+  if (!select) return;
+  const current = select.value;
+  select.innerHTML = [
+    `<option value="">Select vehicle</option>`,
+    ...adminState.vehicles.map(
+      (vehicle) => `<option value="${escapeHtml(vehicle.slug)}">${escapeHtml(vehicle.name)} ${escapeHtml(vehicle.year || "")} · ${money(Number(vehicle.rate || 0))}/day</option>`,
+    ),
+  ].join("");
+  if (current && adminState.vehicles.some((vehicle) => vehicle.slug === current)) select.value = current;
+}
+
+function renderAdminReminders(bookings = adminState.bookings) {
+  const target = document.querySelector("[data-admin-reminders]");
+  if (!target) return;
+  const reminders = bookings
+    .filter((booking) => String(booking.followUpStatus || "new") === "needs_reply" || isUpcomingAdminBooking(booking, 7) || String(booking.paymentStatus || "") === "payment_pending")
+    .slice(0, 6);
+  if (!reminders.length) {
+    target.innerHTML = `<article class="admin-empty">No urgent follow-ups. New handovers and customer replies will appear here.</article>`;
+    return;
+  }
+  target.innerHTML = reminders
+    .map((booking) => {
+      const reasons = [
+        String(booking.followUpStatus || "new") === "needs_reply" ? "Needs reply" : "",
+        isUpcomingAdminBooking(booking, 7) ? "Handover soon" : "",
+        String(booking.paymentStatus || "") === "payment_pending" ? "Deposit pending" : "",
+      ].filter(Boolean);
+      return `
+        <article class="admin-record-card admin-reminder-card">
+          <div>
+            <span class="admin-record-kicker">${escapeHtml(reasons.join(" · ") || "Follow-up")}</span>
+            <strong>${escapeHtml(booking.reference || booking.id || "Velaire booking")}</strong>
+            <small>${escapeHtml(booking.customerName || "Guest client")} · ${escapeHtml(booking.vehicleName || booking.vehicleSlug || "Vehicle")} · ${escapeHtml(bookingDateLine(booking))}</small>
+          </div>
+          <button type="button" data-admin-open-booking data-booking-id="${escapeHtml(booking.id)}">View</button>
+        </article>
+      `;
+    })
+    .join("");
+}
+
 function renderAdminBookings(bookings = []) {
   const target = document.querySelector("[data-admin-bookings]");
   if (!target) return;
+  updateAdminFilterSummary(bookings.length);
   if (!bookings.length) {
-    target.innerHTML = `<article class="admin-empty">No bookings yet. Guest reservations will appear here after customers reserve.</article>`;
+    target.innerHTML = `<article class="admin-empty">No bookings match this view. Clear the filters or create a manual reservation.</article>`;
     return;
   }
   target.innerHTML = bookings
@@ -2507,6 +2647,83 @@ function exportAdminBookingsCsv() {
   window.setTimeout(() => URL.revokeObjectURL(blobUrl), 500);
   showFlowToast("Bookings export prepared.", "success");
   trackVelaireEvent("Admin Bookings Exported", { count: adminState.bookings.length });
+}
+
+function downloadCsv(filename, headers = [], rows = []) {
+  if (!rows.length) {
+    showFlowToast("No records available to export yet.", "warning");
+    return;
+  }
+  const csv = [headers, ...rows].map((row) => row.map(csvCell).join(",")).join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  const blobUrl = link.href;
+  link.remove();
+  window.setTimeout(() => URL.revokeObjectURL(blobUrl), 500);
+}
+
+function exportAdminCustomersCsv() {
+  const rows = adminState.customers.map((customer) => [
+    customer.fullName || "Guest client",
+    customer.email || "",
+    customer.phone || "",
+    customer.totalBookings || 0,
+    customer.upcomingBookings || 0,
+    customer.completedBookings || 0,
+    customer.hireValue || 0,
+    customer.lastVehicle || "",
+    customer.lastStatus || "",
+  ]);
+  downloadCsv(`velaire-customers-${new Date().toISOString().slice(0, 10)}.csv`, [
+    "Name",
+    "Email",
+    "Phone",
+    "Total bookings",
+    "Upcoming",
+    "Completed",
+    "Hire value",
+    "Last vehicle",
+    "Last status",
+  ], rows);
+  if (rows.length) {
+    showFlowToast("Customers export prepared.", "success");
+    trackVelaireEvent("Admin Customers Exported", { count: rows.length });
+  }
+}
+
+function exportAdminPaymentsCsv() {
+  const rows = adminState.payments.map((payment) => [
+    payment.bookingReference || payment.bookingId || "",
+    payment.customerName || "",
+    payment.customerEmail || "",
+    payment.vehicleName || "",
+    payment.amount || 0,
+    payment.currency || "GBP",
+    humanStatus(payment.status || "payment_pending"),
+    payment.provider || "",
+    payment.providerReference || payment.stripePaymentIntentId || "",
+    payment.createdAt || "",
+  ]);
+  downloadCsv(`velaire-payments-${new Date().toISOString().slice(0, 10)}.csv`, [
+    "Booking",
+    "Customer",
+    "Email",
+    "Vehicle",
+    "Amount",
+    "Currency",
+    "Status",
+    "Provider",
+    "Provider reference",
+    "Created",
+  ], rows);
+  if (rows.length) {
+    showFlowToast("Payments export prepared.", "success");
+    trackVelaireEvent("Admin Payments Exported", { count: rows.length });
+  }
 }
 
 function bookingPaymentRecord(booking = {}) {
@@ -2798,13 +3015,22 @@ function renderAdminCustomers(customers = []) {
   target.innerHTML = customers.length
     ? customers
         .map(
-          (customer) => `
-            <article class="admin-record-card">
+          (customer) => {
+            const email = String(customer.email || "").trim();
+            const phone = String(customer.phone || "").trim();
+            const tel = phone.replace(/[^\d+]/g, "");
+            return `
+            <article class="admin-record-card admin-customer-card">
               <strong>${escapeHtml(customer.fullName || "Guest client")}</strong>
-              <span>${escapeHtml(customer.email || "")} · ${escapeHtml(customer.phone || "")}</span>
+              <span>${escapeHtml(email || "No email")} · ${escapeHtml(phone || "No phone")}</span>
               <span>${Number(customer.totalBookings || 0)} bookings · ${money(Number(customer.hireValue || 0))} hire value</span>
+              <div class="admin-contact-actions">
+                ${email ? `<a href="mailto:${escapeHtml(email)}">Email</a>` : ""}
+                ${tel ? `<a href="tel:${escapeHtml(tel)}">Call</a>` : ""}
+              </div>
             </article>
-          `,
+          `;
+          },
         )
         .join("")
     : `<article class="admin-empty">No customer records yet.</article>`;
@@ -2817,7 +3043,7 @@ function renderAdminPayments(payments = []) {
     ? payments
         .map(
           (payment) => `
-            <article class="admin-record-card">
+            <article class="admin-record-card admin-payment-card">
               <strong>${escapeHtml(payment.bookingReference || payment.bookingId || "Deposit record")}</strong>
               <span>${escapeHtml(payment.vehicleName || "")} · ${escapeHtml(payment.customerEmail || "")}</span>
               <span>${money(Number(payment.amount || 0))} · ${humanStatus(payment.status)}</span>
@@ -2841,7 +3067,9 @@ async function refreshAdmin() {
   };
   renderAdminCounts(summary.counts || {});
   renderAdminVehicles(adminState.vehicles);
-  renderAdminBookings(adminState.bookings);
+  renderAdminManualVehicleOptions();
+  renderAdminReminders(adminState.bookings);
+  renderAdminBookings(filteredAdminBookings());
   renderAdminCustomers(adminState.customers);
   renderAdminPayments(adminState.payments);
   if (adminState.selectedBookingId) renderAdminBookingDetail(adminState.selectedBookingId);
@@ -2864,10 +3092,40 @@ function setupAdmin() {
     const vehicleForm = event.target.closest("[data-admin-vehicle-form]");
     const blockForm = event.target.closest("[data-admin-block-form]");
     const followupForm = event.target.closest("[data-admin-booking-followup-form]");
-    if (!vehicleForm && !blockForm && !followupForm) return;
+    const manualBookingForm = event.target.closest("[data-admin-manual-booking-form]");
+    if (!vehicleForm && !blockForm && !followupForm && !manualBookingForm) return;
     event.preventDefault();
     const data = new FormData(event.target);
     const slug = event.target.dataset.slug;
+    if (manualBookingForm) {
+      await apiRequest("/api/bookings", {
+        method: "POST",
+        body: JSON.stringify({
+          status: "pending",
+          reservation: {
+            fullName: data.get("name") || "",
+            name: data.get("name") || "",
+            email: data.get("email") || "",
+            phone: data.get("phone") || "",
+            vehicle: data.get("vehicle") || "",
+            pickup: data.get("pickup") || "",
+            return: data.get("return") || "",
+            pickupTime: data.get("pickupTime") || "",
+            returnTime: data.get("returnTime") || "",
+            formattedAddress: data.get("location") || "",
+            location: data.get("location") || "",
+            handoverNotes: data.get("handoverNotes") || "",
+          },
+        }),
+      });
+      trackVelaireEvent("Admin Manual Booking Created", {
+        hasBooking: true,
+      });
+      showFlowToast("Manual booking created for concierge review.");
+      manualBookingForm.reset();
+      await refreshAdmin();
+      return;
+    }
     if (followupForm) {
       await apiRequest("/api/admin/bookings", {
         method: "PATCH",
@@ -2933,10 +3191,28 @@ function setupAdmin() {
     const emailAction = event.target.closest("[data-admin-email-kind]");
     const printBooking = event.target.closest("[data-admin-print-booking]");
     const exportBookings = event.target.closest("[data-admin-export-bookings]");
+    const exportCustomers = event.target.closest("[data-admin-export-customers]");
+    const exportPayments = event.target.closest("[data-admin-export-payments]");
+    const filterPreset = event.target.closest("[data-admin-filter-preset]");
     const openBooking = event.target.closest("[data-admin-open-booking], [data-admin-booking-card]");
     const closeBooking = event.target.closest("[data-admin-close-booking]");
     if (closeBooking) {
       closeAdminBookingDetail();
+      return;
+    }
+    if (filterPreset) {
+      const preset = filterPreset.dataset.adminFilterPreset;
+      if (preset === "clear") {
+        adminFilters = { query: "", status: "all", payment: "all", followUp: "all", date: "", view: "all" };
+      }
+      if (preset === "needs_reply") {
+        adminFilters = { ...adminFilters, followUp: "needs_reply", view: "needs_reply" };
+      }
+      if (preset === "reminders") {
+        adminFilters = { ...adminFilters, view: "reminders" };
+      }
+      syncAdminFilterInputs();
+      rerenderAdminBookingViews();
       return;
     }
     if (openBooking && !bookingAction) {
@@ -2960,6 +3236,14 @@ function setupAdmin() {
     }
     if (exportBookings) {
       exportAdminBookingsCsv();
+      return;
+    }
+    if (exportCustomers) {
+      exportAdminCustomersCsv();
+      return;
+    }
+    if (exportPayments) {
+      exportAdminPaymentsCsv();
       return;
     }
     if (emailAction) {
@@ -3020,6 +3304,9 @@ function setupAdmin() {
       await refreshAdmin();
     }
   });
+
+  document.addEventListener("input", handleAdminFilterInput);
+  document.addEventListener("change", handleAdminFilterInput);
 
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape" && adminState.selectedBookingId) {
