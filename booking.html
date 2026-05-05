@@ -424,7 +424,26 @@
               </label>
             </div>
 
+            <div class="conversion-panel">
+              <div>
+                <p class="eyebrow">Before payment</p>
+                <strong>Clear hold. Human confirmation.</strong>
+                <span>
+                  Your request goes straight to Velaire Operations. We check availability, prepare
+                  handover details and confirm the final rental plan before release.
+                </span>
+              </div>
+              <ul class="conversion-steps" aria-label="What happens after booking">
+                <li><span>1</span>Secure deposit through Stripe</li>
+                <li><span>2</span>Concierge reviews the reservation</li>
+                <li><span>3</span>Final handover details are confirmed</li>
+              </ul>
+            </div>
+
             <button class="primary-button full-width" type="submit">Continue to secure deposit</button>
+            <p class="button-reassurance">
+              No card details are stored by Velaire. The next screen opens a Stripe-hosted deposit session.
+            </p>
           </form>
 
           <aside class="flow-panel vehicle-summary" aria-label="Vehicle reservation summary">
@@ -487,6 +506,11 @@
             <div class="availability" data-availability-text>
               <span aria-hidden="true"></span>
               Concierge availability pending final confirmation.
+            </div>
+
+            <div class="summary-assurance">
+              <strong>Reservation confidence</strong>
+              <span>Transparent deposit guidance, live operations review and premium handover support.</span>
             </div>
           </aside>
         </div>
