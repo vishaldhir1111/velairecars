@@ -504,10 +504,14 @@ if (
   !read("payment.html").includes("Stripe hosted") ||
   !read("payment.html").includes("If checkout is cancelled or fails") ||
   !read("payment.html").includes("Deposit handling") ||
+  !read("booking.html").includes("mobile-submit-bar") ||
+  !read("payment.html").includes("mobile-submit-bar") ||
   !read("flow.css").includes(".conversion-panel") ||
   !read("flow.css").includes(".payment-trust-grid") ||
   !read("flow.css").includes(".checkout-timeline") ||
-  !read("flow.css").includes(".summary-assurance")
+  !read("flow.css").includes(".summary-assurance") ||
+  !read("flow.css").includes(".mobile-submit-bar") ||
+  !read("flow.css").includes("bottom: 10px")
 ) {
   throw new Error("Booking and payment conversion reassurance must stay wired into the premium reservation flow");
 }
