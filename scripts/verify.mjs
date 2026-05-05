@@ -498,6 +498,21 @@ if (
 }
 
 if (
+  !read("booking.html").includes("Clear hold. Human confirmation.") ||
+  !read("booking.html").includes("No card details are stored by Velaire") ||
+  !read("booking.html").includes("Reservation confidence") ||
+  !read("payment.html").includes("Stripe hosted") ||
+  !read("payment.html").includes("If checkout is cancelled or fails") ||
+  !read("payment.html").includes("Deposit handling") ||
+  !read("flow.css").includes(".conversion-panel") ||
+  !read("flow.css").includes(".payment-trust-grid") ||
+  !read("flow.css").includes(".checkout-timeline") ||
+  !read("flow.css").includes(".summary-assurance")
+) {
+  throw new Error("Booking and payment conversion reassurance must stay wired into the premium reservation flow");
+}
+
+if (
   !read("terms.html").includes("Mileage and late return") ||
   !read("terms.html").includes("Prohibited use includes") ||
   !read("rental-requirements.html").includes("Age and licence history") ||
