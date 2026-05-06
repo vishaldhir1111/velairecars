@@ -116,7 +116,29 @@ const loaderParticles = Array.from({ length: 18 }, (_, index) => ({
   size: 2 + (index % 3),
 }));
 
-const introSessionKey = "velaireIntroPlayed";
+const introSessionVersion = "showroom-v2-20260506";
+const introSessionKey = `velaireIntroPlayed:${introSessionVersion}`;
+
+function shouldReplayIntroFromUrl() {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    return params.get("intro") === "1" || params.get("replayIntro") === "1";
+  } catch {
+    return false;
+  }
+}
+
+function hasPlayedCurrentIntroSession() {
+  try {
+    if (shouldReplayIntroFromUrl()) {
+      window.sessionStorage.removeItem(introSessionKey);
+      return false;
+    }
+    return window.sessionStorage.getItem(introSessionKey) === "true";
+  } catch {
+    return false;
+  }
+}
 
 function formatCurrency(value) {
   return new Intl.NumberFormat("en-GB", {
@@ -697,18 +719,10 @@ function App() {
   const [detailCarSlug, setDetailCarSlug] = useState("");
   const [isConciergeOpen, setIsConciergeOpen] = useState(false);
   const [showIntro, setShowIntro] = useState(() => {
-    try {
-      return window.sessionStorage.getItem(introSessionKey) !== "true";
-    } catch {
-      return true;
-    }
+    return !hasPlayedCurrentIntroSession();
   });
   const [introComplete, setIntroComplete] = useState(() => {
-    try {
-      return window.sessionStorage.getItem(introSessionKey) === "true";
-    } catch {
-      return false;
-    }
+    return hasPlayedCurrentIntroSession();
   });
   const [conciergeInput, setConciergeInput] = useState("");
   const [conciergeMessages, setConciergeMessages] = useState([

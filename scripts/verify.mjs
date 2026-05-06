@@ -328,8 +328,11 @@ if (
   !read("package.json").includes('"framer-motion"') ||
   !app.includes('from "framer-motion"') ||
   !app.includes("function VelaireIntroLoader") ||
+  !app.includes('introSessionVersion = "showroom-v2-20260506"') ||
   !app.includes("introSessionKey") ||
-  !app.includes("sessionStorage.getItem(introSessionKey)") ||
+  !app.includes("function hasPlayedCurrentIntroSession") ||
+  !app.includes("function shouldReplayIntroFromUrl") ||
+  !app.includes("sessionStorage.removeItem(introSessionKey)") ||
   !app.includes("sessionStorage.setItem(introSessionKey") ||
   !app.includes("loader-distant-source") ||
   !app.includes("loader-speed-streak") ||
