@@ -765,7 +765,6 @@ function App() {
       <AnimatePresence>{showIntro ? <VelaireIntroLoader onComplete={completeIntro} /> : null}</AnimatePresence>
       <header className="navbar" aria-label="Primary navigation">
         <a className="brand" href="/" aria-label="Velaire Cars home">
-          <span className="brand-mark">V</span>
           <span className="brand-copy">
             <strong>Velaire Cars</strong>
             <small>Performance, prestige, delivered</small>
