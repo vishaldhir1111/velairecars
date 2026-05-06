@@ -116,7 +116,7 @@ const loaderParticles = Array.from({ length: 18 }, (_, index) => ({
   size: 2 + (index % 3),
 }));
 
-const introSessionVersion = "showroom-v2-20260506";
+const introSessionVersion = "showroom-v3-wordmark-20260506";
 const introSessionKey = `velaireIntroPlayed:${introSessionVersion}`;
 
 function shouldReplayIntroFromUrl() {
@@ -506,7 +506,7 @@ function VelaireIntroLoader({ onComplete }) {
     return () => window.clearTimeout(timer);
   }, [onComplete, prefersReducedMotion]);
 
-  const logoDelay = prefersReducedMotion ? 0 : 1.42;
+  const logoDelay = prefersReducedMotion ? 0 : 0.58;
 
   return (
     <motion.section
@@ -590,7 +590,7 @@ function VelaireIntroLoader({ onComplete }) {
       <motion.div
         className="loader-car-silhouette"
         initial={{ opacity: 0, y: 14, scaleX: 0.88 }}
-        animate={{ opacity: prefersReducedMotion ? 0.24 : [0, 0.12, 0.34, 0.2], y: 0, scaleX: 1 }}
+        animate={{ opacity: prefersReducedMotion ? 0.24 : [0, 0.08, 0.3, 0.16], y: 0, scaleX: 1 }}
         transition={{ duration: 3.05, delay: prefersReducedMotion ? 0 : 1.18, ease: [0.22, 1, 0.36, 1] }}
         aria-hidden="true"
       >
@@ -662,7 +662,7 @@ function VelaireIntroLoader({ onComplete }) {
         <motion.div
           className="loader-logo-mark"
           initial={{ opacity: 0, scale: 0.86, y: 10 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
+          animate={{ opacity: 0.88, scale: 1, y: 0 }}
           transition={{ duration: 1.05, delay: logoDelay - 0.18, ease: [0.22, 1, 0.36, 1] }}
           aria-hidden="true"
         >
