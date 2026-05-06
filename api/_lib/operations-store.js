@@ -241,11 +241,23 @@ function publicTotals(totals = {}) {
   };
 }
 
+function normaliseOperationsChecklist(checklist = {}) {
+  return {
+    licenceChecked: Boolean(checklist.licenceChecked),
+    insuranceChecked: Boolean(checklist.insuranceChecked),
+    depositConfirmed: Boolean(checklist.depositConfirmed),
+    vehiclePrepared: Boolean(checklist.vehiclePrepared),
+    customerContacted: Boolean(checklist.customerContacted),
+    handoverCompleted: Boolean(checklist.handoverCompleted),
+  };
+}
+
 function normaliseBookingRecord(booking = {}) {
   return {
     ...booking,
     totals: publicTotals(booking.totals || {}),
     timeline: Array.isArray(booking.timeline) ? booking.timeline : [],
+    operationsChecklist: normaliseOperationsChecklist(booking.operationsChecklist || {}),
   };
 }
 
@@ -264,6 +276,7 @@ function publicBooking(booking = {}) {
     paymentStatus: safeBooking.paymentStatus || "not_started",
     followUpStatus: safeBooking.followUpStatus || "new",
     internalNotes: safeBooking.internalNotes || "",
+    operationsChecklist: safeBooking.operationsChecklist,
     paymentIntentId: safeBooking.paymentIntentId || "",
     pickup: safeBooking.pickup || "",
     pickupTime: safeBooking.pickupTime || "",
@@ -349,7 +362,7 @@ function customerRecordsFromBookings(bookings = []) {
     current.fullName = booking.customerName || current.fullName;
     current.phone = booking.customerPhone || current.phone;
     current.totalBookings += 1;
-    current.upcomingBookings += ["cancelled", "completed"].includes(booking.status) ? 0 : 1;
+    current.upcomingBookings += ["cancelled", "completed", "rejected"].includes(booking.status) ? 0 : 1;
     current.completedBookings += booking.status === "completed" ? 1 : 0;
     current.hireValue += Number(booking.totals?.hireEstimate || 0);
     current.lastVehicle = booking.vehicleName || current.lastVehicle;
@@ -395,7 +408,7 @@ function bookingRange(booking) {
 }
 
 function isBlockingStatus(status = "") {
-  return ["draft", "pending", "payment_intent_created", "payment_pending", "confirmed"].includes(String(status || "").toLowerCase());
+  return ["draft", "pending", "payment_review", "payment_intent_created", "payment_pending", "confirmed"].includes(String(status || "").toLowerCase());
 }
 
 function shouldNotifyBookingStatus(status = "") {
@@ -597,6 +610,7 @@ export async function createBookingRecord({ userId = null, reservation = {}, sta
       paymentStatus: "not_started",
       followUpStatus: "new",
       internalNotes: "",
+      operationsChecklist: normaliseOperationsChecklist(),
       pickup: reservation.pickup || "",
       pickupTime: reservation.pickupTime || "",
       return: reservation.return || "",
@@ -673,11 +687,29 @@ export async function updateBookingRecord(idValue, patch = {}) {
         totals,
       });
     }
+    if (bookingPatch.operationsChecklist) {
+      bookingPatch.operationsChecklist = normaliseOperationsChecklist({
+        ...(booking.operationsChecklist || {}),
+        ...bookingPatch.operationsChecklist,
+      });
+    }
+    const paymentStatusChanged = Object.prototype.hasOwnProperty.call(bookingPatch, "paymentStatus");
     Object.assign(booking, bookingPatch, { updatedAt: now() });
+    if (paymentStatusChanged) {
+      const payment = draft.payments.find((item) => item.bookingId === booking.id || item.id === booking.paymentIntentId);
+      if (payment) {
+        payment.status = bookingPatch.paymentStatus || payment.status;
+        payment.updatedAt = now();
+      }
+    }
     const updateLabel = bookingPatch.status
       ? `Status changed to ${bookingPatch.status}`
+      : paymentStatusChanged
+        ? `Deposit status changed to ${bookingPatch.paymentStatus}`
       : bookingPatch.followUpStatus
         ? `Follow-up changed to ${bookingPatch.followUpStatus}`
+        : Object.prototype.hasOwnProperty.call(bookingPatch, "operationsChecklist")
+          ? "Handover checklist updated"
         : Object.prototype.hasOwnProperty.call(bookingPatch, "internalNotes")
           ? "Internal notes updated"
           : "Booking updated";
@@ -742,6 +774,16 @@ export async function updatePaymentRecord(idValue, patch = {}) {
       booking.paymentStatus = patch.status;
       if (patch.status === "deposit_paid") booking.status = "confirmed";
       if (["cancelled", "failed"].includes(String(patch.status).toLowerCase())) booking.status = String(patch.status).toLowerCase();
+      if (patch.status === "deposit_paid") {
+        booking.operationsChecklist = normaliseOperationsChecklist({
+          ...(booking.operationsChecklist || {}),
+          depositConfirmed: true,
+        });
+      }
+      booking.timeline = [
+        ...(booking.timeline || []),
+        { label: `Deposit status changed to ${patch.status}`, at: now() },
+      ];
       booking.updatedAt = now();
     }
     return publicPayment(payment);
@@ -837,7 +879,7 @@ export async function operationsSummary() {
       customers: customers.length,
       notifications: notifications.length,
       vehicles: fleetData.length,
-      pendingBookings: bookings.filter((booking) => ["draft", "pending", "payment_intent_created", "payment_pending"].includes(booking.status)).length,
+      pendingBookings: bookings.filter((booking) => ["draft", "pending", "payment_review", "payment_intent_created", "payment_pending"].includes(booking.status)).length,
       confirmedBookings: bookings.filter((booking) => booking.status === "confirmed").length,
     },
     bookings,

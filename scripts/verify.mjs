@@ -229,6 +229,16 @@ if (
   throw new Error("Homepage must include the premium specialist services section");
 }
 
+if (
+  !read("flow.js").includes("adminHandoverChecklist") ||
+  !read("flow.js").includes("Refund pending") ||
+  !read("flow.js").includes("data-admin-booking-checklist-form") ||
+  !read("api/admin/bookings.js").includes("refund_pending") ||
+  !read("api/_lib/operations-store.js").includes("operationsChecklist")
+) {
+  throw new Error("Operations portal must include booking actions, refund states and the handover checklist");
+}
+
 const analyticsEvents = [
   "Booking Started",
   "Car Selected",
@@ -241,6 +251,7 @@ const analyticsEvents = [
   "Admin Dates Blocked",
   "Admin Booking Status Updated",
   "Admin Manual Booking Created",
+  "Admin Handover Checklist Updated",
   "Cinematic Intro Completed",
   "Concierge Prompt Submitted",
   "Specialist Service Quote",

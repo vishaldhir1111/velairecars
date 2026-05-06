@@ -1639,6 +1639,57 @@ body.admin-drawer-open {
   box-shadow: 0 14px 30px rgba(215, 161, 140, 0.16);
 }
 
+.admin-checklist-card {
+  background:
+    linear-gradient(145deg, rgba(215, 161, 140, 0.09), rgba(248, 242, 236, 0.028)),
+    rgba(255, 255, 255, 0.025);
+}
+
+.admin-checklist-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.admin-checklist-item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+  border: 1px solid rgba(248, 242, 236, 0.12);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.035);
+  padding: 12px;
+  color: var(--ivory);
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.admin-checklist-item input {
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  accent-color: var(--rose);
+}
+
+.admin-checklist-item span {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.admin-checklist-item strong {
+  color: var(--ivory);
+  font-size: 0.88rem;
+  line-height: 1.25;
+}
+
+.admin-checklist-item small {
+  color: rgba(248, 242, 236, 0.54);
+  font-size: 0.76rem;
+  line-height: 1.42;
+}
+
 .admin-detail-timeline li {
   display: grid;
   grid-template-columns: 11px minmax(0, 1fr);
@@ -1842,6 +1893,43 @@ body.admin-drawer-open {
   border-radius: 999px;
   padding: 8px 10px;
   background: rgba(215, 161, 140, 0.08);
+}
+
+.status-pill[data-status="confirmed"],
+.status-pill[data-status="deposit_paid"],
+.status-pill[data-status="customer_contacted"],
+.status-pill[data-status="handover_confirmed"],
+.status-pill[data-status="ready"] {
+  border-color: rgba(126, 213, 153, 0.34);
+  background: rgba(126, 213, 153, 0.1);
+  color: #bff2cd;
+}
+
+.status-pill[data-status="payment_pending"],
+.status-pill[data-status="payment_intent_created"],
+.status-pill[data-status="payment_review"],
+.status-pill[data-status="refund_pending"],
+.status-pill[data-status="driver_checks"],
+.status-pill[data-status="needs_reply"] {
+  border-color: rgba(215, 161, 140, 0.42);
+  background: rgba(215, 161, 140, 0.12);
+  color: var(--rose-3);
+}
+
+.status-pill[data-status="cancelled"],
+.status-pill[data-status="rejected"],
+.status-pill[data-status="failed"] {
+  border-color: rgba(239, 113, 113, 0.36);
+  background: rgba(239, 113, 113, 0.1);
+  color: #ffb7b7;
+}
+
+.status-pill[data-status="completed"],
+.status-pill[data-status="refunded"],
+.status-pill[data-status="handover_completed"] {
+  border-color: rgba(248, 242, 236, 0.28);
+  background: rgba(248, 242, 236, 0.09);
+  color: rgba(248, 242, 236, 0.86);
 }
 
 .admin-block-empty {
@@ -4743,6 +4831,10 @@ body.admin-drawer-open {
   }
 
   .admin-detail-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-checklist-grid {
     grid-template-columns: 1fr;
   }
 

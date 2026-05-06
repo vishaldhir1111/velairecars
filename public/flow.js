@@ -316,6 +316,11 @@ function humanStatus(value = "") {
     .replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
+function statusPill(value = "", extraClass = "") {
+  const status = String(value || "pending").toLowerCase();
+  return `<span class="status-pill ${extraClass}" data-status="${escapeHtml(status)}">${humanStatus(status)}</span>`;
+}
+
 function loadReservation() {
   try {
     return JSON.parse(window.localStorage.getItem(storageKey)) || {};
@@ -2321,6 +2326,39 @@ function setupBooking() {
   setupMapboxDeliveryPicker(form);
 }
 
+const adminHandoverChecklist = [
+  {
+    key: "licenceChecked",
+    label: "Licence checked",
+    text: "Driving licence and driver eligibility reviewed.",
+  },
+  {
+    key: "insuranceChecked",
+    label: "Insurance checked",
+    text: "Hire conditions and cover requirements reviewed.",
+  },
+  {
+    key: "depositConfirmed",
+    label: "Deposit confirmed",
+    text: "Stripe deposit or manual deposit status verified.",
+  },
+  {
+    key: "vehiclePrepared",
+    label: "Vehicle prepared",
+    text: "Clean, inspected and ready for concierge handover.",
+  },
+  {
+    key: "customerContacted",
+    label: "Customer contacted",
+    text: "Final timing, address and expectations confirmed.",
+  },
+  {
+    key: "handoverCompleted",
+    label: "Handover completed",
+    text: "Keys, condition check and release completed.",
+  },
+];
+
 let adminState = { bookings: [], vehicles: [], customers: [], payments: [], notifications: [], selectedBookingId: "" };
 let adminFilters = { query: "", status: "all", payment: "all", followUp: "all", date: "", view: "all" };
 
@@ -2439,7 +2477,7 @@ function isUpcomingAdminBooking(booking = {}, days = 7) {
   today.setHours(0, 0, 0, 0);
   const limit = new Date(today);
   limit.setDate(limit.getDate() + days);
-  return pickup >= today && pickup <= limit && !["cancelled", "completed"].includes(String(booking.status || "").toLowerCase());
+  return pickup >= today && pickup <= limit && !["cancelled", "completed", "rejected"].includes(String(booking.status || "").toLowerCase());
 }
 
 function bookingMatchesAdminFilters(booking = {}) {
@@ -2576,13 +2614,14 @@ function renderAdminBookings(bookings = []) {
             <span>${escapeHtml(booking.pickup || "Pickup pending")} to ${escapeHtml(booking.return || "Return pending")}</span>
           </div>
           <div class="admin-booking-statuses" aria-label="Booking status">
-            <span class="status-pill">${humanStatus(booking.status)}</span>
-            <span class="status-pill">${humanStatus(booking.paymentStatus)}</span>
-            <span class="status-pill follow-up-pill">${humanStatus(booking.followUpStatus || "new")}</span>
+            ${statusPill(booking.status)}
+            ${statusPill(booking.paymentStatus)}
+            ${statusPill(booking.followUpStatus || "new", "follow-up-pill")}
           </div>
           <div class="admin-action-row">
             <button type="button" data-admin-open-booking data-booking-id="${escapeHtml(booking.id)}">View</button>
-            <button type="button" data-admin-booking-action="confirm" data-booking-id="${escapeHtml(booking.id)}">Confirm</button>
+            <button type="button" data-admin-booking-action="approve" data-booking-id="${escapeHtml(booking.id)}">Approve</button>
+            <button type="button" data-admin-booking-action="reject" data-booking-id="${escapeHtml(booking.id)}">Reject</button>
             <button type="button" data-admin-booking-action="cancel" data-booking-id="${escapeHtml(booking.id)}">Cancel</button>
             <button type="button" data-admin-booking-action="complete" data-booking-id="${escapeHtml(booking.id)}">Complete</button>
           </div>
@@ -2861,6 +2900,23 @@ function adminTimelineItems(booking = {}) {
     .join("");
 }
 
+function adminChecklistMarkup(booking = {}) {
+  const checklist = booking.operationsChecklist || {};
+  return adminHandoverChecklist
+    .map(
+      (item) => `
+        <label class="admin-checklist-item">
+          <input type="checkbox" name="${escapeHtml(item.key)}" ${checklist[item.key] ? "checked" : ""} />
+          <span>
+            <strong>${escapeHtml(item.label)}</strong>
+            <small>${escapeHtml(item.text)}</small>
+          </span>
+        </label>
+      `,
+    )
+    .join("");
+}
+
 function ensureAdminBookingDrawer() {
   let drawer = document.querySelector("[data-admin-booking-drawer]");
   if (drawer) return drawer;
@@ -2904,9 +2960,9 @@ function renderAdminBookingDetail(bookingId = adminState.selectedBookingId) {
     </div>
 
     <div class="admin-detail-status-row">
-      <span class="status-pill">${humanStatus(booking.status)}</span>
-      <span class="status-pill">${humanStatus(booking.paymentStatus)}</span>
-      <span class="status-pill follow-up-pill">${humanStatus(booking.followUpStatus || "new")}</span>
+      ${statusPill(booking.status)}
+      ${statusPill(booking.paymentStatus)}
+      ${statusPill(booking.followUpStatus || "new", "follow-up-pill")}
     </div>
 
     <div class="admin-detail-grid">
@@ -2953,7 +3009,7 @@ function renderAdminBookingDetail(bookingId = adminState.selectedBookingId) {
       <form class="admin-detail-form" data-admin-booking-followup-form data-booking-id="${escapeHtml(booking.id)}">
         <label class="field">Follow-up status
           <select name="followUpStatus">
-            ${["new", "needs_reply", "driver_checks", "handover_confirmed", "ready"].map(
+            ${["new", "needs_reply", "customer_contacted", "driver_checks", "handover_confirmed", "ready", "handover_completed"].map(
               (status) => `<option value="${status}" ${String(booking.followUpStatus || "new") === status ? "selected" : ""}>${humanStatus(status)}</option>`,
             ).join("")}
           </select>
@@ -2962,6 +3018,16 @@ function renderAdminBookingDetail(bookingId = adminState.selectedBookingId) {
           <textarea name="internalNotes" rows="5" placeholder="Add driver checks, customer preferences, handover prep or team notes.">${escapeHtml(booking.internalNotes || "")}</textarea>
         </label>
         <button type="submit">Save follow-up</button>
+      </form>
+    </section>
+
+    <section class="admin-detail-card admin-detail-card-wide admin-checklist-card">
+      <p class="admin-record-kicker">Staff handover checklist</p>
+      <form class="admin-detail-form admin-checklist-form" data-admin-booking-checklist-form data-booking-id="${escapeHtml(booking.id)}">
+        <div class="admin-checklist-grid">
+          ${adminChecklistMarkup(booking)}
+        </div>
+        <button type="submit">Save checklist</button>
       </form>
     </section>
 
@@ -2974,9 +3040,14 @@ function renderAdminBookingDetail(bookingId = adminState.selectedBookingId) {
 
     <div class="admin-detail-actions">
       <button type="button" data-admin-print-booking data-booking-id="${escapeHtml(booking.id)}">Print summary</button>
-      <button type="button" data-admin-booking-action="confirm" data-booking-id="${escapeHtml(booking.id)}">Confirm booking</button>
+      <button type="button" data-admin-booking-action="approve" data-booking-id="${escapeHtml(booking.id)}">Approve booking</button>
+      <button type="button" data-admin-booking-action="reject" data-booking-id="${escapeHtml(booking.id)}">Reject booking</button>
       <button type="button" data-admin-booking-action="cancel" data-booking-id="${escapeHtml(booking.id)}">Cancel booking</button>
       <button type="button" data-admin-booking-action="complete" data-booking-id="${escapeHtml(booking.id)}">Mark complete</button>
+      <button type="button" data-admin-booking-action="refund_pending" data-booking-id="${escapeHtml(booking.id)}">Refund pending</button>
+      <button type="button" data-admin-booking-action="refunded" data-booking-id="${escapeHtml(booking.id)}">Mark refunded</button>
+      <button type="button" data-admin-booking-action="customer_contacted" data-booking-id="${escapeHtml(booking.id)}">Customer contacted</button>
+      <button type="button" data-admin-booking-action="customer_not_contacted" data-booking-id="${escapeHtml(booking.id)}">Needs reply</button>
     </div>
 
     <section class="admin-detail-card admin-detail-card-wide admin-email-actions-card">
@@ -3046,7 +3117,8 @@ function renderAdminPayments(payments = []) {
             <article class="admin-record-card admin-payment-card">
               <strong>${escapeHtml(payment.bookingReference || payment.bookingId || "Deposit record")}</strong>
               <span>${escapeHtml(payment.vehicleName || "")} · ${escapeHtml(payment.customerEmail || "")}</span>
-              <span>${money(Number(payment.amount || 0))} · ${humanStatus(payment.status)}</span>
+              <span>${money(Number(payment.amount || 0))}</span>
+              ${statusPill(payment.status)}
             </article>
           `,
         )
@@ -3092,8 +3164,9 @@ function setupAdmin() {
     const vehicleForm = event.target.closest("[data-admin-vehicle-form]");
     const blockForm = event.target.closest("[data-admin-block-form]");
     const followupForm = event.target.closest("[data-admin-booking-followup-form]");
+    const checklistForm = event.target.closest("[data-admin-booking-checklist-form]");
     const manualBookingForm = event.target.closest("[data-admin-manual-booking-form]");
-    if (!vehicleForm && !blockForm && !followupForm && !manualBookingForm) return;
+    if (!vehicleForm && !blockForm && !followupForm && !checklistForm && !manualBookingForm) return;
     event.preventDefault();
     const data = new FormData(event.target);
     const slug = event.target.dataset.slug;
@@ -3141,6 +3214,24 @@ function setupAdmin() {
         followUpStatus: String(data.get("followUpStatus") || "new"),
       });
       showFlowToast("Booking follow-up saved.");
+      await refreshAdmin();
+      return;
+    }
+    if (checklistForm) {
+      const operationsChecklist = Object.fromEntries(
+        adminHandoverChecklist.map((item) => [item.key, data.get(item.key) === "on"]),
+      );
+      await apiRequest("/api/admin/bookings", {
+        method: "PATCH",
+        body: JSON.stringify({
+          id: checklistForm.dataset.bookingId,
+          patch: { operationsChecklist },
+        }),
+      });
+      trackVelaireEvent("Admin Handover Checklist Updated", {
+        completedItems: Object.values(operationsChecklist).filter(Boolean).length,
+      });
+      showFlowToast("Staff handover checklist saved.");
       await refreshAdmin();
       return;
     }
