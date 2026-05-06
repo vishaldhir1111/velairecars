@@ -72,11 +72,13 @@ select {
   inset: 0;
   z-index: 100;
   display: grid;
+  perspective: 1200px;
   place-items: center;
   overflow: hidden;
   background:
-    radial-gradient(circle at 50% 48%, rgba(215, 161, 140, 0.08), transparent 34%),
-    radial-gradient(circle at 50% 88%, rgba(248, 242, 236, 0.05), transparent 32%),
+    radial-gradient(circle at 54% 42%, rgba(215, 161, 140, 0.1), transparent 31%),
+    radial-gradient(circle at 50% 86%, rgba(248, 242, 236, 0.075), transparent 34%),
+    linear-gradient(180deg, #000 0%, #040303 48%, #090706 100%),
     #020202;
   color: var(--ivory);
   isolation: isolate;
@@ -103,7 +105,8 @@ select {
 }
 
 .loader-ambient,
-.loader-engine-pulse {
+.loader-engine-pulse,
+.loader-distant-source {
   position: absolute;
   inset: 18% 16%;
   border-radius: 50%;
@@ -113,6 +116,16 @@ select {
   pointer-events: none;
   transform: translateZ(0);
   will-change: opacity, transform;
+}
+
+.loader-distant-source {
+  z-index: 0;
+  inset: 28% auto auto 12%;
+  width: min(460px, 58vw);
+  height: min(460px, 58vw);
+  background:
+    radial-gradient(circle, rgba(255, 239, 228, 0.72) 0 2%, rgba(240, 198, 180, 0.34) 8%, rgba(215, 161, 140, 0.12) 28%, transparent 64%);
+  box-shadow: 0 0 96px rgba(215, 161, 140, 0.16);
 }
 
 .loader-engine-pulse {
@@ -138,11 +151,66 @@ select {
   will-change: opacity, transform;
 }
 
+.loader-showroom-floor {
+  position: absolute;
+  right: -10%;
+  bottom: -8%;
+  left: -10%;
+  z-index: 1;
+  height: 42vh;
+  background:
+    radial-gradient(ellipse at 50% 6%, rgba(248, 242, 236, 0.16), transparent 12%),
+    radial-gradient(ellipse at 50% 26%, rgba(215, 161, 140, 0.2), transparent 31%),
+    linear-gradient(180deg, rgba(248, 242, 236, 0.035), rgba(0, 0, 0, 0.82) 72%);
+  clip-path: polygon(7% 0, 93% 0, 100% 100%, 0 100%);
+  pointer-events: none;
+  transform: translateZ(0);
+  transform-origin: center bottom;
+  will-change: opacity, transform;
+}
+
+.loader-showroom-floor::before,
+.loader-showroom-floor::after {
+  position: absolute;
+  right: 10%;
+  left: 10%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(215, 161, 140, 0.28), rgba(248, 242, 236, 0.18), transparent);
+  content: "";
+}
+
+.loader-showroom-floor::before {
+  top: 16%;
+}
+
+.loader-showroom-floor::after {
+  top: 34%;
+  opacity: 0.58;
+}
+
+.loader-speed-streak {
+  position: absolute;
+  top: 48%;
+  z-index: 4;
+  width: min(1120px, 118vw);
+  height: 3px;
+  border-radius: 999px;
+  background:
+    linear-gradient(90deg, transparent, rgba(215, 161, 140, 0.18), rgba(255, 255, 255, 0.95), var(--rose-3), rgba(215, 161, 140, 0.22), transparent);
+  box-shadow:
+    0 0 22px rgba(240, 198, 180, 0.86),
+    0 0 86px rgba(215, 161, 140, 0.34);
+  pointer-events: none;
+  transform: translateZ(0);
+  transform-origin: center;
+  will-change: opacity, transform;
+}
+
 .loader-car-silhouette {
   position: absolute;
   z-index: 2;
   width: min(760px, 82vw);
-  margin-top: 118px;
+  margin-top: 104px;
   color: rgba(215, 161, 140, 0.48);
   pointer-events: none;
   transform: translateZ(0);
@@ -163,6 +231,70 @@ select {
   stroke-linejoin: round;
   stroke-width: 2;
   vector-effect: non-scaling-stroke;
+}
+
+.loader-car-silhouette::after {
+  position: absolute;
+  right: 5%;
+  bottom: -60px;
+  left: 5%;
+  height: 70px;
+  background:
+    radial-gradient(ellipse at 50% 0, rgba(215, 161, 140, 0.18), transparent 64%),
+    linear-gradient(180deg, rgba(248, 242, 236, 0.08), transparent);
+  content: "";
+  opacity: 0.6;
+  transform: scaleY(-1) translateZ(0);
+}
+
+.loader-body-contour,
+.loader-headlight,
+.loader-reflection-ripple {
+  position: absolute;
+  pointer-events: none;
+  transform: translateZ(0);
+  will-change: opacity, transform;
+}
+
+.loader-body-contour {
+  top: 42%;
+  left: 19%;
+  width: 62%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(248, 242, 236, 0.58), rgba(215, 161, 140, 0.46), transparent);
+  box-shadow: 0 0 18px rgba(215, 161, 140, 0.28);
+  transform-origin: center;
+}
+
+.loader-headlight {
+  top: 61%;
+  width: 96px;
+  height: 3px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, transparent, rgba(255, 246, 238, 0.9), rgba(215, 161, 140, 0.18));
+  box-shadow:
+    0 0 20px rgba(255, 246, 238, 0.36),
+    0 0 62px rgba(215, 161, 140, 0.28);
+}
+
+.loader-headlight-left {
+  left: 10%;
+}
+
+.loader-headlight-right {
+  right: 10%;
+  transform: scaleX(-1) translateZ(0);
+}
+
+.loader-reflection-ripple {
+  z-index: 2;
+  bottom: 21%;
+  left: 50%;
+  width: min(720px, 78vw);
+  height: 1px;
+  margin-left: max(-360px, -39vw);
+  background: linear-gradient(90deg, transparent, rgba(215, 161, 140, 0.45), rgba(248, 242, 236, 0.34), rgba(215, 161, 140, 0.45), transparent);
+  box-shadow: 0 0 34px rgba(215, 161, 140, 0.22);
 }
 
 .loader-logo-wrap {
@@ -2148,11 +2280,30 @@ select {
 
   .loader-car-silhouette {
     width: 92vw;
-    margin-top: 96px;
+    margin-top: 86px;
   }
 
   .loader-light-streak {
     width: 92vw;
+  }
+
+  .loader-showroom-floor {
+    height: 36vh;
+  }
+
+  .loader-speed-streak {
+    top: 50%;
+    width: 124vw;
+  }
+
+  .loader-headlight {
+    width: 58px;
+  }
+
+  .loader-reflection-ripple {
+    bottom: 23%;
+    width: 82vw;
+    margin-left: -41vw;
   }
 
   .navbar {

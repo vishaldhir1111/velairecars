@@ -331,10 +331,19 @@ if (
   !app.includes("introSessionKey") ||
   !app.includes("sessionStorage.getItem(introSessionKey)") ||
   !app.includes("sessionStorage.setItem(introSessionKey") ||
+  !app.includes("loader-distant-source") ||
+  !app.includes("loader-speed-streak") ||
+  !app.includes("loader-showroom-floor") ||
+  !app.includes("loader-reflection-ripple") ||
+  !app.includes("loader-headlight") ||
   !app.includes("loader-light-streak") ||
   !app.includes("loader-car-silhouette") ||
   !app.includes("Cinematic Intro Completed") ||
   !read("src/styles.css").includes(".cinematic-loader") ||
+  !read("src/styles.css").includes(".loader-showroom-floor") ||
+  !read("src/styles.css").includes(".loader-speed-streak") ||
+  !read("src/styles.css").includes(".loader-reflection-ripple") ||
+  !read("src/styles.css").includes(".loader-headlight") ||
   !read("src/styles.css").includes(".loader-logo") ||
   !read("src/styles.css").includes(".loader-engine-pulse") ||
   !read("src/styles.css").includes("heroCopyReveal")

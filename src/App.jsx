@@ -491,14 +491,26 @@ function VelaireIntroLoader({ onComplete }) {
       className="cinematic-loader"
       aria-label="Velaire Cars cinematic intro"
       initial={{ opacity: 1 }}
-      exit={{ opacity: 0, scale: 1.015 }}
-      transition={{ duration: 0.92, ease: [0.22, 1, 0.36, 1] }}
+      exit={{ opacity: 0, scale: 1.085 }}
+      transition={{ duration: 1.05, ease: [0.22, 1, 0.36, 1] }}
     >
       <motion.div
         className="loader-ambient"
         initial={{ opacity: 0, scale: 0.96 }}
         animate={{ opacity: prefersReducedMotion ? 0.42 : [0.26, 0.54, 0.38], scale: prefersReducedMotion ? 1 : [0.96, 1.04, 1] }}
         transition={{ duration: 4.4, ease: [0.22, 1, 0.36, 1] }}
+        aria-hidden="true"
+      />
+
+      <motion.div
+        className="loader-distant-source"
+        initial={{ opacity: 0, scale: 0.52, x: "-42%" }}
+        animate={
+          prefersReducedMotion
+            ? { opacity: 0.32, scale: 0.9, x: "-18%" }
+            : { opacity: [0, 0.22, 0.62, 0.26], scale: [0.52, 0.92, 1.18, 0.98], x: ["-42%", "-22%", "0%", "18%"] }
+        }
+        transition={{ duration: prefersReducedMotion ? 0.7 : 3.2, delay: prefersReducedMotion ? 0 : 0.15, ease: [0.16, 1, 0.3, 1] }}
         aria-hidden="true"
       />
 
@@ -534,22 +546,81 @@ function VelaireIntroLoader({ onComplete }) {
       </div>
 
       <motion.div
+        className="loader-showroom-floor"
+        initial={{ opacity: 0, y: 28, scaleX: 0.84 }}
+        animate={{ opacity: prefersReducedMotion ? 0.34 : [0, 0.46, 0.36], y: 0, scaleX: 1 }}
+        transition={{ duration: prefersReducedMotion ? 0.4 : 2.15, delay: prefersReducedMotion ? 0 : 0.82, ease: [0.22, 1, 0.36, 1] }}
+        aria-hidden="true"
+      />
+
+      <motion.div
+        className="loader-speed-streak"
+        initial={{ x: "-120vw", scaleX: 0.12, scaleY: 0.5, opacity: 0 }}
+        animate={
+          prefersReducedMotion
+            ? { x: 0, scaleX: 1, scaleY: 1, opacity: 0.42 }
+            : { x: ["-120vw", "-18vw", "112vw"], scaleX: [0.12, 2.2, 0.2], scaleY: [0.5, 1, 0.6], opacity: [0, 1, 0] }
+        }
+        transition={{ duration: prefersReducedMotion ? 0.5 : 0.94, delay: prefersReducedMotion ? 0 : 0.96, ease: [0.1, 0.82, 0.18, 1] }}
+        aria-hidden="true"
+      />
+
+      <motion.div
         className="loader-car-silhouette"
         initial={{ opacity: 0, y: 14, scaleX: 0.88 }}
-        animate={{ opacity: prefersReducedMotion ? 0.2 : [0, 0.24, 0.16], y: 0, scaleX: 1 }}
-        transition={{ duration: 2.9, delay: prefersReducedMotion ? 0 : 1.12, ease: [0.22, 1, 0.36, 1] }}
+        animate={{ opacity: prefersReducedMotion ? 0.24 : [0, 0.12, 0.34, 0.2], y: 0, scaleX: 1 }}
+        transition={{ duration: 3.05, delay: prefersReducedMotion ? 0 : 1.18, ease: [0.22, 1, 0.36, 1] }}
         aria-hidden="true"
       >
         <svg viewBox="0 0 960 220" role="presentation" focusable="false">
           <path d="M84 146 C144 116 204 104 278 96 C326 56 392 36 486 34 C594 32 656 56 718 99 C788 106 848 122 890 148" />
           <path d="M206 146 L784 146" />
           <path d="M330 96 C378 70 430 58 494 58 C566 58 616 72 664 101" />
+          <path d="M144 139 C226 125 330 124 460 126 C602 128 720 125 846 141" />
           <circle cx="262" cy="150" r="34" />
           <circle cx="724" cy="150" r="34" />
         </svg>
+        <motion.span
+          className="loader-body-contour"
+          initial={{ opacity: 0, scaleX: 0.25 }}
+          animate={{ opacity: prefersReducedMotion ? 0.2 : [0, 0.62, 0.22], scaleX: [0.25, 1, 0.9] }}
+          transition={{ duration: prefersReducedMotion ? 0.3 : 1.25, delay: prefersReducedMotion ? 0 : 1.56, ease: [0.16, 1, 0.3, 1] }}
+        />
+        <motion.span
+          className="loader-headlight loader-headlight-left"
+          initial={{ opacity: 0, scaleX: 0.5 }}
+          animate={{ opacity: prefersReducedMotion ? 0.26 : [0, 0.78, 0.32], scaleX: [0.5, 1, 0.8] }}
+          transition={{ duration: prefersReducedMotion ? 0.35 : 1.15, delay: prefersReducedMotion ? 0 : 2.28, ease: [0.16, 1, 0.3, 1] }}
+        />
+        <motion.span
+          className="loader-headlight loader-headlight-right"
+          initial={{ opacity: 0, scaleX: 0.5 }}
+          animate={{ opacity: prefersReducedMotion ? 0.26 : [0, 0.7, 0.3], scaleX: [0.5, 1, 0.8] }}
+          transition={{ duration: prefersReducedMotion ? 0.35 : 1.15, delay: prefersReducedMotion ? 0 : 2.34, ease: [0.16, 1, 0.3, 1] }}
+        />
       </motion.div>
 
-      <div className="loader-logo-wrap">
+      <motion.div
+        className="loader-reflection-ripple"
+        initial={{ opacity: 0, scaleX: 0.34, y: 26 }}
+        animate={
+          prefersReducedMotion
+            ? { opacity: 0.22, scaleX: 1, y: 0 }
+            : { opacity: [0, 0.42, 0.12, 0], scaleX: [0.34, 1, 1.18, 1.34], y: [26, 0, -4, -8] }
+        }
+        transition={{ duration: prefersReducedMotion ? 0.4 : 1.45, delay: prefersReducedMotion ? 0 : 3.03, ease: [0.22, 1, 0.36, 1] }}
+        aria-hidden="true"
+      />
+
+      <motion.div
+        className="loader-logo-wrap"
+        animate={
+          prefersReducedMotion
+            ? { y: 0, scale: 1 }
+            : { y: [0, 0, -4, -13], scale: [0.985, 1, 1.012, 1.055] }
+        }
+        transition={{ duration: prefersReducedMotion ? 0.2 : 4.55, ease: [0.22, 1, 0.36, 1] }}
+      >
         <motion.div
           className="loader-light-streak"
           initial={{ x: "-125%", scaleX: 0.1, opacity: 0 }}
@@ -601,7 +672,7 @@ function VelaireIntroLoader({ onComplete }) {
         >
           Performance, prestige, delivered
         </motion.p>
-      </div>
+      </motion.div>
 
       <motion.div
         className="loader-engine-pulse"
