@@ -324,27 +324,6 @@ select {
   will-change: opacity, transform;
 }
 
-.loader-logo {
-  margin: 0;
-  background:
-    linear-gradient(105deg, rgba(143, 85, 72, 0.62) 0%, rgba(242, 201, 184, 0.88) 42%, rgba(255, 245, 237, 0.8) 52%, rgba(201, 137, 117, 0.58) 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: rgba(240, 198, 180, 0.62);
-  -webkit-text-fill-color: transparent;
-  font-family: Georgia, "Times New Roman", serif;
-  font-size: clamp(0.78rem, 1.05vw, 1rem);
-  font-weight: 400;
-  letter-spacing: 0.34em;
-  line-height: 1;
-  text-shadow:
-    0 12px 34px rgba(0, 0, 0, 0.58),
-    0 0 18px rgba(215, 161, 140, 0.14);
-  text-transform: uppercase;
-  transform: translateZ(0);
-  will-change: opacity, transform, filter;
-}
-
 .site-shell.intro-active .navbar,
 .site-shell.intro-active .hero-copy,
 .site-shell.intro-active .trust-strip {
@@ -2228,11 +2207,6 @@ select {
   .loader-logo-wrap {
     width: min(320px, calc(100vw - 28px));
     margin-top: min(31vh, 220px);
-  }
-
-  .loader-logo {
-    font-size: 0.72rem;
-    letter-spacing: 0.25em;
   }
 
   .loader-car-silhouette {

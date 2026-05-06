@@ -115,7 +115,7 @@ const loaderParticles = Array.from({ length: 18 }, (_, index) => ({
   size: 2 + (index % 3),
 }));
 
-const introSessionVersion = "showroom-v5-subtle-wordmark-20260506";
+const introSessionVersion = "showroom-v6-no-text-20260506";
 const introSessionKey = `velaireIntroPlayed:${introSessionVersion}`;
 
 function shouldReplayIntroFromUrl() {
@@ -505,8 +505,6 @@ function VelaireIntroLoader({ onComplete }) {
     return () => window.clearTimeout(timer);
   }, [onComplete, prefersReducedMotion]);
 
-  const wordmarkDelay = prefersReducedMotion ? 0 : 1.32;
-
   return (
     <motion.section
       className="cinematic-loader"
@@ -658,16 +656,6 @@ function VelaireIntroLoader({ onComplete }) {
           aria-hidden="true"
         />
 
-        <motion.div
-          className="loader-logo"
-          role="img"
-          aria-label="Velaire Cars"
-          initial={{ opacity: 0, y: 10, filter: "blur(8px)" }}
-          animate={{ opacity: prefersReducedMotion ? 0.58 : [0, 0.42, 0.56, 0.46], y: 0, filter: "blur(0px)" }}
-          transition={{ duration: prefersReducedMotion ? 0.22 : 1.36, delay: wordmarkDelay, ease: [0.22, 1, 0.36, 1] }}
-        >
-          Velaire Cars
-        </motion.div>
       </motion.div>
 
       <motion.div
