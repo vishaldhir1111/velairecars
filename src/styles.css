@@ -67,6 +67,220 @@ select {
   background: var(--black);
 }
 
+.cinematic-loader {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 50% 48%, rgba(215, 161, 140, 0.08), transparent 34%),
+    radial-gradient(circle at 50% 88%, rgba(248, 242, 236, 0.05), transparent 32%),
+    #020202;
+  color: var(--ivory);
+  isolation: isolate;
+  transform: translateZ(0);
+}
+
+.cinematic-loader::before,
+.cinematic-loader::after {
+  position: absolute;
+  inset: 0;
+  content: "";
+  pointer-events: none;
+}
+
+.cinematic-loader::before {
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.025), transparent 16%, transparent 84%, rgba(255, 255, 255, 0.025)),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 24%, transparent 78%, rgba(0, 0, 0, 0.72));
+  opacity: 0.78;
+}
+
+.cinematic-loader::after {
+  background: radial-gradient(circle at 50% 50%, transparent 0 44%, rgba(0, 0, 0, 0.42) 78%);
+}
+
+.loader-ambient,
+.loader-engine-pulse {
+  position: absolute;
+  inset: 18% 16%;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle, rgba(240, 198, 180, 0.18), rgba(215, 161, 140, 0.05) 35%, transparent 64%);
+  filter: blur(2px);
+  pointer-events: none;
+  transform: translateZ(0);
+  will-change: opacity, transform;
+}
+
+.loader-engine-pulse {
+  inset: 28% 24%;
+  border: 1px solid rgba(215, 161, 140, 0.16);
+  background: radial-gradient(circle, rgba(215, 161, 140, 0.2), transparent 58%);
+  box-shadow: 0 0 90px rgba(215, 161, 140, 0.16);
+}
+
+.loader-particles {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.loader-particles span {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(240, 198, 180, 0.82);
+  box-shadow: 0 0 18px rgba(215, 161, 140, 0.42);
+  transform: translateZ(0);
+  will-change: opacity, transform;
+}
+
+.loader-car-silhouette {
+  position: absolute;
+  z-index: 2;
+  width: min(760px, 82vw);
+  margin-top: 118px;
+  color: rgba(215, 161, 140, 0.48);
+  pointer-events: none;
+  transform: translateZ(0);
+  will-change: opacity, transform;
+}
+
+.loader-car-silhouette svg {
+  display: block;
+  width: 100%;
+  overflow: visible;
+}
+
+.loader-car-silhouette path,
+.loader-car-silhouette circle {
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+}
+
+.loader-logo-wrap {
+  position: relative;
+  z-index: 3;
+  display: grid;
+  justify-items: center;
+  width: min(920px, calc(100vw - 34px));
+  text-align: center;
+  transform: translateZ(0);
+}
+
+.loader-light-streak {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: min(840px, 86vw);
+  height: 1px;
+  border-radius: 999px;
+  background:
+    linear-gradient(90deg, transparent, rgba(215, 161, 140, 0.1), var(--rose-3), rgba(255, 255, 255, 0.88), var(--rose), transparent);
+  box-shadow:
+    0 0 18px rgba(215, 161, 140, 0.62),
+    0 0 46px rgba(215, 161, 140, 0.3);
+  transform-origin: center;
+  will-change: opacity, transform;
+}
+
+.loader-logo-mark {
+  display: grid;
+  width: 72px;
+  height: 72px;
+  margin-bottom: 26px;
+  place-items: center;
+  border: 1px solid rgba(215, 161, 140, 0.64);
+  border-radius: 50%;
+  background:
+    linear-gradient(145deg, rgba(248, 242, 236, 0.08), rgba(215, 161, 140, 0.04)),
+    rgba(8, 7, 7, 0.74);
+  box-shadow:
+    inset 0 0 20px rgba(215, 161, 140, 0.08),
+    0 18px 48px rgba(0, 0, 0, 0.42);
+  color: var(--rose-3);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 2.2rem;
+}
+
+.loader-logo {
+  display: flex;
+  justify-content: center;
+  margin: 0;
+  background:
+    linear-gradient(100deg, #8f5548 0%, #f2c9b8 34%, #fff5ed 48%, #c98975 72%, #744237 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(2.5rem, 8vw, 6.8rem);
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  line-height: 0.92;
+  text-shadow: 0 22px 48px rgba(0, 0, 0, 0.54);
+  text-transform: uppercase;
+}
+
+.loader-logo span {
+  display: inline-block;
+  transform: translateZ(0);
+  will-change: opacity, transform, filter;
+}
+
+.loader-subcopy {
+  margin: 18px 0 0;
+  color: rgba(248, 242, 236, 0.66);
+  font-size: 0.78rem;
+  font-weight: 850;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.site-shell.intro-active .navbar,
+.site-shell.intro-active .hero-copy,
+.site-shell.intro-active .trust-strip {
+  opacity: 0;
+}
+
+.site-shell.intro-active .hero-backdrop {
+  transform: scale(1.06);
+}
+
+.site-shell.intro-complete .navbar,
+.site-shell.intro-complete .hero-copy,
+.site-shell.intro-complete .trust-strip {
+  opacity: 1;
+  transition: opacity 900ms ease;
+}
+
+.site-shell.intro-complete .hero-copy {
+  animation: heroCopyReveal 1120ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.site-shell.intro-complete .hero-backdrop {
+  transform: scale(1.02);
+  transition: transform 1600ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes heroCopyReveal {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 18px, 0) scale(0.992);
+  }
+
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
 .navbar {
   position: fixed;
   inset: 0 0 auto;
@@ -1909,6 +2123,38 @@ select {
 }
 
 @media (max-width: 720px) {
+  .loader-logo-wrap {
+    width: min(100%, calc(100vw - 28px));
+  }
+
+  .loader-logo-mark {
+    width: 58px;
+    height: 58px;
+    margin-bottom: 20px;
+    font-size: 1.76rem;
+  }
+
+  .loader-logo {
+    font-size: clamp(2.35rem, 12vw, 4.25rem);
+    letter-spacing: 0.045em;
+  }
+
+  .loader-subcopy {
+    max-width: 280px;
+    font-size: 0.66rem;
+    letter-spacing: 0.13em;
+    line-height: 1.65;
+  }
+
+  .loader-car-silhouette {
+    width: 92vw;
+    margin-top: 96px;
+  }
+
+  .loader-light-streak {
+    width: 92vw;
+  }
+
   .navbar {
     min-height: 68px;
     padding: 12px 16px;
@@ -2059,6 +2305,10 @@ select {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .site-shell.intro-complete .hero-copy {
+    animation: none;
+  }
+
   *,
   *::before,
   *::after {

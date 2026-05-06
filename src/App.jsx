@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { conciergeFleetKnowledge, conciergePromptChips, fleet } from "./data/fleet.js";
 
 const trustItems = [
@@ -104,6 +105,18 @@ const faqs = [
       "Yes. Premium fleet pricing and availability can change based on demand, blocked dates, vehicle status and operational requirements. The booking flow reads the current operations-managed pricing.",
   },
 ];
+
+const loaderLetters = "VELAIRE CARS".split("");
+const loaderParticles = Array.from({ length: 18 }, (_, index) => ({
+  id: index,
+  left: `${8 + ((index * 17) % 84)}%`,
+  top: `${10 + ((index * 23) % 76)}%`,
+  delay: 0.16 + index * 0.055,
+  distance: 10 + (index % 5) * 5,
+  size: 2 + (index % 3),
+}));
+
+const introSessionKey = "velaireIntroPlayed";
 
 function formatCurrency(value) {
   return new Intl.NumberFormat("en-GB", {
@@ -463,10 +476,169 @@ function VehicleDetailModal({ car, onClose }) {
   );
 }
 
+function VelaireIntroLoader({ onComplete }) {
+  const prefersReducedMotion = useReducedMotion();
+
+  useEffect(() => {
+    const timer = window.setTimeout(onComplete, prefersReducedMotion ? 900 : 4800);
+    return () => window.clearTimeout(timer);
+  }, [onComplete, prefersReducedMotion]);
+
+  const logoDelay = prefersReducedMotion ? 0 : 1.42;
+
+  return (
+    <motion.section
+      className="cinematic-loader"
+      aria-label="Velaire Cars cinematic intro"
+      initial={{ opacity: 1 }}
+      exit={{ opacity: 0, scale: 1.015 }}
+      transition={{ duration: 0.92, ease: [0.22, 1, 0.36, 1] }}
+    >
+      <motion.div
+        className="loader-ambient"
+        initial={{ opacity: 0, scale: 0.96 }}
+        animate={{ opacity: prefersReducedMotion ? 0.42 : [0.26, 0.54, 0.38], scale: prefersReducedMotion ? 1 : [0.96, 1.04, 1] }}
+        transition={{ duration: 4.4, ease: [0.22, 1, 0.36, 1] }}
+        aria-hidden="true"
+      />
+
+      <div className="loader-particles" aria-hidden="true">
+        {loaderParticles.map((particle) => (
+          <motion.span
+            key={particle.id}
+            style={{
+              left: particle.left,
+              top: particle.top,
+              width: particle.size,
+              height: particle.size,
+            }}
+            initial={{ opacity: 0, y: 0, scale: 0.72 }}
+            animate={
+              prefersReducedMotion
+                ? { opacity: 0.26, y: 0, scale: 1 }
+                : {
+                    opacity: [0, 0.32, 0.08],
+                    y: [0, -particle.distance, 0],
+                    scale: [0.72, 1, 0.78],
+                  }
+            }
+            transition={{
+              duration: 3.8,
+              delay: particle.delay,
+              repeat: prefersReducedMotion ? 0 : Infinity,
+              repeatType: "mirror",
+              ease: [0.22, 1, 0.36, 1],
+            }}
+          />
+        ))}
+      </div>
+
+      <motion.div
+        className="loader-car-silhouette"
+        initial={{ opacity: 0, y: 14, scaleX: 0.88 }}
+        animate={{ opacity: prefersReducedMotion ? 0.2 : [0, 0.24, 0.16], y: 0, scaleX: 1 }}
+        transition={{ duration: 2.9, delay: prefersReducedMotion ? 0 : 1.12, ease: [0.22, 1, 0.36, 1] }}
+        aria-hidden="true"
+      >
+        <svg viewBox="0 0 960 220" role="presentation" focusable="false">
+          <path d="M84 146 C144 116 204 104 278 96 C326 56 392 36 486 34 C594 32 656 56 718 99 C788 106 848 122 890 148" />
+          <path d="M206 146 L784 146" />
+          <path d="M330 96 C378 70 430 58 494 58 C566 58 616 72 664 101" />
+          <circle cx="262" cy="150" r="34" />
+          <circle cx="724" cy="150" r="34" />
+        </svg>
+      </motion.div>
+
+      <div className="loader-logo-wrap">
+        <motion.div
+          className="loader-light-streak"
+          initial={{ x: "-125%", scaleX: 0.1, opacity: 0 }}
+          animate={
+            prefersReducedMotion
+              ? { x: "0%", scaleX: 1, opacity: 0.55 }
+              : {
+                  x: ["-125%", "0%", "125%"],
+                  scaleX: [0.12, 1, 0.2],
+                  opacity: [0, 1, 0],
+                }
+          }
+          transition={{ duration: prefersReducedMotion ? 0.65 : 1.65, delay: prefersReducedMotion ? 0 : 0.72, ease: [0.16, 1, 0.3, 1] }}
+          aria-hidden="true"
+        />
+
+        <motion.div
+          className="loader-logo-mark"
+          initial={{ opacity: 0, scale: 0.86, y: 10 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          transition={{ duration: 1.05, delay: logoDelay - 0.18, ease: [0.22, 1, 0.36, 1] }}
+          aria-hidden="true"
+        >
+          V
+        </motion.div>
+
+        <h1 className="loader-logo" aria-label="Velaire Cars">
+          {loaderLetters.map((letter, index) => (
+            <motion.span
+              key={`${letter}-${index}`}
+              initial={{ opacity: 0, y: 18, filter: "blur(12px)" }}
+              animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+              transition={{
+                duration: prefersReducedMotion ? 0.2 : 0.86,
+                delay: logoDelay + index * 0.045,
+                ease: [0.22, 1, 0.36, 1],
+              }}
+            >
+              {letter === " " ? "\u00a0" : letter}
+            </motion.span>
+          ))}
+        </h1>
+
+        <motion.p
+          className="loader-subcopy"
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.72, delay: prefersReducedMotion ? 0.12 : 2.16, ease: [0.22, 1, 0.36, 1] }}
+        >
+          Performance, prestige, delivered
+        </motion.p>
+      </div>
+
+      <motion.div
+        className="loader-engine-pulse"
+        initial={{ opacity: 0, scale: 0.72 }}
+        animate={
+          prefersReducedMotion
+            ? { opacity: 0.18, scale: 1 }
+            : {
+                opacity: [0, 0.36, 0.12, 0.28, 0],
+                scale: [0.72, 1, 1.04, 1.02, 1.14],
+              }
+        }
+        transition={{ duration: prefersReducedMotion ? 0.4 : 1.26, delay: prefersReducedMotion ? 0 : 3.12, ease: [0.22, 1, 0.36, 1] }}
+        aria-hidden="true"
+      />
+    </motion.section>
+  );
+}
+
 function App() {
   const [liveFleet, setLiveFleet] = useState(fleet);
   const [detailCarSlug, setDetailCarSlug] = useState("");
   const [isConciergeOpen, setIsConciergeOpen] = useState(false);
+  const [showIntro, setShowIntro] = useState(() => {
+    try {
+      return window.sessionStorage.getItem(introSessionKey) !== "true";
+    } catch {
+      return true;
+    }
+  });
+  const [introComplete, setIntroComplete] = useState(() => {
+    try {
+      return window.sessionStorage.getItem(introSessionKey) === "true";
+    } catch {
+      return false;
+    }
+  });
   const [conciergeInput, setConciergeInput] = useState("");
   const [conciergeMessages, setConciergeMessages] = useState([
     {
@@ -476,6 +648,17 @@ function App() {
     },
   ]);
   const detailCar = liveFleet.find((car) => car.slug === detailCarSlug) || null;
+
+  const completeIntro = useCallback(() => {
+    try {
+      window.sessionStorage.setItem(introSessionKey, "true");
+    } catch {
+      // The intro still completes normally if private browsing blocks storage.
+    }
+    setShowIntro(false);
+    setIntroComplete(true);
+    trackVelaireEvent("Cinematic Intro Completed", { source: "homepage_loader" });
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -531,7 +714,8 @@ function App() {
   }
 
   return (
-    <div className="site-shell">
+    <div className={`site-shell ${introComplete ? "intro-complete" : "intro-active"}`}>
+      <AnimatePresence>{showIntro ? <VelaireIntroLoader onComplete={completeIntro} /> : null}</AnimatePresence>
       <header className="navbar" aria-label="Primary navigation">
         <a className="brand" href="/" aria-label="Velaire Cars home">
           <span className="brand-mark">V</span>

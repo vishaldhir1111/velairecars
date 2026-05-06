@@ -220,6 +220,7 @@ const analyticsEvents = [
   "Admin Dates Blocked",
   "Admin Booking Status Updated",
   "Admin Manual Booking Created",
+  "Cinematic Intro Completed",
   "Concierge Prompt Submitted",
 ];
 const analyticsSources = `${read("flow.js")}\n${read("src/App.jsx")}`;
@@ -322,6 +323,23 @@ if (!main.includes('import App from "./App.jsx"') || !main.includes('import "./s
 const app = read("src/App.jsx");
 if (!app.includes('from "./data/fleet.js"')) {
   throw new Error("src/App.jsx is not using the shared fleet data module");
+}
+if (
+  !read("package.json").includes('"framer-motion"') ||
+  !app.includes('from "framer-motion"') ||
+  !app.includes("function VelaireIntroLoader") ||
+  !app.includes("introSessionKey") ||
+  !app.includes("sessionStorage.getItem(introSessionKey)") ||
+  !app.includes("sessionStorage.setItem(introSessionKey") ||
+  !app.includes("loader-light-streak") ||
+  !app.includes("loader-car-silhouette") ||
+  !app.includes("Cinematic Intro Completed") ||
+  !read("src/styles.css").includes(".cinematic-loader") ||
+  !read("src/styles.css").includes(".loader-logo") ||
+  !read("src/styles.css").includes(".loader-engine-pulse") ||
+  !read("src/styles.css").includes("heroCopyReveal")
+) {
+  throw new Error("Homepage must include the Framer Motion cinematic Velaire loading animation");
 }
 if (!app.includes("/api/fleet?ts=") || !app.includes("mergeOperationsFleet") || !app.includes("cache: \"no-store\"")) {
   throw new Error("Homepage fleet must hydrate pricing from the operations-managed fleet API without cache");
