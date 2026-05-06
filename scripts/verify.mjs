@@ -210,6 +210,25 @@ if (
   throw new Error("Homepage must include AutoRental JSON-LD with the Velaire fleet");
 }
 
+if (
+  read("src/App.jsx").includes("Curated vehicles") ||
+  read("src/App.jsx").includes("Concierge support") ||
+  read("src/App.jsx").includes("trustItems") ||
+  read("src/App.jsx").includes("trustItems.map")
+) {
+  throw new Error("Homepage trust/stat strip copy must stay removed for the cleaner luxury homepage");
+}
+if (
+  !read("src/App.jsx").includes("specialistServices") ||
+  !read("src/App.jsx").includes("Music Videos") ||
+  !read("src/App.jsx").includes("Artist Transport") ||
+  !read("src/App.jsx").includes("Tailored quotes based on project requirements.") ||
+  !read("src/styles.css").includes(".specialist-card") ||
+  !read("src/styles.css").includes("--service-image")
+) {
+  throw new Error("Homepage must include the premium specialist services section");
+}
+
 const analyticsEvents = [
   "Booking Started",
   "Car Selected",
@@ -224,6 +243,8 @@ const analyticsEvents = [
   "Admin Manual Booking Created",
   "Cinematic Intro Completed",
   "Concierge Prompt Submitted",
+  "Specialist Service Quote",
+  "Specialist Service WhatsApp",
 ];
 const analyticsSources = `${read("flow.js")}\n${read("src/App.jsx")}`;
 if (!analyticsSources.includes("trackVelaireEvent") || !analyticsSources.includes('window.va("event"')) {

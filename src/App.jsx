@@ -2,13 +2,6 @@ import { useCallback, useEffect, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { conciergeFleetKnowledge, conciergePromptChips, fleet } from "./data/fleet.js";
 
-const trustItems = [
-  { value: "5", label: "Curated vehicles" },
-  { value: "24/7", label: "Concierge support" },
-  { value: "£0", label: "Hidden fees" },
-  { value: "4.9", label: "Client rating" },
-];
-
 const serviceCards = [
   {
     title: "Concierge delivery",
@@ -25,6 +18,34 @@ const serviceCards = [
   {
     title: "Premium support",
     text: "A client-focused team for itinerary changes, extensions and special occasions.",
+  },
+];
+
+const specialistServices = [
+  {
+    title: "Music Videos",
+    text: "Statement vehicles prepared for set days, night shoots and visual direction.",
+    image: "/cars/studio-lamborghini-urus-2021-orange.png",
+  },
+  {
+    title: "Weddings",
+    text: "Elegant arrivals, bridal party support and polished handover timing.",
+    image: "/cars/studio-bmw-m440i-convertible-2022-sky-blue.png",
+  },
+  {
+    title: "VIP Events",
+    text: "High-presence vehicles for launches, private dinners and private guest logistics.",
+    image: "/cars/hero-g63-cinematic.png",
+  },
+  {
+    title: "Photoshoots",
+    text: "Studio-ready vehicles for editorial, fashion and automotive content teams.",
+    image: "/cars/studio-range-rover-sport-svr-2021.png",
+  },
+  {
+    title: "Artist Transport",
+    text: "Discreet premium movement for artists, management and selected guests.",
+    image: "/cars/studio-tesla-model-3-performance-2020.png",
   },
 ];
 
@@ -149,6 +170,19 @@ function formatCurrency(value) {
 
 function reserveLink(car) {
   return `booking.html?vehicle=${car.slug}`;
+}
+
+function specialistQuoteHref(serviceTitle) {
+  const subject = encodeURIComponent(`Velaire Cars ${serviceTitle} quote`);
+  const body = encodeURIComponent(
+    `Hello Velaire Cars,\n\nI would like a tailored quote for ${serviceTitle}.\n\nProject date:\nLocation:\nVehicle preference:\nRequirements:\n`,
+  );
+  return `mailto:reservations@velairecars.com?subject=${subject}&body=${body}`;
+}
+
+function specialistWhatsAppHref(serviceTitle) {
+  const message = encodeURIComponent(`Hello Velaire Cars, I would like a tailored quote for ${serviceTitle}.`);
+  return `https://wa.me/447741756888?text=${message}`;
 }
 
 function trackVelaireEvent(name, data = {}) {
@@ -808,15 +842,6 @@ function App() {
           </div>
         </section>
 
-        <section className="trust-strip" aria-label="Velaire Cars trust metrics">
-          {trustItems.map((item) => (
-            <div className="trust-item" key={item.label}>
-              <strong>{item.value}</strong>
-              <span>{item.label}</span>
-            </div>
-          ))}
-        </section>
-
         <section className="section section-light" id="fleet">
           <div className="section-heading">
             <p className="eyebrow">Signature fleet</p>
@@ -884,6 +909,47 @@ function App() {
         </section>
 
         {detailCar ? <VehicleDetailModal car={detailCar} onClose={() => setDetailCarSlug("")} /> : null}
+
+        <section className="section specialist-section" id="concierge-services">
+          <div className="section-heading">
+            <p className="eyebrow">Concierge Services</p>
+            <h2>Specialist vehicle support for moments that need more than a booking.</h2>
+            <p>Tailored quotes based on project requirements.</p>
+          </div>
+
+          <div className="specialist-grid">
+            {specialistServices.map((service) => (
+              <article
+                className="specialist-card"
+                key={service.title}
+                style={{ "--service-image": `url(${service.image})` }}
+              >
+                <div className="specialist-card-content">
+                  <h3>{service.title}</h3>
+                  <p>{service.text}</p>
+                  <div className="specialist-actions">
+                    <a
+                      className="specialist-button specialist-button-primary"
+                      href={specialistQuoteHref(service.title)}
+                      onClick={() => trackVelaireEvent("Specialist Service Quote", { service: service.title })}
+                    >
+                      Request Quote
+                    </a>
+                    <a
+                      className="specialist-button"
+                      href={specialistWhatsAppHref(service.title)}
+                      target="_blank"
+                      rel="noreferrer"
+                      onClick={() => trackVelaireEvent("Specialist Service WhatsApp", { service: service.title })}
+                    >
+                      WhatsApp Us
+                    </a>
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
 
         <section className="section service-section">
           <div className="section-heading">
