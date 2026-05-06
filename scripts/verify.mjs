@@ -328,7 +328,7 @@ if (
   !read("package.json").includes('"framer-motion"') ||
   !app.includes('from "framer-motion"') ||
   !app.includes("function VelaireIntroLoader") ||
-  !app.includes('introSessionVersion = "showroom-v4-no-mark-20260506"') ||
+  !app.includes('introSessionVersion = "showroom-v5-subtle-wordmark-20260506"') ||
   !app.includes("introSessionKey") ||
   !app.includes("function hasPlayedCurrentIntroSession") ||
   !app.includes("function shouldReplayIntroFromUrl") ||
@@ -348,7 +348,6 @@ if (
   !read("src/styles.css").includes(".loader-reflection-ripple") ||
   !read("src/styles.css").includes(".loader-headlight") ||
   !read("src/styles.css").includes(".loader-logo") ||
-  !read("src/styles.css").includes(".loader-logo span") ||
   !read("src/styles.css").includes("-webkit-text-fill-color") ||
   !read("src/styles.css").includes(".loader-engine-pulse") ||
   !read("src/styles.css").includes("heroCopyReveal")

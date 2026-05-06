@@ -106,7 +106,6 @@ const faqs = [
   },
 ];
 
-const loaderLetters = "VELAIRE CARS".split("");
 const loaderParticles = Array.from({ length: 18 }, (_, index) => ({
   id: index,
   left: `${8 + ((index * 17) % 84)}%`,
@@ -116,7 +115,7 @@ const loaderParticles = Array.from({ length: 18 }, (_, index) => ({
   size: 2 + (index % 3),
 }));
 
-const introSessionVersion = "showroom-v4-no-mark-20260506";
+const introSessionVersion = "showroom-v5-subtle-wordmark-20260506";
 const introSessionKey = `velaireIntroPlayed:${introSessionVersion}`;
 
 function shouldReplayIntroFromUrl() {
@@ -506,7 +505,7 @@ function VelaireIntroLoader({ onComplete }) {
     return () => window.clearTimeout(timer);
   }, [onComplete, prefersReducedMotion]);
 
-  const logoDelay = prefersReducedMotion ? 0 : 0.58;
+  const wordmarkDelay = prefersReducedMotion ? 0 : 1.32;
 
   return (
     <motion.section
@@ -659,31 +658,16 @@ function VelaireIntroLoader({ onComplete }) {
           aria-hidden="true"
         />
 
-        <h1 className="loader-logo" aria-label="Velaire Cars">
-          {loaderLetters.map((letter, index) => (
-            <motion.span
-              key={`${letter}-${index}`}
-              initial={{ opacity: 0, y: 18, filter: "blur(12px)" }}
-              animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-              transition={{
-                duration: prefersReducedMotion ? 0.2 : 0.86,
-                delay: logoDelay + index * 0.045,
-                ease: [0.22, 1, 0.36, 1],
-              }}
-            >
-              {letter === " " ? "\u00a0" : letter}
-            </motion.span>
-          ))}
-        </h1>
-
-        <motion.p
-          className="loader-subcopy"
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.72, delay: prefersReducedMotion ? 0.12 : 2.16, ease: [0.22, 1, 0.36, 1] }}
+        <motion.div
+          className="loader-logo"
+          role="img"
+          aria-label="Velaire Cars"
+          initial={{ opacity: 0, y: 10, filter: "blur(8px)" }}
+          animate={{ opacity: prefersReducedMotion ? 0.58 : [0, 0.42, 0.56, 0.46], y: 0, filter: "blur(0px)" }}
+          transition={{ duration: prefersReducedMotion ? 0.22 : 1.36, delay: wordmarkDelay, ease: [0.22, 1, 0.36, 1] }}
         >
-          Performance, prestige, delivered
-        </motion.p>
+          Velaire Cars
+        </motion.div>
       </motion.div>
 
       <motion.div
