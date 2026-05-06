@@ -369,6 +369,13 @@ if (
 if (!app.includes("/api/fleet?ts=") || !app.includes("mergeOperationsFleet") || !app.includes("cache: \"no-store\"")) {
   throw new Error("Homepage fleet must hydrate pricing from the operations-managed fleet API without cache");
 }
+if (
+  !read("api/fleet.js").includes("sanitisePublicFleetVehicle") ||
+  !read("api/fleet.js").includes("publicRanges") ||
+  read("api/fleet.js").includes("fleet: vehicles,")
+) {
+  throw new Error("Public fleet API must sanitise booking/customer data before returning availability");
+}
 if (app.includes("hero-reserve") || app.includes("Quick reserve") || read("src/styles.css").includes(".hero-reserve")) {
   throw new Error("Homepage quick reserve form should not be present");
 }
