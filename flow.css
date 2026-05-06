@@ -472,6 +472,122 @@ h2 {
   backdrop-filter: blur(22px);
 }
 
+.status-stage {
+  align-items: center;
+}
+
+.status-lookup-panel,
+.status-result-card {
+  display: grid;
+  gap: 20px;
+  padding: 28px;
+}
+
+.status-form {
+  display: grid;
+  gap: 14px;
+}
+
+.status-submit {
+  justify-content: center;
+  margin-top: 4px;
+}
+
+.status-submit:disabled {
+  cursor: wait;
+  opacity: 0.62;
+}
+
+.status-note {
+  margin: 0;
+  color: rgba(248, 242, 236, 0.58);
+  font-size: 0.84rem;
+  line-height: 1.6;
+}
+
+.status-result {
+  grid-column: 2;
+}
+
+.status-result[hidden] {
+  display: none;
+}
+
+.status-result-card {
+  border: 1px solid rgba(215, 161, 140, 0.24);
+  border-radius: var(--radius);
+  background:
+    radial-gradient(circle at 88% 0%, rgba(215, 161, 140, 0.16), transparent 38%),
+    linear-gradient(145deg, rgba(248, 242, 236, 0.07), rgba(248, 242, 236, 0.025)),
+    rgba(8, 7, 7, 0.78);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(22px);
+}
+
+.status-result-heading {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 18px;
+  align-items: start;
+}
+
+.status-result-heading h2 {
+  font-size: clamp(2.35rem, 4vw, 4rem);
+}
+
+.status-result-heading span,
+.status-result-grid span,
+.status-next-step span {
+  color: rgba(248, 242, 236, 0.58);
+}
+
+.status-result-pills {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.status-result-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.status-result-grid div,
+.status-next-step {
+  border: 1px solid rgba(248, 242, 236, 0.11);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.035);
+  padding: 14px;
+}
+
+.status-result-grid span,
+.status-next-step span {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 0.68rem;
+  font-weight: 850;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.status-result-grid strong {
+  color: var(--ivory);
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
+.status-next-step p {
+  margin: 0;
+  color: rgba(248, 242, 236, 0.78);
+  line-height: 1.65;
+}
+
+.status-result-error {
+  border-color: rgba(239, 113, 113, 0.32);
+}
+
 .booking-panel,
 .payment-card,
 .account-card,
@@ -1176,7 +1292,8 @@ h2 {
 .admin-reminders-section,
 .admin-fleet-section,
 .admin-manual-section,
-.admin-bookings-section {
+.admin-bookings-section,
+.admin-audit-section {
   grid-column: 1 / -1;
 }
 
@@ -1315,9 +1432,44 @@ h2 {
 }
 
 .admin-customer-card,
-.admin-payment-card {
+.admin-payment-card,
+.admin-audit-card {
   grid-template-columns: minmax(0, 1fr);
   align-items: start;
+}
+
+.admin-audit-list {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.admin-audit-card {
+  gap: 10px;
+  background:
+    linear-gradient(135deg, rgba(215, 161, 140, 0.075), rgba(248, 242, 236, 0.028)),
+    rgba(8, 7, 7, 0.58);
+}
+
+.admin-audit-card strong,
+.admin-audit-card span {
+  display: block;
+  min-width: 0;
+}
+
+.admin-audit-card strong {
+  margin: 5px 0;
+}
+
+.admin-audit-meta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px;
+  border-top: 1px solid rgba(248, 242, 236, 0.1);
+  padding-top: 10px;
+}
+
+.admin-audit-meta small {
+  color: rgba(248, 242, 236, 0.52);
 }
 
 .admin-bookings-section .admin-record-list {
@@ -4594,6 +4746,7 @@ body.admin-drawer-open {
   .admin-reminders-section,
   .admin-manual-section,
   .admin-bookings-section,
+  .admin-audit-section,
   .admin-customers-section,
   .admin-payments-section {
     grid-column: 1 / -1;
@@ -4676,6 +4829,20 @@ body.admin-drawer-open {
 
   .admin-submit {
     grid-column: 1 / -1;
+  }
+
+  .status-result {
+    grid-column: 1;
+  }
+
+  .status-result-heading,
+  .status-result-grid,
+  .admin-audit-list {
+    grid-template-columns: 1fr;
+  }
+
+  .status-result-pills {
+    justify-content: flex-start;
   }
 }
 
@@ -4793,6 +4960,19 @@ body.admin-drawer-open {
   .admin-booking-card {
     grid-template-columns: 1fr;
     padding: 16px;
+  }
+
+  .status-lookup-panel,
+  .status-result-card {
+    padding: 18px;
+  }
+
+  .status-result-heading h2 {
+    font-size: 2rem;
+  }
+
+  .admin-audit-list {
+    grid-template-columns: 1fr;
   }
 
   .admin-booking-statuses {

@@ -2359,7 +2359,7 @@ const adminHandoverChecklist = [
   },
 ];
 
-let adminState = { bookings: [], vehicles: [], customers: [], payments: [], notifications: [], selectedBookingId: "" };
+let adminState = { bookings: [], vehicles: [], customers: [], payments: [], notifications: [], auditLog: [], selectedBookingId: "" };
 let adminFilters = { query: "", status: "all", payment: "all", followUp: "all", date: "", view: "all" };
 
 function renderAdminCounts(counts = {}) {
@@ -3126,6 +3126,31 @@ function renderAdminPayments(payments = []) {
     : `<article class="admin-empty">No payment records yet.</article>`;
 }
 
+function renderAdminAuditLog(events = []) {
+  const target = document.querySelector("[data-admin-audit-log]");
+  if (!target) return;
+  target.innerHTML = events.length
+    ? events
+        .slice(0, 40)
+        .map(
+          (event) => `
+            <article class="admin-record-card admin-audit-card">
+              <div>
+                <span class="admin-record-kicker">${escapeHtml(event.actor || "Operations")}</span>
+                <strong>${escapeHtml(event.label || "Operations update")}</strong>
+                <span>${escapeHtml(event.details || event.reference || "No detail supplied")}</span>
+              </div>
+              <div class="admin-audit-meta">
+                <span>${escapeHtml(event.reference || event.entityId || "")}</span>
+                <small>${escapeHtml(event.createdAt ? new Date(event.createdAt).toLocaleString("en-GB") : "")}</small>
+              </div>
+            </article>
+          `,
+        )
+        .join("")
+    : `<article class="admin-empty">No audit events yet. Price edits, blocked dates, booking decisions and checklist updates will appear here.</article>`;
+}
+
 async function refreshAdmin() {
   const result = await apiRequest("/api/admin/summary", { method: "GET" });
   const summary = result.summary || {};
@@ -3135,6 +3160,7 @@ async function refreshAdmin() {
     customers: summary.customers || [],
     payments: summary.payments || [],
     notifications: summary.notifications || [],
+    auditLog: summary.auditLog || [],
     selectedBookingId: adminState.selectedBookingId || "",
   };
   renderAdminCounts(summary.counts || {});
@@ -3144,6 +3170,7 @@ async function refreshAdmin() {
   renderAdminBookings(filteredAdminBookings());
   renderAdminCustomers(adminState.customers);
   renderAdminPayments(adminState.payments);
+  renderAdminAuditLog(adminState.auditLog);
   if (adminState.selectedBookingId) renderAdminBookingDetail(adminState.selectedBookingId);
   const status = document.querySelector("[data-admin-status]");
   if (status) status.textContent = summary.meta?.available ? "Connected to Vercel KV operations storage." : "Using memory fallback. Check KV_REST_API_URL and KV_REST_API_TOKEN.";
@@ -3544,6 +3571,131 @@ function setupSuccess() {
   });
 }
 
+function customerStatusNextStep(booking = {}, payment = null) {
+  const bookingStatus = String(booking.status || "").toLowerCase();
+  const paymentStatus = String(payment?.status || booking.paymentStatus || "").toLowerCase();
+  if (paymentStatus === "deposit_paid" && bookingStatus === "confirmed") {
+    return "Your deposit is confirmed. Velaire will finalise driver checks, timing and handover details.";
+  }
+  if (paymentStatus === "payment_pending") {
+    return "Your booking is held for review. Complete the secure deposit step if you have not already paid.";
+  }
+  if (paymentStatus === "refund_pending") {
+    return "A refund review is in progress. Velaire will confirm the final refund status privately.";
+  }
+  if (paymentStatus === "refunded") {
+    return "The deposit is marked as refunded. Contact Velaire if you need a receipt or further detail.";
+  }
+  if (["cancelled", "rejected"].includes(bookingStatus)) {
+    return "This booking is not currently proceeding. Contact Velaire if you need a new reservation.";
+  }
+  if (bookingStatus === "completed") {
+    return "This reservation is marked complete. Thank you for choosing Velaire Cars.";
+  }
+  return "Your reservation is with Velaire operations for final concierge review.";
+}
+
+function renderCustomerStatus(result = {}) {
+  const target = document.querySelector("[data-status-result]");
+  if (!target) return;
+  const booking = result.booking || {};
+  const payment = result.payment || null;
+  const totals = booking.totals || {};
+  target.hidden = false;
+  target.innerHTML = `
+    <article class="status-result-card">
+      <div class="status-result-heading">
+        <div>
+          <p class="eyebrow">Current status</p>
+          <h2>${escapeHtml(booking.reference || "Velaire booking")}</h2>
+          <span>${escapeHtml(booking.vehicleName || "Selected Velaire vehicle")}</span>
+        </div>
+        <div class="status-result-pills">
+          ${statusPill(booking.status)}
+          ${statusPill(payment?.status || booking.paymentStatus)}
+        </div>
+      </div>
+      <div class="status-result-grid">
+        <div>
+          <span>Client</span>
+          <strong>${escapeHtml(booking.customerName || "Guest client")}</strong>
+        </div>
+        <div>
+          <span>Pickup</span>
+          <strong>${escapeHtml([formatDisplayDate(booking.pickup) || booking.pickup, booking.pickupTime].filter(Boolean).join(" at ") || "To be confirmed")}</strong>
+        </div>
+        <div>
+          <span>Return</span>
+          <strong>${escapeHtml([formatDisplayDate(booking.return) || booking.return, booking.returnTime].filter(Boolean).join(" at ") || "To be confirmed")}</strong>
+        </div>
+        <div>
+          <span>Handover</span>
+          <strong>${escapeHtml(booking.location || "Concierge handover to be confirmed")}</strong>
+        </div>
+        <div>
+          <span>Deposit</span>
+          <strong>${payment?.amount ? money(Number(payment.amount)) : totals.deposit ? money(Number(totals.deposit)) : "To be confirmed"}</strong>
+        </div>
+        <div>
+          <span>Hire estimate</span>
+          <strong>${totals.hireEstimate ? money(Number(totals.hireEstimate)) : "To be confirmed"}</strong>
+        </div>
+      </div>
+      <div class="status-next-step">
+        <span>Next step</span>
+        <p>${escapeHtml(customerStatusNextStep(booking, payment))}</p>
+      </div>
+    </article>
+  `;
+}
+
+function setupStatus() {
+  const form = document.querySelector("[data-status-form]");
+  const result = document.querySelector("[data-status-result]");
+  form?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const submit = form.querySelector("button[type='submit']");
+    const original = submit?.textContent || "Check status";
+    if (submit) {
+      submit.disabled = true;
+      submit.textContent = "Checking...";
+    }
+    try {
+      const data = new FormData(form);
+      const response = await apiRequest("/api/booking-status", {
+        method: "POST",
+        body: JSON.stringify({
+          reference: data.get("reference") || "",
+          email: data.get("email") || "",
+        }),
+      });
+      renderCustomerStatus(response);
+      trackVelaireEvent("Customer Status Lookup", {
+        found: true,
+      });
+    } catch (error) {
+      if (result) {
+        result.hidden = false;
+        result.innerHTML = `
+          <article class="status-result-card status-result-error">
+            <p class="eyebrow">Status unavailable</p>
+            <h2>We could not match that booking.</h2>
+            <p>${escapeHtml(error.message || "Check the reference and email address, then try again.")}</p>
+          </article>
+        `;
+      }
+      trackVelaireEvent("Customer Status Lookup", {
+        found: false,
+      });
+    } finally {
+      if (submit) {
+        submit.disabled = false;
+        submit.textContent = original;
+      }
+    }
+  });
+}
+
 const page = document.body.dataset.page;
 hydrateVehicleModels();
 if (page === "booking") setupBooking();
@@ -3551,6 +3703,7 @@ if (page === "login") setupLogin();
 if (page === "payment") setupPayment();
 if (page === "account") setupAccount();
 if (page === "admin") setupAdmin();
+if (page === "status") setupStatus();
 if (["success", "guest"].includes(page)) hydrateFleetPricing();
 if (page === "success") {
   setupSuccess();

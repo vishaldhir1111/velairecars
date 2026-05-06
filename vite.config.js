@@ -11,6 +11,7 @@ export default defineConfig({
         login: new URL("./login.html", import.meta.url).pathname,
         account: new URL("./account.html", import.meta.url).pathname,
         admin: new URL("./admin.html", import.meta.url).pathname,
+        status: new URL("./status.html", import.meta.url).pathname,
         payment: new URL("./payment.html", import.meta.url).pathname,
         success: new URL("./success.html", import.meta.url).pathname,
         terms: new URL("./terms.html", import.meta.url).pathname,

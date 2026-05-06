@@ -29,6 +29,7 @@ const requiredFiles = [
   "login.html",
   "account.html",
   "admin.html",
+  "status.html",
   "payment.html",
   "success.html",
   "areas-served.html",
@@ -48,6 +49,7 @@ const requiredFiles = [
   "public/login.html",
   "public/account.html",
   "public/admin.html",
+  "public/status.html",
   "public/payment.html",
   "public/success.html",
   "public/areas-served.html",
@@ -68,6 +70,7 @@ const requiredFiles = [
   "src/data/fleet.js",
   "api/fleet.js",
   "api/bookings.js",
+  "api/booking-status.js",
   "api/account.js",
   "api/availability.js",
   "api/concierge.js",
@@ -102,6 +105,7 @@ const mirroredPublicFiles = [
   "login.html",
   "account.html",
   "admin.html",
+  "status.html",
   "payment.html",
   "success.html",
   "areas-served.html",
@@ -125,6 +129,7 @@ const customerHtmlPages = [
   "login.html",
   "account.html",
   "admin.html",
+  "status.html",
   "payment.html",
   "success.html",
   "areas-served.html",
@@ -196,7 +201,7 @@ for (const file of indexablePages) {
   }
 }
 
-for (const file of ["login.html", "account.html", "admin.html", "payment.html", "success.html"]) {
+for (const file of ["login.html", "account.html", "admin.html", "status.html", "payment.html", "success.html"]) {
   if (!read(file).includes('meta name="robots" content="noindex, nofollow"')) {
     throw new Error(`${file} must be noindex/nofollow because it is private or transactional`);
   }
@@ -239,6 +244,27 @@ if (
   throw new Error("Operations portal must include booking actions, refund states and the handover checklist");
 }
 
+if (
+  !read("api/_lib/operations-store.js").includes("auditLog") ||
+  !read("api/_lib/operations-store.js").includes("addAuditEvent") ||
+  !read("flow.js").includes("renderAdminAuditLog") ||
+  !read("admin.html").includes("data-admin-audit-log") ||
+  !read("flow.css").includes(".admin-audit-card")
+) {
+  throw new Error("Operations portal must include a persisted audit log for admin changes and booking/payment events");
+}
+
+if (
+  !read("api/booking-status.js").includes("lookupCustomerBookingStatus") ||
+  !read("api/_lib/operations-store.js").includes("lookupCustomerBookingStatus") ||
+  !read("status.html").includes("data-status-form") ||
+  !read("status.html").includes("data-status-result") ||
+  !read("flow.js").includes("setupStatus") ||
+  !read("flow.css").includes(".status-result-card")
+) {
+  throw new Error("Customer booking status lookup must stay wired to the persisted operations store");
+}
+
 const analyticsEvents = [
   "Booking Started",
   "Car Selected",
@@ -252,6 +278,7 @@ const analyticsEvents = [
   "Admin Booking Status Updated",
   "Admin Manual Booking Created",
   "Admin Handover Checklist Updated",
+  "Customer Status Lookup",
   "Cinematic Intro Completed",
   "Concierge Prompt Submitted",
   "Specialist Service Quote",
@@ -474,6 +501,7 @@ for (const page of [
   "login.html",
   "account.html",
   "admin.html",
+  "status.html",
   "payment.html",
   "success.html",
   "terms.html",
@@ -497,7 +525,7 @@ for (const file of requiredFiles) {
   }
 }
 
-for (const page of ["booking.html", "login.html", "account.html", "admin.html", "payment.html", "success.html"]) {
+for (const page of ["booking.html", "login.html", "account.html", "admin.html", "status.html", "payment.html", "success.html"]) {
   const html = read(page);
   if (!html.includes('href="flow.css"')) {
     throw new Error(`${page} does not load flow.css`);
@@ -686,7 +714,7 @@ if (
   throw new Error("Deposit flow must create a real Stripe Checkout session and redirect instead of using a local placeholder payment form");
 }
 
-for (const htmlFile of ["index.html", "booking.html", "login.html", "account.html", "admin.html", "payment.html", "success.html"]) {
+for (const htmlFile of ["index.html", "booking.html", "login.html", "account.html", "admin.html", "status.html", "payment.html", "success.html"]) {
   const html = read(htmlFile);
   for (const match of html.matchAll(/(?:href|action|src)="([^"]+)"/g)) {
     const target = match[1];

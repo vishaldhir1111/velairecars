@@ -92,6 +92,7 @@ function baseState() {
     customers: [],
     leads: [],
     notifications: [],
+    auditLog: [],
     updatedAt: now(),
   };
 }
@@ -120,6 +121,7 @@ function normaliseState(raw = null) {
     customers: Array.isArray(state.customers) ? state.customers : [],
     leads: Array.isArray(state.leads) ? state.leads : [],
     notifications: Array.isArray(state.notifications) ? state.notifications : [],
+    auditLog: Array.isArray(state.auditLog) ? state.auditLog.map(publicAuditEvent) : [],
     updatedAt: state.updatedAt || fallback.updatedAt,
   };
 }
@@ -338,6 +340,31 @@ function publicNotification(notification = {}) {
     paymentId: notification.paymentId || "",
     createdAt: notification.createdAt || now(),
   };
+}
+
+function publicAuditEvent(event = {}) {
+  return {
+    id: event.id || id("aud"),
+    type: event.type || "operations_update",
+    label: event.label || "Operations update",
+    actor: event.actor || "Operations",
+    entityType: event.entityType || "",
+    entityId: event.entityId || "",
+    reference: event.reference || "",
+    details: event.details || "",
+    createdAt: event.createdAt || now(),
+  };
+}
+
+function addAuditEvent(state, event = {}) {
+  state.auditLog = [
+    publicAuditEvent({
+      ...event,
+      id: event.id || id("aud"),
+      createdAt: event.createdAt || now(),
+    }),
+    ...(Array.isArray(state.auditLog) ? state.auditLog : []),
+  ].slice(0, 250);
 }
 
 function customerRecordsFromBookings(bookings = []) {
@@ -632,6 +659,15 @@ export async function createBookingRecord({ userId = null, reservation = {}, sta
       updatedAt: now(),
     };
     draft.bookings.push(booking);
+    addAuditEvent(draft, {
+      type: "booking_created",
+      label: "Booking created",
+      actor: "Customer",
+      entityType: "booking",
+      entityId: booking.id,
+      reference: booking.reference,
+      details: `${booking.customerName || "Guest client"} reserved ${booking.vehicleName}.`,
+    });
     syncCustomers(draft);
     return publicBooking(booking);
   });
@@ -643,7 +679,12 @@ export async function updateBookingRecord(idValue, patch = {}) {
   const { state, persistence, result } = await mutateOperations((draft) => {
     const booking = draft.bookings.find((item) => item.id === idValue);
     if (!booking) return null;
-    const { reservation, ...bookingPatch } = patch;
+    const { reservation, auditActor = "Operations", auditLabel = "", ...bookingPatch } = patch;
+    const before = {
+      status: booking.status,
+      paymentStatus: booking.paymentStatus,
+      followUpStatus: booking.followUpStatus,
+    };
     if (reservation) {
       const totals = totalsForReservation(draft, {
         ...reservation,
@@ -714,6 +755,29 @@ export async function updateBookingRecord(idValue, patch = {}) {
           ? "Internal notes updated"
           : "Booking updated";
     booking.timeline = [...(booking.timeline || []), { label: updateLabel, at: now() }];
+    addAuditEvent(draft, {
+      type: bookingPatch.status
+        ? "booking_status_updated"
+        : paymentStatusChanged
+          ? "payment_status_updated"
+          : Object.prototype.hasOwnProperty.call(bookingPatch, "operationsChecklist")
+            ? "handover_checklist_updated"
+            : "booking_updated",
+      label: auditLabel || updateLabel,
+      actor: auditActor,
+      entityType: "booking",
+      entityId: booking.id,
+      reference: booking.reference,
+      details: [
+        before.status !== booking.status ? `Booking ${before.status || "unset"} to ${booking.status || "unset"}` : "",
+        before.paymentStatus !== booking.paymentStatus ? `Deposit ${before.paymentStatus || "unset"} to ${booking.paymentStatus || "unset"}` : "",
+        before.followUpStatus !== booking.followUpStatus ? `Follow-up ${before.followUpStatus || "unset"} to ${booking.followUpStatus || "unset"}` : "",
+        Object.prototype.hasOwnProperty.call(bookingPatch, "operationsChecklist") ? "Staff handover checklist changed" : "",
+        Object.prototype.hasOwnProperty.call(bookingPatch, "internalNotes") ? "Internal notes changed" : "",
+      ]
+        .filter(Boolean)
+        .join(" · ") || `${booking.reference || booking.id} updated.`,
+    });
     syncCustomers(draft);
     return publicBooking(booking);
   });
@@ -758,6 +822,15 @@ export async function createPaymentRecord({ bookingId = "", reservation = {} } =
       booking.paymentStatus = "payment_pending";
       booking.paymentIntentId = payment.id;
       booking.updatedAt = now();
+      addAuditEvent(draft, {
+        type: "payment_session_created",
+        label: "Deposit session created",
+        actor: "Customer",
+        entityType: "payment",
+        entityId: payment.id,
+        reference: booking.reference,
+        details: `${payment.vehicleName} deposit session opened for ${payment.customerEmail || "guest client"}.`,
+      });
     }
     return publicPayment(payment);
   });
@@ -771,6 +844,7 @@ export async function updatePaymentRecord(idValue, patch = {}) {
     Object.assign(payment, patch, { updatedAt: now() });
     const booking = draft.bookings.find((item) => item.id === payment.bookingId);
     if (booking && patch.status) {
+      const beforeStatus = booking.paymentStatus;
       booking.paymentStatus = patch.status;
       if (patch.status === "deposit_paid") booking.status = "confirmed";
       if (["cancelled", "failed"].includes(String(patch.status).toLowerCase())) booking.status = String(patch.status).toLowerCase();
@@ -784,6 +858,15 @@ export async function updatePaymentRecord(idValue, patch = {}) {
         ...(booking.timeline || []),
         { label: `Deposit status changed to ${patch.status}`, at: now() },
       ];
+      addAuditEvent(draft, {
+        type: "payment_status_updated",
+        label: `Deposit status changed to ${patch.status}`,
+        actor: patch.provider === "stripe_checkout" || patch.providerReference ? "Stripe" : "Operations",
+        entityType: "payment",
+        entityId: payment.id,
+        reference: booking.reference,
+        details: `Deposit ${beforeStatus || "unset"} to ${patch.status}.`,
+      });
       booking.updatedAt = now();
     }
     return publicPayment(payment);
@@ -815,14 +898,91 @@ export async function sendBookingCommunication(bookingId, kind = "confirmation")
   return { booking, payment, notifications };
 }
 
+export async function lookupCustomerBookingStatus({ reference = "", email = "" } = {}) {
+  const cleanReference = String(reference || "").trim().toUpperCase();
+  const cleanEmail = String(email || "").trim().toLowerCase();
+  if (!cleanReference || !cleanEmail) {
+    const error = new Error("Enter your booking reference and email address.");
+    error.status = 400;
+    error.publicMessage = "Enter your booking reference and email address.";
+    throw error;
+  }
+  const state = await loadOperationsState();
+  const booking = (state.bookings || []).find((item) => {
+    const bookingReference = String(item.reference || item.id || "").trim().toUpperCase();
+    const bookingEmail = String(item.customerEmail || "").trim().toLowerCase();
+    return bookingEmail === cleanEmail && bookingReference === cleanReference;
+  });
+  if (!booking) {
+    const error = new Error("We could not find a matching Velaire booking. Check the reference and email used at reservation.");
+    error.status = 404;
+    error.publicMessage = "We could not find a matching Velaire booking. Check the reference and email used at reservation.";
+    throw error;
+  }
+  const payment =
+    (state.payments || []).map(publicPayment).find((item) => item.bookingId === booking.id) ||
+    (state.payments || []).map(publicPayment).find((item) => item.bookingReference === booking.reference) ||
+    null;
+  const safeBooking = publicBooking(booking);
+  return {
+    booking: {
+      reference: safeBooking.reference,
+      customerName: safeBooking.customerName,
+      vehicleName: safeBooking.vehicleName,
+      status: safeBooking.status,
+      paymentStatus: payment?.status || safeBooking.paymentStatus,
+      pickup: safeBooking.pickup,
+      pickupTime: safeBooking.pickupTime,
+      return: safeBooking.return,
+      returnTime: safeBooking.returnTime,
+      location: safeBooking.location,
+      totals: safeBooking.totals,
+      createdAt: safeBooking.createdAt,
+      updatedAt: safeBooking.updatedAt,
+    },
+    payment: payment
+      ? {
+          amount: payment.amount,
+          currency: payment.currency,
+          status: payment.status,
+          provider: payment.provider,
+          updatedAt: payment.updatedAt,
+        }
+      : null,
+    meta: state.meta,
+  };
+}
+
 export async function updateVehicleOperationsRecord(slug, patch = {}) {
   const { state, persistence, result } = await mutateOperations((draft) => {
     const vehicle = requireVehicle(slug);
     const operations = vehicleOperations(draft, vehicle.slug);
+    const before = {
+      rate: operations.rate,
+      deposit: operations.deposit,
+      availabilityStatus: operations.availabilityStatus,
+    };
     operations.rate = Number.isFinite(Number(patch.rate)) ? Math.max(Number(patch.rate), 0) : operations.rate;
     operations.deposit = Number.isFinite(Number(patch.deposit)) ? Math.max(Number(patch.deposit), 0) : operations.deposit;
     operations.availabilityStatus = patch.availabilityStatus || operations.availabilityStatus || "request-to-confirm";
     operations.updatedAt = now();
+    addAuditEvent(draft, {
+      type: "vehicle_operations_updated",
+      label: "Vehicle pricing/availability updated",
+      actor: "Operations",
+      entityType: "vehicle",
+      entityId: vehicle.slug,
+      reference: vehicle.name,
+      details: [
+        before.rate !== operations.rate ? `Rate ${before.rate} to ${operations.rate}` : "",
+        before.deposit !== operations.deposit ? `Deposit ${before.deposit} to ${operations.deposit}` : "",
+        before.availabilityStatus !== operations.availabilityStatus
+          ? `Availability ${before.availabilityStatus || "unset"} to ${operations.availabilityStatus || "unset"}`
+          : "",
+      ]
+        .filter(Boolean)
+        .join(" · ") || `${vehicle.name} operations settings saved.`,
+    });
     return operationalVehicleFromState(draft, vehicle.slug);
   });
   return { vehicle: result, state, persistence };
@@ -847,6 +1007,15 @@ export async function blockVehicleDates(slug, { start, end, reason = "Operations
     };
     operations.blockedRanges.push(block);
     operations.updatedAt = now();
+    addAuditEvent(draft, {
+      type: "vehicle_dates_blocked",
+      label: "Vehicle dates blocked",
+      actor: "Operations",
+      entityType: "vehicle",
+      entityId: slug,
+      reference: slug,
+      details: `${block.start} to ${block.end} · ${block.reason || "Operations block"}`,
+    });
     return block;
   });
   return { block: result, state, persistence };
@@ -856,8 +1025,20 @@ export async function removeVehicleBlock(slug, blockId) {
   const { state, persistence, result } = await mutateOperations((draft) => {
     const operations = vehicleOperations(draft, slug);
     const before = operations.blockedRanges.length;
+    const removedBlock = operations.blockedRanges.find((block) => block.id === blockId);
     operations.blockedRanges = operations.blockedRanges.filter((block) => block.id !== blockId);
     operations.updatedAt = now();
+    if (removedBlock) {
+      addAuditEvent(draft, {
+        type: "vehicle_date_block_removed",
+        label: "Vehicle date block removed",
+        actor: "Operations",
+        entityType: "vehicle",
+        entityId: slug,
+        reference: slug,
+        details: `${removedBlock.start} to ${removedBlock.end} · ${removedBlock.reason || "Operations block"}`,
+      });
+    }
     return before !== operations.blockedRanges.length;
   });
   return { removed: result, state, persistence };
@@ -870,6 +1051,9 @@ export async function operationsSummary() {
   const customers = state.customers?.length ? state.customers : customerRecordsFromBookings(bookings);
   const notifications = (state.notifications || [])
     .map(publicNotification)
+    .sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
+  const auditLog = (state.auditLog || [])
+    .map(publicAuditEvent)
     .sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
   return {
     meta: state.meta,
@@ -886,6 +1070,7 @@ export async function operationsSummary() {
     payments,
     customers,
     notifications,
+    auditLog,
     vehicles: listOperationalVehiclesFromState(state),
   };
 }

@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Check a Velaire Cars reservation status using your booking reference and email address."
+    />
+    <title>Booking Status | Velaire Cars</title>
+    <link rel="canonical" href="https://www.velairecars.com/status.html" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="theme-color" content="#050505" />
+    <link rel="stylesheet" href="flow.css" />
+    <script>
+      window.va =
+        window.va ||
+        function () {
+          (window.vaq = window.vaq || []).push(arguments);
+        };
+    </script>
+    <script defer src="/_vercel/insights/script.js"></script>
+  </head>
+  <body data-page="status">
+    <main class="flow-shell status-shell">
+      <nav class="flow-nav" aria-label="Booking status navigation">
+        <a class="brand" href="/">
+          <span class="brand-copy">
+            <strong>Velaire Cars</strong>
+            <small>Performance, prestige, delivered</small>
+          </span>
+        </a>
+        <div class="flow-nav-links">
+          <a href="/">Fleet</a>
+          <a href="booking.html">Reserve</a>
+        </div>
+      </nav>
+
+      <section class="flow-stage status-stage">
+        <div class="flow-intro">
+          <p class="eyebrow">Reservation status</p>
+          <h1>View your Velaire booking.</h1>
+          <p>
+            Enter the reference from your confirmation email and the email used at reservation to
+            view the current deposit, approval and handover status.
+          </p>
+        </div>
+
+        <section class="flow-panel status-lookup-panel">
+          <div class="panel-heading">
+            <p class="eyebrow">Private lookup</p>
+            <h2>Booking reference</h2>
+          </div>
+          <form class="status-form" data-status-form>
+            <label class="field">
+              Reference
+              <input name="reference" placeholder="VEL-URUS-1087" autocomplete="off" required />
+            </label>
+            <label class="field">
+              Email address
+              <input name="email" type="email" placeholder="you@example.com" autocomplete="email" required />
+            </label>
+            <button class="primary-button status-submit" type="submit">Check status</button>
+          </form>
+          <p class="status-note">
+            If anything looks wrong, contact Velaire and quote your booking reference.
+          </p>
+        </section>
+
+        <section class="status-result" data-status-result hidden aria-live="polite"></section>
+      </section>
+    </main>
+
+    <script type="module" src="/flow.js"></script>
+  </body>
+</html>
