@@ -63,6 +63,8 @@ const requiredFiles = [
   "public/robots.txt",
   "public/sitemap.xml",
   "public/favicon.svg",
+  "public/Nexa-ExtraLight.ttf",
+  "public/Nexa-Heavy.ttf",
   "src/data/fleet.js",
   "api/fleet.js",
   "api/bookings.js",
@@ -351,6 +353,18 @@ if (
   !read("src/styles.css").includes("heroCopyReveal")
 ) {
   throw new Error("Homepage must include the Framer Motion cinematic Velaire loading animation");
+}
+if (
+  !read("src/styles.css").includes('font-family: "Nexa"') ||
+  !read("src/styles.css").includes('url("/Nexa-ExtraLight.ttf")') ||
+  !read("src/styles.css").includes('url("/Nexa-Heavy.ttf")') ||
+  !read("src/styles.css").includes("--font-sans") ||
+  !read("flow.css").includes('font-family: "Nexa"') ||
+  !read("flow.css").includes("--font-display") ||
+  read("src/styles.css").includes("Georgia, \"Times New Roman\", serif") ||
+  read("flow.css").includes("Georgia, \"Times New Roman\", serif")
+) {
+  throw new Error("The public site and booking flow must be wired to the Nexa typography system");
 }
 if (!app.includes("/api/fleet?ts=") || !app.includes("mergeOperationsFleet") || !app.includes("cache: \"no-store\"")) {
   throw new Error("Homepage fleet must hydrate pricing from the operations-managed fleet API without cache");

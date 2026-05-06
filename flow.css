@@ -1,3 +1,27 @@
+@font-face {
+  font-family: "Nexa";
+  src: url("/Nexa-ExtraLight.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 300;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Nexa";
+  src: url("/Nexa-ExtraLight.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Nexa";
+  src: url("/Nexa-Heavy.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 600 900;
+  font-display: swap;
+}
+
 :root {
   color-scheme: dark;
   --black: #050505;
@@ -16,8 +40,10 @@
   --line-soft: rgba(248, 242, 236, 0.12);
   --shadow: 0 24px 70px rgba(0, 0, 0, 0.34);
   --radius: 8px;
-  font-family:
-    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-sans: "Nexa", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-display: "Nexa", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --serif: var(--font-display);
+  font-family: var(--font-sans);
 }
 
 * {
@@ -144,7 +170,7 @@ textarea {
   border-radius: 50%;
   background: linear-gradient(145deg, #1b1715, #050505);
   color: var(--rose);
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-display);
   font-size: 1.4rem;
 }
 
@@ -155,7 +181,7 @@ textarea {
 
 .brand-copy strong {
   color: var(--ivory);
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-display);
   font-size: 1.12rem;
   font-weight: 500;
 }
@@ -287,7 +313,7 @@ textarea {
 
 .flow-trust-strip strong {
   color: var(--rose);
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-display);
   font-size: 2.1rem;
   font-weight: 500;
 }
@@ -341,7 +367,7 @@ p {
 h1,
 h2 {
   margin-bottom: 0;
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-display);
   font-weight: 500;
   line-height: 0.94;
 }
@@ -407,7 +433,7 @@ h2 {
 .intro-stat-grid strong {
   display: block;
   color: var(--rose);
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-display);
   font-size: 2rem;
   font-weight: 500;
 }
@@ -682,7 +708,7 @@ h2 {
 .area-highlight strong {
   display: block;
   color: var(--ivory);
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-display);
   font-size: 1.2rem;
   font-weight: 500;
   line-height: 1.18;
@@ -942,7 +968,7 @@ h2 {
 
 .calendar-header strong {
   color: var(--ivory);
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-display);
   font-size: 1.35rem;
   font-weight: 500;
   text-align: center;
@@ -1993,7 +2019,7 @@ body.admin-drawer-open {
 .choice-card .choice-name {
   margin-top: 12px;
   color: var(--ivory);
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-display);
   font-size: 1rem;
   line-height: 1.08;
 }
@@ -2806,7 +2832,7 @@ body.admin-drawer-open {
 .delivery-preview strong {
   max-width: 330px;
   color: var(--ivory);
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-display);
   font-size: 1.34rem;
   font-weight: 500;
 }
@@ -3031,7 +3057,7 @@ body.admin-drawer-open {
 .map-fallback strong {
   max-width: 380px;
   color: var(--ivory);
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-display);
   font-size: 1.42rem;
   font-weight: 500;
   line-height: 1.12;
@@ -3060,8 +3086,7 @@ body.admin-drawer-open {
 .delivery-map .mapboxgl-control-container {
   position: relative;
   z-index: 4;
-  font-family:
-    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: var(--font-sans);
 }
 
 .delivery-map .mapboxgl-ctrl-group {
@@ -3222,7 +3247,7 @@ body.admin-drawer-open {
 .selected-location-panel strong {
   max-width: calc(100% - 30px);
   color: var(--ivory);
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-display);
   font-size: 1.26rem;
   font-weight: 500;
   line-height: 1.18;
@@ -3486,7 +3511,7 @@ body.admin-drawer-open {
 }
 
 .mini-summary strong {
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-display);
   font-size: 1.34rem;
   font-weight: 500;
 }
@@ -3609,7 +3634,7 @@ body.admin-drawer-open {
   border-radius: 50%;
   background: linear-gradient(145deg, #1b1715, #050505);
   color: var(--rose);
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-display);
   font-size: 2.2rem;
   box-shadow: 0 0 0 16px rgba(215, 161, 140, 0.08);
 }
@@ -3646,7 +3671,7 @@ body.admin-drawer-open {
 
 .success-vehicle-card strong {
   color: var(--ivory);
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-display);
   font-size: 1.34rem;
   font-weight: 500;
 }
@@ -3718,7 +3743,7 @@ body.admin-drawer-open {
   padding: 42px;
   background: #fbf7f1;
   color: #17110e;
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
 }
 
 .print-receipt-brand {
@@ -3737,7 +3762,7 @@ body.admin-drawer-open {
   border: 1px solid #9d6a52;
   border-radius: 50%;
   color: #9d6a52;
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-display);
   font-size: 1.7rem;
 }
 
@@ -3747,7 +3772,7 @@ body.admin-drawer-open {
 }
 
 .print-receipt-brand strong {
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-display);
   font-size: 1.35rem;
 }
 
@@ -3772,7 +3797,7 @@ body.admin-drawer-open {
 .print-receipt-heading h1 {
   margin: 0;
   color: #17110e;
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-display);
   font-size: 3rem;
   line-height: 1;
 }
@@ -3876,7 +3901,7 @@ body.admin-drawer-open {
     radial-gradient(circle at 32% 22%, rgba(248, 242, 236, 0.2), transparent 28%),
     linear-gradient(145deg, rgba(215, 161, 140, 0.2), rgba(5, 5, 5, 0.84));
   color: var(--rose-3);
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-display);
   font-size: 1.35rem;
   font-weight: 500;
   box-shadow: 0 0 0 12px rgba(215, 161, 140, 0.06);
@@ -3928,7 +3953,7 @@ body.admin-drawer-open {
 .premium-card-summary strong,
 .verification-status-card strong {
   color: var(--ivory);
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-display);
   font-weight: 500;
 }
 
@@ -4149,7 +4174,7 @@ body.admin-drawer-open {
 
 .upload-tile strong {
   color: var(--ivory);
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-display);
   font-size: 1.26rem;
   font-weight: 500;
   line-height: 1.18;
