@@ -837,7 +837,7 @@ function bindVehicleMedia(vehicle) {
       `vehicle-model-${media.visualClass}`,
       `vehicle-model-${media.modelType}`,
     );
-    node.setAttribute("aria-label", `Premium 3D studio visual of ${media.visualLabel}`);
+    node.setAttribute("aria-label", `Premium vehicle image of ${media.visualLabel}`);
     node.dataset.modelPath = media.modelPath;
     node.dataset.fallbackImage = media.fallbackImagePath;
     node.dataset.modelStatus = media.modelAvailable ? "glb-active" : media.viewerMode;
@@ -959,7 +959,7 @@ function updateBookingVehicleCards() {
     const media = card.querySelector("[data-vehicle-model]");
     if (media) {
       const exactMedia = mediaForVehicle(vehicle);
-      media.setAttribute("aria-label", `Premium 3D studio visual of ${exactMedia.visualLabel}`);
+      media.setAttribute("aria-label", `Premium vehicle image of ${exactMedia.visualLabel}`);
       media.dataset.modelPath = exactMedia.modelPath;
       media.dataset.fallbackImage = exactMedia.fallbackImagePath;
       media.dataset.modelStatus = exactMedia.modelAvailable ? "glb-active" : exactMedia.viewerMode;

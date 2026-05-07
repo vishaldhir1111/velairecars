@@ -226,7 +226,7 @@ if (
 if (
   !read("src/App.jsx").includes("specialistServices") ||
   !read("src/App.jsx").includes("Music Videos") ||
-  !read("src/App.jsx").includes("Artist Transport") ||
+  !read("src/App.jsx").includes("VIP Transport") ||
   !read("src/App.jsx").includes("Tailored quotes based on project requirements.") ||
   !read("src/styles.css").includes(".specialist-card") ||
   !read("src/styles.css").includes("--service-image")
@@ -466,7 +466,7 @@ if (
   !read("src/data/fleet.js").includes("/cars/studio-bmw-m440i-convertible-2022-sky-blue.png") ||
   read("src/data/fleet.js").includes("commons.wikimedia.org")
 ) {
-  throw new Error("Fleet media must use the local premium 3D-style studio visual assets");
+  throw new Error("Fleet media must use the local premium 3D-style vehicle image assets");
 }
 
 const studioAssets = [

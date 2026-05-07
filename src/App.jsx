@@ -45,7 +45,7 @@ const specialistServices = [
     image: "/cars/studio-range-rover-sport-svr-2021.png",
   },
   {
-    title: "Artist Transport",
+    title: "VIP Transport",
     text: "Discreet premium movement for artists, management and selected guests.",
     image: "/cars/studio-tesla-model-3-performance-2020.png",
   },
@@ -413,8 +413,6 @@ function VehicleGlbViewer({ car }) {
 }
 
 function VehiclePhoto({ car, size = "card" }) {
-  const assetStatus = car.asset.modelAvailable ? "GLB model active" : "3D studio visual";
-
   function handlePointerMove(event) {
     const rect = event.currentTarget.getBoundingClientRect();
     const x = (event.clientX - rect.left) / rect.width - 0.5;
@@ -434,7 +432,7 @@ function VehiclePhoto({ car, size = "card" }) {
         car.asset.fallbackImagePath ? "has-photo" : ""
       }`}
       role="img"
-      aria-label={`Premium 3D studio visual of ${car.asset.alt}`}
+      aria-label={`Premium vehicle image of ${car.asset.alt}`}
       data-model-path={car.asset.modelPath}
       data-fallback-image={car.asset.fallbackImagePath}
       data-model-status={car.asset.viewerMode}
@@ -449,7 +447,6 @@ function VehiclePhoto({ car, size = "card" }) {
         <VehicleModelParts />
       )}
       <div className="vehicle-model-badges" aria-hidden="true">
-        <span>{assetStatus}</span>
         <span>{car.category}</span>
       </div>
       <figcaption className="vehicle-photo-meta">

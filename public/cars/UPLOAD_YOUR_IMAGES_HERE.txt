@@ -1,7 +1,7 @@
 Optional Velaire Cars studio media slots
 
-The active fleet presentation uses premium 3D-style studio visuals from this folder until exact
-GLB/GLTF models are added in public/models. To replace a studio visual, upload a legally usable
+The active fleet presentation uses premium vehicle images from this folder until exact
+GLB/GLTF models are added in public/models. To replace a vehicle image, upload a legally usable
 asset with the same filename:
 
 - studio-tesla-model-3-performance-2020.png
