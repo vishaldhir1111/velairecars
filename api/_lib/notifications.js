@@ -65,13 +65,16 @@ function bookingReference(booking = {}) {
 }
 
 function bookingRows(booking = {}) {
+  const totals = booking.totals || {};
   const rows = [
     ["Reference", bookingReference(booking)],
     ["Vehicle", booking.vehicleName || "Selected Velaire vehicle"],
     ["Pickup", dateLabel(booking.pickup, booking.pickupTime)],
     ["Return", dateLabel(booking.return, booking.returnTime)],
     ["Handover", booking.location || "Concierge handover to be confirmed"],
-    ["Reserve deposit", money(booking.totals?.deposit || 0, booking.totals?.currency || "GBP")],
+    ["Reservation fee", money(totals.reservationFee || 79, totals.currency || "GBP")],
+    ["Estimated hire", totals.hireEstimate ? money(totals.hireEstimate, totals.currency || "GBP") : "Confirmed later"],
+    ["Security deposit", totals.deposit ? `${money(totals.deposit, totals.currency || "GBP")} handled later` : "Confirmed later"],
   ];
   return rows.filter(([, value]) => clean(value));
 }
@@ -281,29 +284,29 @@ export async function sendBookingCreatedNotifications({ booking } = {}) {
 export async function sendPaymentPendingNotifications({ payment, booking } = {}) {
   const config = emailConfig();
   const reference = bookingReference(booking || payment);
-  const subject = `Velaire deposit step prepared: ${reference}`;
+  const subject = `Velaire reservation fee step prepared: ${reference}`;
   return Promise.all([
     sendEmail({
-      type: "deposit_session_created",
+      type: "reservation_fee_session_created",
       audience: "customer",
       to: payment?.customerEmail || booking?.customerEmail,
       subject,
       payment,
       booking,
       html: emailShell({
-        preheader: "Your secure deposit step is ready.",
-        title: "Secure deposit step prepared.",
-        intro: "Your reservation details have been prepared for the deposit step. Once payment is complete, the concierge team will hold the vehicle for final approval.",
+        preheader: "Your secure reservation fee step is ready.",
+        title: "Reservation fee step prepared.",
+        intro: "Your reservation details have been prepared for the £79 reservation fee. Once payment is complete, the concierge team will hold the request for final approval.",
         rows: [
           ["Reference", reference],
           ["Vehicle", payment?.vehicleName || booking?.vehicleName || "Selected Velaire vehicle"],
-          ["Deposit", money(payment?.amount || booking?.totals?.deposit || 0, payment?.currency || "GBP")],
+          ["Reservation fee", money(payment?.amount || booking?.totals?.reservationFee || 79, payment?.currency || "GBP")],
           ["Status", statusLabel(payment?.status || "payment_pending")],
         ],
         footnote: "If you have already completed payment, no further action is required while the system updates the reservation state.",
       }),
-      text: `Your Velaire deposit step has been prepared for ${reference}.`,
-      idempotencyKey: `deposit-session-created:${payment?.id || reference}`,
+      text: `Your Velaire reservation fee step has been prepared for ${reference}.`,
+      idempotencyKey: `reservation-fee-session-created:${payment?.id || reference}`,
     }),
   ]);
 }
@@ -311,45 +314,58 @@ export async function sendPaymentPendingNotifications({ payment, booking } = {})
 export async function sendDepositPaidNotifications({ payment, booking } = {}) {
   const config = emailConfig();
   const reference = bookingReference(booking || payment);
+  const isReservationFee = payment?.purpose === "reservation_fee" || String(payment?.status || "").toLowerCase() === "reservation_fee_paid";
+  const paidLabel = isReservationFee ? "Reservation fee paid" : "Deposit paid";
+  const subject = isReservationFee ? `Reservation fee confirmed: ${reference}` : `Deposit confirmed: ${reference}`;
   const rows = [
     ["Reference", reference],
     ["Vehicle", payment?.vehicleName || booking?.vehicleName || "Selected Velaire vehicle"],
-    ["Deposit paid", money(payment?.amount || booking?.totals?.deposit || 0, payment?.currency || "GBP")],
+    [paidLabel, money(payment?.amount || booking?.totals?.reservationFee || 79, payment?.currency || "GBP")],
+    ["Security deposit", booking?.totals?.deposit ? `${money(booking.totals.deposit, booking?.totals?.currency || "GBP")} handled later` : "Handled later"],
+    ["Estimated hire", booking?.totals?.hireEstimate ? `${money(booking.totals.hireEstimate, booking?.totals?.currency || "GBP")} handled later` : "Handled later"],
     ["Booking status", statusLabel(booking?.status || "confirmed")],
   ];
 
   return Promise.all([
     sendEmail({
-      type: "deposit_paid_confirmation",
+      type: isReservationFee ? "reservation_fee_paid_confirmation" : "deposit_paid_confirmation",
       audience: "customer",
       to: payment?.customerEmail || booking?.customerEmail,
-      subject: `Deposit confirmed: ${reference}`,
+      subject,
       payment,
       booking,
       html: emailShell({
-        preheader: "Your Velaire reservation deposit is confirmed.",
-        title: "Deposit confirmed.",
-        intro: "Your reservation deposit has been received. Velaire will now finalise availability, handover timing and concierge delivery details.",
+        preheader: isReservationFee
+          ? "Your Velaire reservation fee is confirmed."
+          : "Your Velaire reservation deposit is confirmed.",
+        title: isReservationFee ? "Reservation fee confirmed." : "Deposit confirmed.",
+        intro: isReservationFee
+          ? "Your £79 reservation fee has been received. Velaire will now finalise availability, handover timing, security deposit and rental balance privately."
+          : "Your reservation deposit has been received. Velaire will now finalise availability, handover timing and concierge delivery details.",
         rows,
         ctaLabel: "Browse Velaire",
         ctaUrl: `${config.siteUrl}/#fleet`,
-        footnote: "The remaining balance and any delivery details will be confirmed privately by the concierge team.",
+        footnote: "The security deposit, rental balance and any delivery details will be confirmed privately by the concierge team.",
       }),
-      text: `Deposit confirmed for Velaire reservation ${reference}.`,
-      idempotencyKey: `deposit-paid-customer:${payment?.id || reference}`,
+      text: `${isReservationFee ? "Reservation fee" : "Deposit"} confirmed for Velaire reservation ${reference}.`,
+      idempotencyKey: `${isReservationFee ? "reservation-fee-paid" : "deposit-paid"}-customer:${payment?.id || reference}`,
     }),
     sendEmail({
-      type: "admin_deposit_paid",
+      type: isReservationFee ? "admin_reservation_fee_paid" : "admin_deposit_paid",
       audience: "admin",
       to: config.adminEmail,
-      subject: `Deposit paid: ${reference}`,
+      subject: isReservationFee ? `Reservation fee paid: ${reference}` : `Deposit paid: ${reference}`,
       payment,
       booking,
       html: emailShell({
-        preheader: "A Velaire reservation deposit has been paid.",
+        preheader: isReservationFee
+          ? "A Velaire reservation fee has been paid."
+          : "A Velaire reservation deposit has been paid.",
         eyebrow: "Velaire Operations",
-        title: "Deposit paid.",
-        intro: "A reservation deposit has been recorded. Review the booking and prepare concierge approval or handover follow-up.",
+        title: isReservationFee ? "Reservation fee paid." : "Deposit paid.",
+        intro: isReservationFee
+          ? "A £79 reservation fee has been recorded. Review the booking and arrange security deposit, rental balance and handover follow-up."
+          : "A reservation deposit has been recorded. Review the booking and prepare concierge approval or handover follow-up.",
         rows: [
           ["Client", booking?.customerName || payment?.customerName || "Guest client"],
           ["Email", booking?.customerEmail || payment?.customerEmail || "No email supplied"],
@@ -358,8 +374,8 @@ export async function sendDepositPaidNotifications({ payment, booking } = {}) {
         ctaLabel: "Open operations",
         ctaUrl: `${config.siteUrl}/portal`,
       }),
-      text: `Deposit paid for Velaire reservation ${reference}.`,
-      idempotencyKey: `deposit-paid-admin:${payment?.id || reference}`,
+      text: `${isReservationFee ? "Reservation fee" : "Deposit"} paid for Velaire reservation ${reference}.`,
+      idempotencyKey: `${isReservationFee ? "reservation-fee-paid" : "deposit-paid"}-admin:${payment?.id || reference}`,
     }),
   ]);
 }
@@ -397,33 +413,33 @@ export async function sendBookingStatusUpdateNotifications({ booking, status } =
 export async function sendManualBookingCommunication({ booking, payment, kind = "confirmation" } = {}) {
   const config = emailConfig();
   const reference = bookingReference(booking || payment);
-  const paymentAmount = payment?.amount || booking?.totals?.deposit || 0;
+  const paymentAmount = payment?.amount || booking?.totals?.reservationFee || 79;
   const commonRows = bookingRows(booking);
   const stamp = Date.now();
 
   if (kind === "deposit_receipt") {
     return Promise.all([
       sendEmail({
-        type: "manual_deposit_receipt",
+        type: "manual_payment_receipt",
         audience: "customer",
         to: booking?.customerEmail || payment?.customerEmail,
-        subject: `Velaire deposit receipt: ${reference}`,
+        subject: `Velaire payment receipt: ${reference}`,
         booking,
         payment,
         html: emailShell({
-          preheader: "Your Velaire deposit receipt has been resent.",
-          title: "Deposit receipt.",
-          intro: "Here is your Velaire deposit receipt. Our concierge team will continue to manage final approval, handover timing and vehicle preparation.",
+          preheader: "Your Velaire payment receipt has been resent.",
+          title: "Payment receipt.",
+          intro: "Here is your Velaire reservation payment receipt. Our concierge team will continue to manage final approval, handover timing, security deposit and vehicle preparation.",
           rows: [
             ["Reference", reference],
             ["Vehicle", booking?.vehicleName || payment?.vehicleName || "Selected Velaire vehicle"],
-            ["Deposit", money(paymentAmount, payment?.currency || booking?.totals?.currency || "GBP")],
+            ["Reservation fee", money(paymentAmount, payment?.currency || booking?.totals?.currency || "GBP")],
             ["Payment status", statusLabel(payment?.status || booking?.paymentStatus || "payment_pending")],
           ],
-          footnote: "Velaire never stores raw card details. Deposits are processed securely through Stripe.",
+          footnote: "Velaire never stores raw card details. Reservation payments are processed securely through Stripe.",
         }),
-        text: `Your Velaire deposit receipt for ${reference}.`,
-        idempotencyKey: `manual-deposit-receipt:${booking?.id || payment?.id || reference}:${stamp}`,
+        text: `Your Velaire payment receipt for ${reference}.`,
+        idempotencyKey: `manual-payment-receipt:${booking?.id || payment?.id || reference}:${stamp}`,
       }),
     ]);
   }

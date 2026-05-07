@@ -2048,7 +2048,9 @@ body.admin-drawer-open {
 }
 
 .status-pill[data-status="confirmed"],
+.status-pill[data-status="reservation_fee_paid"],
 .status-pill[data-status="deposit_paid"],
+.status-pill[data-status="rental_paid"],
 .status-pill[data-status="customer_contacted"],
 .status-pill[data-status="handover_confirmed"],
 .status-pill[data-status="ready"] {

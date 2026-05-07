@@ -613,7 +613,7 @@ if (
   !read("booking.html").includes("Reservation confidence") ||
   !read("payment.html").includes("Stripe hosted") ||
   !read("payment.html").includes("If checkout is cancelled or fails") ||
-  !read("payment.html").includes("Deposit handling") ||
+  !read("payment.html").includes("Deposit and balance later") ||
   !read("booking.html").includes("mobile-submit-bar") ||
   !read("payment.html").includes("mobile-submit-bar") ||
   !read("flow.css").includes(".conversion-panel") ||
@@ -705,13 +705,17 @@ if (
   !read("api/payments/intent.js").includes("createStripeCheckoutSession") ||
   !read("api/payments/intent.js").includes("checkoutUrl") ||
   !read("api/stripe/webhook.js").includes("checkout.session.completed") ||
-  !read("api/stripe/webhook.js").includes("deposit_paid") ||
+  !read("api/stripe/webhook.js").includes("reservation_fee_paid") ||
   !read("flow.js").includes("window.location.assign(payment.checkoutUrl)") ||
-  !read("payment.html").includes("Create secure deposit session") ||
+  !read("payment.html").includes("Create £79 reservation session") ||
+  !read("api/_lib/fleet-data.js").includes("RESERVATION_FEE = 79") ||
+  !read("api/_lib/stripe.js").includes("Velaire £79 reservation fee") ||
+  !read("flow.js").includes("RESERVATION_FEE = 79") ||
+  !read("booking.html").includes("£79 reservation fee") ||
   read("payment.html").includes('name="card"') ||
   read("payment.html").includes("Ready for a live payment provider when connected")
 ) {
-  throw new Error("Deposit flow must create a real Stripe Checkout session and redirect instead of using a local placeholder payment form");
+  throw new Error("Reservation fee flow must create a real Stripe Checkout session and redirect instead of using a local placeholder payment form");
 }
 
 for (const htmlFile of ["index.html", "booking.html", "login.html", "account.html", "admin.html", "status.html", "payment.html", "success.html"]) {
@@ -755,7 +759,12 @@ const m140Booking = store.createBooking({
   },
   status: "draft",
 });
-if (m140Booking.vehicleSlug !== "bmw-m140i-shadow-edition" || m140Booking.totals.deposit !== 600 || m140Booking.totals.hireEstimate !== 350) {
+if (
+  m140Booking.vehicleSlug !== "bmw-m140i-shadow-edition" ||
+  m140Booking.totals.reservationFee !== 79 ||
+  m140Booking.totals.deposit !== 600 ||
+  m140Booking.totals.hireEstimate !== 350
+) {
   throw new Error("Booking totals are not using the selected BMW M140i vehicle data");
 }
 

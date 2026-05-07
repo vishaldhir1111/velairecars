@@ -123,6 +123,7 @@ const backendBookingKey = "velaireBackendBooking";
 const favouriteStorageKey = "velaireFavouriteCars";
 const adminTokenStorageKey = "velaireAdminToken";
 const defaultVehicle = Object.keys(vehicles)[0] || "";
+const RESERVATION_FEE = 79;
 const MAPBOX_TOKEN = "pk.eyJ1IjoidmlzaGFsZGhpcjExMTEiLCJhIjoiY21vampwYm54MGQzejJwczFzMHcwN3h2dSJ9.M-zV1ypGN1rPPTgEk0iWgg";
 const MAPBOX_GL_VERSION = "v3.10.0";
 const MAPBOX_GL_JS = `https://api.mapbox.com/mapbox-gl-js/${MAPBOX_GL_VERSION}/mapbox-gl.js`;
@@ -311,6 +312,13 @@ function trackVelaireEventOnce(key, name, data = {}) {
 }
 
 function humanStatus(value = "") {
+  const labels = {
+    reservation_fee_paid: "Reservation Fee Paid",
+    rental_paid: "Rental Paid",
+    deposit_paid: "Deposit Paid",
+  };
+  const clean = String(value || "pending").toLowerCase();
+  if (labels[clean]) return labels[clean];
   return String(value || "pending")
     .replaceAll("_", " ")
     .replace(/\b\w/g, (letter) => letter.toUpperCase());
@@ -466,7 +474,7 @@ function reusableDraftBooking(booking, reservation = loadReservation()) {
   const selectedVehicle = normaliseVehicleSlug(reservation.vehicle);
   const bookingVehicle = normaliseVehicleSlug(booking.vehicleSlug);
   const terminalStatuses = new Set(["confirmed", "completed", "cancelled", "rejected"]);
-  const settledPaymentStatuses = new Set(["deposit_paid", "paid", "refunded"]);
+  const settledPaymentStatuses = new Set(["reservation_fee_paid", "deposit_paid", "rental_paid", "paid", "refunded"]);
   if (selectedVehicle && bookingVehicle && selectedVehicle !== bookingVehicle) return null;
   if (terminalStatuses.has(String(booking.status || ""))) return null;
   if (settledPaymentStatuses.has(String(booking.paymentStatus || ""))) return null;
@@ -663,7 +671,7 @@ async function createPaymentIntent() {
     });
   }
   if (!result?.paymentIntent) {
-    throw new Error("The secure deposit record could not be created. Please try again.");
+    throw new Error("The reservation fee session could not be created. Please try again.");
   }
   if (!result.checkoutUrl) {
     throw new Error("Stripe Checkout did not return a secure payment link. Please try again.");
@@ -878,7 +886,7 @@ function updateSummary() {
   const location = reservation.formattedAddress || reservation.location || "Delivery location pending";
   const pickupLine = [formatDisplayDate(reservation.pickup) || reservation.pickup, reservation.pickupTime].filter(Boolean).join(" at ") || "Pickup pending";
   const returnLine = [formatDisplayDate(reservation.return) || reservation.return, reservation.returnTime].filter(Boolean).join(" at ") || "Return pending";
-  const paymentStatus = reservation.paymentStatus || (new URLSearchParams(window.location.search).get("session_id") ? "deposit_paid" : "payment_pending");
+  const paymentStatus = reservation.paymentStatus || (new URLSearchParams(window.location.search).get("session_id") ? "reservation_fee_paid" : "payment_pending");
 
   bindText("vehicleName", vehicle.name);
   bindText("vehicleShortName", vehicle.shortName);
@@ -888,8 +896,10 @@ function updateSummary() {
   bindText("vehicleInterior", vehicle.interior);
   bindText("vehicleDescription", vehicle.description);
   bindText("dailyRate", money(vehicle.rate));
-  bindText("deposit", `From ${money(vehicle.deposit)}`);
-  bindText("depositValue", money(vehicle.deposit));
+  bindText("deposit", `${money(vehicle.deposit)} handled later`);
+  bindText("depositValue", money(RESERVATION_FEE));
+  bindText("reservationFee", money(RESERVATION_FEE));
+  bindText("securityDeposit", `${money(vehicle.deposit)} handled later`);
   bindText("hireEstimate", money(vehicle.rate * days));
   bindText("rentalDays", displayDays(days));
   bindText("handoverLocation", location);
@@ -2234,7 +2244,8 @@ function setupBooking() {
       source,
       vehicle: vehicle.slug,
       dailyRate: vehicle.rate,
-      deposit: vehicle.deposit,
+      reservationFee: RESERVATION_FEE,
+      securityDeposit: vehicle.deposit,
     });
   }
 
@@ -2270,7 +2281,8 @@ function setupBooking() {
         source: "booking_page",
         vehicle: vehicle.slug,
         dailyRate: vehicle.rate,
-        deposit: vehicle.deposit,
+        reservationFee: RESERVATION_FEE,
+        securityDeposit: vehicle.deposit,
       });
     });
   });
@@ -2339,8 +2351,13 @@ const adminHandoverChecklist = [
   },
   {
     key: "depositConfirmed",
-    label: "Deposit confirmed",
-    text: "Stripe deposit or manual deposit status verified.",
+    label: "Security deposit confirmed",
+    text: "Security deposit status verified by the team.",
+  },
+  {
+    key: "rentalPaid",
+    label: "Rental balance paid",
+    text: "Daily rental balance or final hire charge confirmed.",
   },
   {
     key: "vehiclePrepared",
@@ -2392,7 +2409,7 @@ function renderAdminVehicles(vehiclesList = []) {
               <div class="admin-control-heading">
                 <div>
                   <span>Tariff control</span>
-                  <small>Updates the live reservation rate and deposit.</small>
+                  <small>Updates the live daily rate and later deposit guidance.</small>
                 </div>
               </div>
               <label class="field admin-field">Daily rate
@@ -2575,7 +2592,7 @@ function renderAdminReminders(bookings = adminState.bookings) {
       const reasons = [
         String(booking.followUpStatus || "new") === "needs_reply" ? "Needs reply" : "",
         isUpcomingAdminBooking(booking, 7) ? "Handover soon" : "",
-        String(booking.paymentStatus || "") === "payment_pending" ? "Deposit pending" : "",
+        String(booking.paymentStatus || "") === "payment_pending" ? "Reservation fee pending" : "",
       ].filter(Boolean);
       return `
         <article class="admin-record-card admin-reminder-card">
@@ -2653,7 +2670,8 @@ function exportAdminBookingsCsv() {
     "Booking status",
     "Payment status",
     "Follow-up",
-    "Deposit",
+    "Reservation fee",
+    "Security deposit",
     "Hire estimate",
   ];
   const rows = adminState.bookings.map((booking) => {
@@ -2670,6 +2688,7 @@ function exportAdminBookingsCsv() {
       humanStatus(booking.status || "pending"),
       humanStatus(booking.paymentStatus || "payment_pending"),
       humanStatus(booking.followUpStatus || "new"),
+      totals.reservationFee || RESERVATION_FEE,
       totals.deposit || "",
       totals.hireEstimate || "",
     ];
@@ -2809,9 +2828,10 @@ function bookingReceiptRows(booking = {}, payment = null) {
     ["Dates", bookingDateLine(booking)],
     ["Handover", booking.location || "Concierge handover to be confirmed"],
     ["Booking status", humanStatus(booking.status || "pending")],
-    ["Deposit status", humanStatus(payment?.status || booking.paymentStatus || "payment_pending")],
-    ["Deposit", payment?.amount ? money(Number(payment.amount)) : totals.deposit ? money(Number(totals.deposit)) : "To be confirmed"],
-    ["Hire estimate", totals.hireEstimate ? money(Number(totals.hireEstimate)) : "To be confirmed"],
+    ["Payment status", humanStatus(payment?.status || booking.paymentStatus || "payment_pending")],
+    ["Reservation fee", payment?.amount ? money(Number(payment.amount)) : money(Number(totals.reservationFee || RESERVATION_FEE))],
+    ["Security deposit", totals.deposit ? `${money(Number(totals.deposit))} handled later` : "Handled later"],
+    ["Hire estimate", totals.hireEstimate ? `${money(Number(totals.hireEstimate))} handled later` : "To be confirmed"],
     ["Billing", bookingAddressLine(booking) || "Not supplied"],
   ];
 }
@@ -2977,8 +2997,9 @@ function renderAdminBookingDetail(bookingId = adminState.selectedBookingId) {
         <p class="admin-record-kicker">Reservation</p>
         ${adminDetailRow("Vehicle", booking.vehicleName || booking.vehicleSlug)}
         ${adminDetailRow("Dates", bookingDateLine(booking))}
-        ${adminDetailRow("Hire estimate", totals.hireEstimate ? money(Number(totals.hireEstimate)) : "")}
-        ${adminDetailRow("Deposit", totals.deposit ? money(Number(totals.deposit)) : "")}
+        ${adminDetailRow("Reservation fee", money(Number(totals.reservationFee || RESERVATION_FEE)))}
+        ${adminDetailRow("Hire estimate", totals.hireEstimate ? `${money(Number(totals.hireEstimate))} handled later` : "")}
+        ${adminDetailRow("Security deposit", totals.deposit ? `${money(Number(totals.deposit))} handled later` : "")}
       </section>
 
       <section class="admin-detail-card admin-detail-card-wide">
@@ -2998,8 +3019,8 @@ function renderAdminBookingDetail(bookingId = adminState.selectedBookingId) {
       <section class="admin-detail-card">
         <p class="admin-record-kicker">Payment</p>
         ${adminDetailRow("Status", payment?.status || booking.paymentStatus)}
-        ${adminDetailRow("Amount", payment?.amount ? money(Number(payment.amount)) : totals.deposit ? money(Number(totals.deposit)) : "")}
-        ${adminDetailRow("Provider", payment?.provider || "Stripe deposit")}
+        ${adminDetailRow("Amount", payment?.amount ? money(Number(payment.amount)) : money(Number(totals.reservationFee || RESERVATION_FEE)))}
+        ${adminDetailRow("Provider", payment?.provider || "Stripe reservation fee")}
         ${adminDetailRow("Reference", payment?.providerReference || payment?.stripePaymentIntentId || payment?.id || booking.paymentIntentId)}
       </section>
     </div>
@@ -3044,6 +3065,8 @@ function renderAdminBookingDetail(bookingId = adminState.selectedBookingId) {
       <button type="button" data-admin-booking-action="reject" data-booking-id="${escapeHtml(booking.id)}">Reject booking</button>
       <button type="button" data-admin-booking-action="cancel" data-booking-id="${escapeHtml(booking.id)}">Cancel booking</button>
       <button type="button" data-admin-booking-action="complete" data-booking-id="${escapeHtml(booking.id)}">Mark complete</button>
+      <button type="button" data-admin-booking-action="deposit_paid" data-booking-id="${escapeHtml(booking.id)}">Deposit paid</button>
+      <button type="button" data-admin-booking-action="rental_paid" data-booking-id="${escapeHtml(booking.id)}">Rental paid</button>
       <button type="button" data-admin-booking-action="refund_pending" data-booking-id="${escapeHtml(booking.id)}">Refund pending</button>
       <button type="button" data-admin-booking-action="refunded" data-booking-id="${escapeHtml(booking.id)}">Mark refunded</button>
       <button type="button" data-admin-booking-action="customer_contacted" data-booking-id="${escapeHtml(booking.id)}">Customer contacted</button>
@@ -3055,7 +3078,7 @@ function renderAdminBookingDetail(bookingId = adminState.selectedBookingId) {
       <p>Send polished Velaire emails directly from Operations. Attempts are logged in notification history.</p>
       <div class="admin-email-actions">
         <button type="button" data-admin-email-kind="confirmation" data-booking-id="${escapeHtml(booking.id)}">Resend confirmation</button>
-        <button type="button" data-admin-email-kind="deposit_receipt" data-booking-id="${escapeHtml(booking.id)}">Send deposit receipt</button>
+        <button type="button" data-admin-email-kind="deposit_receipt" data-booking-id="${escapeHtml(booking.id)}">Send payment receipt</button>
         <button type="button" data-admin-email-kind="status_update" data-booking-id="${escapeHtml(booking.id)}">Send status update</button>
       </div>
     </section>
@@ -3115,7 +3138,7 @@ function renderAdminPayments(payments = []) {
         .map(
           (payment) => `
             <article class="admin-record-card admin-payment-card">
-              <strong>${escapeHtml(payment.bookingReference || payment.bookingId || "Deposit record")}</strong>
+              <strong>${escapeHtml(payment.bookingReference || payment.bookingId || "Reservation fee record")}</strong>
               <span>${escapeHtml(payment.vehicleName || "")} · ${escapeHtml(payment.customerEmail || "")}</span>
               <span>${money(Number(payment.amount || 0))}</span>
               ${statusPill(payment.status)}
@@ -3480,7 +3503,8 @@ function setupPayment() {
     trackVelaireEvent("Deposit Button Clicked", {
       vehicle: vehicle.slug,
       dailyRate: vehicle.rate,
-      deposit: vehicle.deposit,
+      reservationFee: RESERVATION_FEE,
+      securityDeposit: vehicle.deposit,
       days: Number.parseInt(reservation.days || "1", 10) || 1,
     });
     try {
@@ -3493,7 +3517,8 @@ function setupPayment() {
       });
       trackVelaireEvent("Stripe Checkout Opened", {
         vehicle: vehicle.slug,
-        deposit: vehicle.deposit,
+        reservationFee: RESERVATION_FEE,
+        securityDeposit: vehicle.deposit,
         paymentStatus: payment.status || "payment_pending",
         hasCheckoutUrl: Boolean(payment.checkoutUrl),
       });
@@ -3511,7 +3536,8 @@ function setupPayment() {
 function bookingFromReservation(reservation = loadReservation()) {
   const vehicle = selectedVehicle(reservation.vehicle);
   const days = Math.max(Number.parseInt(reservation.days || "2", 10), 1);
-  const paymentStatus = reservation.paymentStatus || (new URLSearchParams(window.location.search).get("session_id") ? "deposit_paid" : "payment_pending");
+  const paymentStatus = reservation.paymentStatus || (new URLSearchParams(window.location.search).get("session_id") ? "reservation_fee_paid" : "payment_pending");
+  const paidStatuses = new Set(["reservation_fee_paid", "deposit_paid", "rental_paid", "paid"]);
   return {
     id: reservation.bookingId || "",
     reference: reservation.reference || referenceFor(vehicle.slug),
@@ -3520,7 +3546,7 @@ function bookingFromReservation(reservation = loadReservation()) {
     customerPhone: reservation.phone || "",
     vehicleSlug: vehicle.slug,
     vehicleName: vehicle.name,
-    status: paymentStatus === "deposit_paid" ? "confirmed" : "pending",
+    status: paidStatuses.has(String(paymentStatus).toLowerCase()) ? "confirmed" : "pending",
     paymentStatus,
     pickup: reservation.pickup || "",
     pickupTime: reservation.pickupTime || "",
@@ -3538,8 +3564,11 @@ function bookingFromReservation(reservation = loadReservation()) {
     billingCountry: reservation.billingCountry || "",
     totals: {
       days,
+      reservationFee: RESERVATION_FEE,
       hireEstimate: vehicle.rate * days,
       deposit: vehicle.deposit,
+      depositDueLater: vehicle.deposit,
+      balanceDueLater: vehicle.rate * days,
       currency: "GBP",
     },
   };
@@ -3553,7 +3582,7 @@ function setupSuccess() {
     saveReservation({
       checkoutSessionId: sessionId || loadReservation().checkoutSessionId || "",
       bookingId: bookingId || loadReservation().bookingId || "",
-      paymentStatus: sessionId ? "deposit_paid" : loadReservation().paymentStatus || "payment_pending",
+      paymentStatus: sessionId ? "reservation_fee_paid" : loadReservation().paymentStatus || "payment_pending",
     });
   }
   updateSummary();
@@ -3574,17 +3603,20 @@ function setupSuccess() {
 function customerStatusNextStep(booking = {}, payment = null) {
   const bookingStatus = String(booking.status || "").toLowerCase();
   const paymentStatus = String(payment?.status || booking.paymentStatus || "").toLowerCase();
+  if (paymentStatus === "reservation_fee_paid") {
+    return "Your £79 reservation fee is confirmed. Velaire will finalise security deposit, rental balance, driver checks and handover details privately.";
+  }
   if (paymentStatus === "deposit_paid" && bookingStatus === "confirmed") {
-    return "Your deposit is confirmed. Velaire will finalise driver checks, timing and handover details.";
+    return "Your security deposit is confirmed. Velaire will finalise driver checks, timing and handover details.";
   }
   if (paymentStatus === "payment_pending") {
-    return "Your booking is held for review. Complete the secure deposit step if you have not already paid.";
+    return "Your booking is held for review. Complete the £79 reservation fee step if you have not already paid.";
   }
   if (paymentStatus === "refund_pending") {
     return "A refund review is in progress. Velaire will confirm the final refund status privately.";
   }
   if (paymentStatus === "refunded") {
-    return "The deposit is marked as refunded. Contact Velaire if you need a receipt or further detail.";
+    return "The reservation payment is marked as refunded. Contact Velaire if you need a receipt or further detail.";
   }
   if (["cancelled", "rejected"].includes(bookingStatus)) {
     return "This booking is not currently proceeding. Contact Velaire if you need a new reservation.";
@@ -3633,12 +3665,16 @@ function renderCustomerStatus(result = {}) {
           <strong>${escapeHtml(booking.location || "Concierge handover to be confirmed")}</strong>
         </div>
         <div>
-          <span>Deposit</span>
-          <strong>${payment?.amount ? money(Number(payment.amount)) : totals.deposit ? money(Number(totals.deposit)) : "To be confirmed"}</strong>
+          <span>Reservation fee</span>
+          <strong>${payment?.amount ? money(Number(payment.amount)) : money(Number(totals.reservationFee || RESERVATION_FEE))}</strong>
+        </div>
+        <div>
+          <span>Security deposit</span>
+          <strong>${totals.deposit ? `${money(Number(totals.deposit))} handled later` : "Handled later"}</strong>
         </div>
         <div>
           <span>Hire estimate</span>
-          <strong>${totals.hireEstimate ? money(Number(totals.hireEstimate)) : "To be confirmed"}</strong>
+          <strong>${totals.hireEstimate ? `${money(Number(totals.hireEstimate))} handled later` : "To be confirmed"}</strong>
         </div>
       </div>
       <div class="status-next-step">

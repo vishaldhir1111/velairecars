@@ -26,7 +26,7 @@
     <meta name="twitter:title" content="Reserve a Luxury Car | Velaire Cars" />
     <meta
       name="twitter:description"
-      content="Premium guest booking for Velaire Cars with curated vehicles, delivery details and secure deposit flow."
+      content="Premium guest booking for Velaire Cars with curated vehicles, delivery details and a £79 reservation fee flow."
     />
     <meta name="twitter:image" content="https://www.velairecars.com/cars/hero-g63-cinematic.png" />
     <link rel="stylesheet" href="flow.css" />
@@ -433,17 +433,17 @@
                 </span>
               </div>
               <ul class="conversion-steps" aria-label="What happens after booking">
-                <li><span>1</span>Secure deposit through Stripe</li>
+                <li><span>1</span>Pay £79 reservation fee through Stripe</li>
                 <li><span>2</span>Concierge reviews the reservation</li>
                 <li><span>3</span>Final handover details are confirmed</li>
               </ul>
             </div>
 
             <div class="mobile-submit-bar">
-              <button class="primary-button full-width" type="submit">Continue to secure deposit</button>
+              <button class="primary-button full-width" type="submit">Continue to £79 reservation fee</button>
             </div>
             <p class="button-reassurance">
-              No card details are stored by Velaire. The next screen opens a Stripe-hosted deposit session.
+              No card details are stored by Velaire. The next screen opens a Stripe-hosted reservation fee session.
             </p>
           </form>
 
@@ -495,8 +495,12 @@
                 <strong data-bind="hireEstimate">£1,790</strong>
               </div>
               <div class="summary-row">
-                <span>Reserve deposit</span>
-                <strong data-bind="deposit">From £2,500</strong>
+                <span>Reservation fee</span>
+                <strong data-bind="depositValue">£79</strong>
+              </div>
+              <div class="summary-row">
+                <span>Security deposit</span>
+                <strong data-bind="deposit">Handled later</strong>
               </div>
               <div class="summary-row">
                 <span>Handover</span>
@@ -511,7 +515,7 @@
 
             <div class="summary-assurance">
               <strong>Reservation confidence</strong>
-              <span>Transparent deposit guidance, live operations review and premium handover support.</span>
+              <span>£79 reservation fee, later deposit guidance, live operations review and premium handover support.</span>
             </div>
           </aside>
         </div>

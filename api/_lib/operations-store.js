@@ -1,5 +1,5 @@
 import crypto from "node:crypto";
-import { fleetData, requireVehicle } from "./fleet-data.js";
+import { RESERVATION_FEE, fleetData, requireVehicle } from "./fleet-data.js";
 import {
   sendBookingCreatedNotifications,
   sendBookingStatusUpdateNotifications,
@@ -237,7 +237,10 @@ function publicTotals(totals = {}) {
   return {
     days: Number(totals.days || 0),
     hireEstimate: Number(totals.hireEstimate || 0),
+    reservationFee: Number(totals.reservationFee || RESERVATION_FEE),
     deposit: Number(totals.deposit || 0),
+    depositDueLater: Number(totals.depositDueLater || totals.deposit || 0),
+    balanceDueLater: Number(totals.balanceDueLater || totals.hireEstimate || 0),
     currency: totals.currency || "GBP",
     ...(vehicle?.slug ? { vehicle } : {}),
   };
@@ -248,6 +251,7 @@ function normaliseOperationsChecklist(checklist = {}) {
     licenceChecked: Boolean(checklist.licenceChecked),
     insuranceChecked: Boolean(checklist.insuranceChecked),
     depositConfirmed: Boolean(checklist.depositConfirmed),
+    rentalPaid: Boolean(checklist.rentalPaid),
     vehiclePrepared: Boolean(checklist.vehiclePrepared),
     customerContacted: Boolean(checklist.customerContacted),
     handoverCompleted: Boolean(checklist.handoverCompleted),
@@ -315,6 +319,7 @@ function publicPayment(payment = {}) {
     currency: payment.currency || "GBP",
     status: payment.status || "payment_pending",
     provider: payment.provider || "manual_deposit_record",
+    purpose: payment.purpose || "reservation_fee",
     providerReference: payment.providerReference || "",
     stripePaymentIntentId: payment.stripePaymentIntentId || "",
     stripeCustomerId: payment.stripeCustomerId || "",
@@ -746,7 +751,7 @@ export async function updateBookingRecord(idValue, patch = {}) {
     const updateLabel = bookingPatch.status
       ? `Status changed to ${bookingPatch.status}`
       : paymentStatusChanged
-        ? `Deposit status changed to ${bookingPatch.paymentStatus}`
+        ? `Payment status changed to ${bookingPatch.paymentStatus}`
       : bookingPatch.followUpStatus
         ? `Follow-up changed to ${bookingPatch.followUpStatus}`
         : Object.prototype.hasOwnProperty.call(bookingPatch, "operationsChecklist")
@@ -770,7 +775,7 @@ export async function updateBookingRecord(idValue, patch = {}) {
       reference: booking.reference,
       details: [
         before.status !== booking.status ? `Booking ${before.status || "unset"} to ${booking.status || "unset"}` : "",
-        before.paymentStatus !== booking.paymentStatus ? `Deposit ${before.paymentStatus || "unset"} to ${booking.paymentStatus || "unset"}` : "",
+        before.paymentStatus !== booking.paymentStatus ? `Payment ${before.paymentStatus || "unset"} to ${booking.paymentStatus || "unset"}` : "",
         before.followUpStatus !== booking.followUpStatus ? `Follow-up ${before.followUpStatus || "unset"} to ${booking.followUpStatus || "unset"}` : "",
         Object.prototype.hasOwnProperty.call(bookingPatch, "operationsChecklist") ? "Staff handover checklist changed" : "",
         Object.prototype.hasOwnProperty.call(bookingPatch, "internalNotes") ? "Internal notes changed" : "",
@@ -793,10 +798,10 @@ export async function createPaymentRecord({ bookingId = "", reservation = {} } =
   const { state, persistence, result } = await mutateOperations((draft) => {
     const booking = draft.bookings.find((item) => item.id === bookingId);
     if (!booking) {
-      const error = new Error("Create a secure booking record before starting the deposit session.");
+      const error = new Error("Create a secure booking record before starting the reservation fee session.");
       error.status = 404;
       error.code = "booking_required";
-      error.publicMessage = "Create a secure booking record before starting the deposit session.";
+      error.publicMessage = "Create a secure booking record before starting the reservation fee session.";
       throw error;
     }
     const totals = booking?.totals || totalsForReservation(draft, reservation);
@@ -808,10 +813,11 @@ export async function createPaymentRecord({ bookingId = "", reservation = {} } =
       vehicleName: booking?.vehicleName || `${totals.vehicle.name} ${totals.vehicle.year}`,
       customerName: booking?.customerName || reservation.name || reservation.fullName || "",
       customerEmail: booking?.customerEmail || reservation.email || "",
-      amount: totals.deposit,
+      amount: totals.reservationFee || RESERVATION_FEE,
       currency: totals.currency || "GBP",
       status: "payment_pending",
-      provider: "stripe_ready_deposit",
+      provider: "stripe_reservation_fee",
+      purpose: "reservation_fee",
       providerReference: "",
       createdAt: now(),
       updatedAt: now(),
@@ -824,12 +830,12 @@ export async function createPaymentRecord({ bookingId = "", reservation = {} } =
       booking.updatedAt = now();
       addAuditEvent(draft, {
         type: "payment_session_created",
-        label: "Deposit session created",
+        label: "Reservation fee session created",
         actor: "Customer",
         entityType: "payment",
         entityId: payment.id,
         reference: booking.reference,
-        details: `${payment.vehicleName} deposit session opened for ${payment.customerEmail || "guest client"}.`,
+        details: `${payment.vehicleName} £79 reservation fee session opened for ${payment.customerEmail || "guest client"}.`,
       });
     }
     return publicPayment(payment);
@@ -846,7 +852,9 @@ export async function updatePaymentRecord(idValue, patch = {}) {
     if (booking && patch.status) {
       const beforeStatus = booking.paymentStatus;
       booking.paymentStatus = patch.status;
-      if (patch.status === "deposit_paid") booking.status = "confirmed";
+      if (["reservation_fee_paid", "deposit_paid", "rental_paid"].includes(String(patch.status).toLowerCase())) {
+        booking.status = "confirmed";
+      }
       if (["cancelled", "failed"].includes(String(patch.status).toLowerCase())) booking.status = String(patch.status).toLowerCase();
       if (patch.status === "deposit_paid") {
         booking.operationsChecklist = normaliseOperationsChecklist({
@@ -856,16 +864,16 @@ export async function updatePaymentRecord(idValue, patch = {}) {
       }
       booking.timeline = [
         ...(booking.timeline || []),
-        { label: `Deposit status changed to ${patch.status}`, at: now() },
+        { label: `Payment status changed to ${patch.status}`, at: now() },
       ];
       addAuditEvent(draft, {
         type: "payment_status_updated",
-        label: `Deposit status changed to ${patch.status}`,
+        label: `Payment status changed to ${patch.status}`,
         actor: patch.provider === "stripe_checkout" || patch.providerReference ? "Stripe" : "Operations",
         entityType: "payment",
         entityId: payment.id,
         reference: booking.reference,
-        details: `Deposit ${beforeStatus || "unset"} to ${patch.status}.`,
+        details: `Payment ${beforeStatus || "unset"} to ${patch.status}.`,
       });
       booking.updatedAt = now();
     }
@@ -873,7 +881,7 @@ export async function updatePaymentRecord(idValue, patch = {}) {
   });
   const booking = (state.bookings || []).find((item) => item.id === result?.bookingId) || null;
   let notifications = [];
-  if (result && String(patch?.status || "").toLowerCase() === "deposit_paid") {
+  if (result && ["reservation_fee_paid", "deposit_paid"].includes(String(patch?.status || "").toLowerCase())) {
     notifications = await dispatchNotifications(() => sendDepositPaidNotifications({ payment: result, booking }));
   } else if (result && String(patch?.status || "").toLowerCase() === "payment_pending" && (patch?.providerReference || patch?.checkoutUrl)) {
     notifications = await dispatchNotifications(() => sendPaymentPendingNotifications({ payment: result, booking }));

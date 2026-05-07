@@ -44,7 +44,7 @@ export default async function handler(req, res) {
     let result = { handled: false, reason: "ignored_event" };
 
     if (event.type === "checkout.session.completed") {
-      result = await handleCheckoutSession(event.data?.object || {}, "deposit_paid");
+      result = await handleCheckoutSession(event.data?.object || {}, "reservation_fee_paid");
     }
     if (event.type === "checkout.session.expired") {
       result = await handleCheckoutSession(event.data?.object || {}, "cancelled");

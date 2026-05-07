@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="Secure a Velaire Cars reservation with clear deposit and premium booking details." />
+    <meta name="description" content="Secure a Velaire Cars reservation with a £79 reservation fee and premium booking details." />
     <title>Reservation | Velaire Cars</title>
     <link rel="canonical" href="https://www.velairecars.com/payment.html" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
@@ -17,7 +17,7 @@
     <meta property="og:image" content="https://www.velairecars.com/cars/hero-g63-cinematic.png" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Secure Reservation | Velaire Cars" />
-    <meta name="twitter:description" content="Stripe-hosted deposit flow for Velaire Cars reservations." />
+    <meta name="twitter:description" content="Stripe-hosted £79 reservation fee flow for Velaire Cars reservations." />
     <meta name="twitter:image" content="https://www.velairecars.com/cars/hero-g63-cinematic.png" />
     <link rel="stylesheet" href="flow.css" />
     <script>
@@ -50,8 +50,8 @@
           <p class="eyebrow">Step 3 of 4</p>
           <h1>Review and secure the reservation.</h1>
           <p>
-            Confirm the vehicle, estimated hire and reserve deposit before Stripe opens a secure
-            hosted checkout. Your concierge receives the paid hold instantly.
+            Confirm the vehicle, estimated hire and £79 reservation fee before Stripe opens a secure
+            hosted checkout. Your concierge receives the paid reservation instantly.
           </p>
           <div class="step-row" aria-label="Booking progress">
             <span class="step">Car</span>
@@ -84,8 +84,12 @@
                 <strong data-bind="hireEstimate">£1,790</strong>
               </div>
               <div class="summary-row">
-                <span>Reserve deposit</span>
-                <strong data-bind="depositValue">£2,500</strong>
+                <span>Reservation fee now</span>
+                <strong data-bind="depositValue">£79</strong>
+              </div>
+              <div class="summary-row">
+                <span>Security deposit</span>
+                <strong data-bind="deposit">Handled later</strong>
               </div>
               <div class="summary-row">
                 <span>Concierge delivery</span>
@@ -110,10 +114,10 @@
             </div>
 
             <div class="summary-assurance">
-              <strong>Deposit handling</strong>
+              <strong>Deposit and balance later</strong>
               <span>
-                The deposit is recorded against this reservation and reviewed after handover in line
-                with the confirmed hire terms.
+                Security deposit and final rental balance are handled by Velaire in person after the
+                £79 reservation fee is confirmed.
               </span>
             </div>
           </aside>
@@ -121,22 +125,22 @@
           <form class="flow-panel form-grid payment-card" action="success.html">
             <div class="panel-heading">
               <p class="eyebrow">Secure payment</p>
-              <h2>Stripe-hosted deposit.</h2>
+              <h2>Stripe-hosted reservation fee.</h2>
             </div>
 
             <div class="secure-band">
               <strong>Secure reservation hold</strong>
-              <span>Continue to Stripe Checkout to complete the deposit securely. Velaire never stores card details.</span>
+              <span>Continue to Stripe Checkout to complete the £79 reservation fee securely. Velaire never stores card details.</span>
             </div>
 
-            <div class="payment-trust-grid" aria-label="Secure deposit reassurance">
+            <div class="payment-trust-grid" aria-label="Secure reservation fee reassurance">
               <div>
                 <strong>Stripe hosted</strong>
                 <span>Card entry stays with Stripe.</span>
               </div>
               <div>
                 <strong>Instant status</strong>
-                <span>Operations receives the paid hold.</span>
+                <span>Operations receives the paid reservation.</span>
               </div>
               <div>
                 <strong>Concierge review</strong>
@@ -147,7 +151,7 @@
             <div class="checkout-timeline" aria-label="What happens after payment">
               <div>
                 <span>1</span>
-                <p><strong>Pay deposit</strong> Stripe confirms the secure hold.</p>
+                <p><strong>Pay reservation fee</strong> Stripe confirms the secure reservation.</p>
               </div>
               <div>
                 <span>2</span>
@@ -160,10 +164,10 @@
             </div>
 
             <div class="mobile-submit-bar">
-              <button class="primary-button full-width" type="submit">Create secure deposit session</button>
+              <button class="primary-button full-width" type="submit">Create £79 reservation session</button>
             </div>
             <p class="secure-note">
-              If checkout is cancelled or fails, your reservation will not be treated as deposit paid.
+              If checkout is cancelled or fails, your reservation will not be treated as reservation fee paid.
             </p>
           </form>
         </div>

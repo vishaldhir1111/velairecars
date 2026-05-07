@@ -265,12 +265,12 @@ export function createPaymentIntent({ bookingId, reservation = {} }) {
   const payment = {
     id: id("pi"),
     bookingId: booking?.id || null,
-    amount: totals.deposit,
+    amount: totals.reservationFee || 79,
     currency: totals.currency || "GBP",
     status: "requires_provider",
-    provider: "future-stripe",
+    provider: "future-stripe-reservation-fee",
     createdAt: now(),
-    note: "Deposit intent scaffold only. No card data is stored by Velaire.",
+    note: "Reservation fee intent scaffold only. No card data is stored by Velaire.",
   };
   db.payments.push(payment);
   if (booking) updateBooking(booking.id, { status: "payment_intent_created", paymentIntentId: payment.id });

@@ -33,6 +33,18 @@ export default async function handler(req, res) {
       },
       refund_pending: { status: "cancelled", paymentStatus: "refund_pending", followUpStatus: "needs_reply" },
       refunded: { status: "cancelled", paymentStatus: "refunded", followUpStatus: "customer_contacted" },
+      deposit_paid: {
+        status: "confirmed",
+        paymentStatus: "deposit_paid",
+        followUpStatus: "driver_checks",
+        operationsChecklist: { depositConfirmed: true },
+      },
+      rental_paid: {
+        status: "confirmed",
+        paymentStatus: "rental_paid",
+        followUpStatus: "ready",
+        operationsChecklist: { rentalPaid: true },
+      },
       customer_contacted: {
         followUpStatus: "customer_contacted",
         operationsChecklist: { customerContacted: true },

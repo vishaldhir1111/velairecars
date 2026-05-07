@@ -1,5 +1,7 @@
 import { conciergeFleetKnowledge, fleet } from "../../src/data/fleet.js";
 
+export const RESERVATION_FEE = 79;
+
 export const fleetData = fleet.map((vehicle) => ({
   slug: vehicle.slug,
   name: vehicle.name,
@@ -64,7 +66,10 @@ export function calculateBookingTotals({ vehicleSlug, pickup, returnDate, days }
     vehicle,
     days: rentalDays,
     hireEstimate: vehicle.rate * rentalDays,
+    reservationFee: RESERVATION_FEE,
     deposit: vehicle.deposit,
+    depositDueLater: vehicle.deposit,
+    balanceDueLater: vehicle.rate * rentalDays,
     currency: "GBP",
   };
 }

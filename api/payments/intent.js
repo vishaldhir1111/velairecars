@@ -32,7 +32,7 @@ export default async function handler(req, res) {
             vehicleName: payment.vehicleName,
             customerEmail: payment.customerEmail,
             totals: {
-              deposit: payment.amount,
+              reservationFee: payment.amount,
               currency: payment.currency,
             },
           }

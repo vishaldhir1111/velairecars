@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { conciergeFleetKnowledge, conciergePromptChips, fleet } from "./data/fleet.js";
 
+const reservationFee = 79;
+
 const serviceCards = [
   {
     title: "Concierge delivery",
@@ -13,7 +15,7 @@ const serviceCards = [
   },
   {
     title: "Clear reservation terms",
-    text: "Transparent daily rates, deposit guidance and availability messaging before you commit.",
+    text: "Transparent daily rates, a £79 reservation fee and later deposit guidance before you commit.",
   },
   {
     title: "Premium support",
@@ -59,8 +61,8 @@ const bookingSteps = [
     text: "Add the guest details, dates and delivery location so Velaire can review timing, access and release requirements.",
   },
   {
-    title: "Secure the deposit",
-    text: "Continue through Stripe-hosted checkout, then Velaire confirms availability and the final handover plan.",
+    title: "Secure the reservation fee",
+    text: "Pay the £79 Stripe-hosted reservation fee, then Velaire confirms availability, deposit, rental balance and final handover plan.",
   },
 ];
 
@@ -98,12 +100,12 @@ const faqs = [
   {
     question: "Do I need an account to reserve?",
     answer:
-      "No. Velaire uses a premium guest reservation flow. Choose the vehicle, enter your details, select the handover location and secure the deposit through Stripe-hosted checkout.",
+      "No. Velaire uses a premium guest reservation flow. Choose the vehicle, enter your details, select the handover location and secure the £79 reservation fee through Stripe-hosted checkout.",
   },
   {
-    question: "How does the deposit work?",
+    question: "What is paid online?",
     answer:
-      "The deposit amount is shown before checkout and handled securely by Stripe. Velaire does not store raw card details. Deposit handling is reviewed against the confirmed hire terms, vehicle condition and any open charges after return.",
+      "Only the £79 reservation fee is paid online. Velaire does not store raw card details. Security deposit and daily rental balance are handled later by the team in line with the confirmed hire terms.",
   },
   {
     question: "What checks are required before handover?",
@@ -118,7 +120,7 @@ const faqs = [
   {
     question: "How quickly is a booking confirmed?",
     answer:
-      "After the deposit step, the booking enters concierge review. Velaire confirms availability, driver eligibility and handover details before final release of the vehicle.",
+      "After the reservation fee step, the booking enters concierge review. Velaire confirms availability, driver eligibility, security deposit and handover details before final release of the vehicle.",
   },
   {
     question: "Can prices or availability change?",
@@ -492,8 +494,8 @@ function VehicleDetailModal({ car, onClose }) {
               <strong>{formatCurrency(car.rate)}</strong>
             </div>
             <div>
-              <span>Reserve deposit</span>
-              <strong>{formatCurrency(car.deposit)}</strong>
+              <span>Reservation fee</span>
+              <strong>{formatCurrency(reservationFee)}</strong>
             </div>
             <div>
               <span>Body style</span>
@@ -997,7 +999,7 @@ function App() {
             <h2>A cleaner route from vehicle choice to concierge handover.</h2>
             <p>
               The booking journey is built for speed and confidence: no account requirement, clear
-              handover details and a secure deposit step before final operations review.
+              handover details and a secure £79 reservation fee step before final operations review.
             </p>
           </div>
 
@@ -1045,14 +1047,14 @@ function App() {
             <h2>Clear answers for a smoother handover.</h2>
             <p>
               The Velaire flow is built to feel polished from enquiry to keys: simple guest
-              booking, secure deposits and concierge support where detail matters.
+              booking, a secure reservation fee and concierge support where detail matters.
             </p>
           </div>
 
           <div className="faq-layout">
             <div className="faq-feature">
               <span>Concierge clarity</span>
-              <strong>Deposits, delivery and driver checks explained before you commit.</strong>
+              <strong>Reservation fee, deposits, delivery and driver checks explained before you commit.</strong>
               <a className="secondary-button" href="areas-served.html">
                 View areas served
               </a>

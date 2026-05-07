@@ -41,13 +41,13 @@ export async function createStripeCheckoutSession({ req, payment, booking } = {}
     throw stripeError("Stripe is not configured. Add STRIPE_SECRET_KEY in Vercel and redeploy.", 503, "stripe_not_configured");
   }
   if (!payment?.id) {
-    throw stripeError("Create a deposit record before starting Stripe Checkout.", 400, "payment_required");
+    throw stripeError("Create a reservation payment record before starting Stripe Checkout.", 400, "payment_required");
   }
 
   const baseUrl = siteUrl(req);
-  const amount = Math.round(Number(payment.amount || booking?.totals?.deposit || 0) * 100);
+  const amount = Math.round(Number(payment.amount || booking?.totals?.reservationFee || 79) * 100);
   if (!Number.isFinite(amount) || amount < 50) {
-    throw stripeError("The reservation deposit amount is not valid.", 400, "invalid_deposit_amount");
+    throw stripeError("The reservation fee amount is not valid.", 400, "invalid_reservation_fee_amount");
   }
 
   const params = new URLSearchParams();
@@ -59,19 +59,21 @@ export async function createStripeCheckoutSession({ req, payment, booking } = {}
   appendFormValue(params, "line_items[0][quantity]", 1);
   appendFormValue(params, "line_items[0][price_data][currency]", (payment.currency || "GBP").toLowerCase());
   appendFormValue(params, "line_items[0][price_data][unit_amount]", amount);
-  appendFormValue(params, "line_items[0][price_data][product_data][name]", `Velaire reservation deposit - ${payment.vehicleName || booking?.vehicleName || "Selected vehicle"}`);
+  appendFormValue(params, "line_items[0][price_data][product_data][name]", `Velaire £79 reservation fee - ${payment.vehicleName || booking?.vehicleName || "Selected vehicle"}`);
   appendFormValue(
     params,
     "line_items[0][price_data][product_data][description]",
-    `Secure deposit for ${booking?.reference || payment.bookingReference || "Velaire reservation"}.`,
+    `Secure the reservation request for ${booking?.reference || payment.bookingReference || "Velaire reservation"}. Security deposit and rental balance are handled later by Velaire.`,
   );
   appendFormValue(params, "metadata[bookingId]", booking?.id || payment.bookingId);
   appendFormValue(params, "metadata[paymentId]", payment.id);
   appendFormValue(params, "metadata[bookingReference]", booking?.reference || payment.bookingReference);
   appendFormValue(params, "metadata[vehicleSlug]", booking?.vehicleSlug || payment.vehicleSlug);
+  appendFormValue(params, "metadata[paymentPurpose]", payment.purpose || "reservation_fee");
   appendFormValue(params, "payment_intent_data[metadata][bookingId]", booking?.id || payment.bookingId);
   appendFormValue(params, "payment_intent_data[metadata][paymentId]", payment.id);
   appendFormValue(params, "payment_intent_data[metadata][bookingReference]", booking?.reference || payment.bookingReference);
+  appendFormValue(params, "payment_intent_data[metadata][paymentPurpose]", payment.purpose || "reservation_fee");
 
   const response = await fetch(`${stripeApiBase}/checkout/sessions`, {
     method: "POST",
