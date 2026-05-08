@@ -66,6 +66,25 @@ const bookingSteps = [
   },
 ];
 
+const afterReservationItems = [
+  {
+    title: "Licence and age review",
+    text: "Velaire confirms the driver licence, age requirements and vehicle-specific eligibility before release.",
+  },
+  {
+    title: "Insurance suitability",
+    text: "The team reviews the booking profile and confirms the correct cover position before handover.",
+  },
+  {
+    title: "Deposit handled later",
+    text: "The £79 online payment is the reservation fee only. Security deposit is arranged directly with Velaire.",
+  },
+  {
+    title: "Rental balance confirmed",
+    text: "Daily hire balance, delivery details and any extras are finalised personally by the operations team.",
+  },
+];
+
 const seoServiceLinks = [
   { label: "Luxury car hire London", href: "luxury-car-hire-london.html" },
   { label: "Mayfair", href: "luxury-car-hire-mayfair.html" },
@@ -987,6 +1006,26 @@ function App() {
             <a className="primary-button full-button" href="booking.html" onClick={() => trackVelaireEvent("Booking Started", { source: "booking_band" })}>
               Start booking
             </a>
+          </div>
+        </section>
+
+        <section className="section">
+          <div className="section-heading">
+            <p className="eyebrow">After the £79 reservation fee</p>
+            <h2>Your reservation is secured. The final hire details are handled personally.</h2>
+            <p>
+              The online payment reserves the request and alerts Velaire Operations. Deposit,
+              insurance checks, driver eligibility and the rental balance are completed after review.
+            </p>
+          </div>
+          <div className="service-grid">
+            {afterReservationItems.map((item, index) => (
+              <article className="service-card" key={item.title}>
+                <span>{String(index + 1).padStart(2, "0")}</span>
+                <h3>{item.title}</h3>
+                <p>{item.text}</p>
+              </article>
+            ))}
           </div>
         </section>
 
