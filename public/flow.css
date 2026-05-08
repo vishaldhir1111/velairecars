@@ -578,6 +578,12 @@ h2 {
   line-height: 1.45;
 }
 
+.status-result-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 18px;
+}
+
 .status-next-step p {
   margin: 0;
   color: rgba(248, 242, 236, 0.78);
@@ -1736,6 +1742,7 @@ body.admin-drawer-open {
   text-transform: uppercase;
 }
 
+.admin-detail-form input,
 .admin-detail-form select,
 .admin-detail-form textarea {
   width: 100%;
@@ -1755,6 +1762,7 @@ body.admin-drawer-open {
   transition: border-color 180ms ease, background 180ms ease, box-shadow 180ms ease;
 }
 
+.admin-detail-form input,
 .admin-detail-form select {
   padding: 0 13px;
 }
@@ -1765,6 +1773,7 @@ body.admin-drawer-open {
   resize: vertical;
 }
 
+.admin-detail-form input:focus,
 .admin-detail-form select:focus,
 .admin-detail-form textarea:focus {
   border-color: rgba(215, 161, 140, 0.58);
@@ -1795,6 +1804,48 @@ body.admin-drawer-open {
   background:
     linear-gradient(145deg, rgba(215, 161, 140, 0.09), rgba(248, 242, 236, 0.028)),
     rgba(255, 255, 255, 0.025);
+}
+
+.admin-process-notes-card {
+  background:
+    linear-gradient(145deg, rgba(215, 161, 140, 0.1), rgba(248, 242, 236, 0.026)),
+    rgba(255, 255, 255, 0.025);
+}
+
+.admin-process-note-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.admin-process-note {
+  display: grid;
+  gap: 9px;
+  border: 1px solid rgba(248, 242, 236, 0.12);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.035);
+  padding: 12px;
+}
+
+.admin-process-note span {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--ivory);
+  font-size: 0.84rem;
+  line-height: 1.25;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.admin-process-note em {
+  flex: 0 0 auto;
+  color: rgba(215, 161, 140, 0.78);
+  font-style: normal;
+  font-size: 0.68rem;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .admin-checklist-grid {
@@ -3570,8 +3621,10 @@ body.admin-drawer-open {
 .secure-band,
 .notice-card,
 .conversion-panel,
+.eligibility-panel,
 .summary-assurance,
 .payment-trust-grid > div,
+.post-payment-panel,
 .checkout-timeline,
 .mini-summary {
   border: 1px solid rgba(215, 161, 140, 0.2);
@@ -3603,7 +3656,9 @@ body.admin-drawer-open {
 .notice-card,
 .mini-summary,
 .conversion-panel,
+.eligibility-panel,
 .summary-assurance,
+.post-payment-panel,
 .checkout-timeline,
 .secure-band {
   display: grid;
@@ -3632,7 +3687,10 @@ body.admin-drawer-open {
 }
 
 .conversion-panel span,
+.eligibility-panel span,
 .summary-assurance span,
+.post-payment-panel p,
+.post-payment-panel span,
 .button-reassurance {
   color: var(--muted);
   font-size: 0.9rem;
@@ -3681,6 +3739,58 @@ body.admin-drawer-open {
   margin-top: 16px;
   border-color: rgba(248, 242, 236, 0.1);
   background: rgba(248, 242, 236, 0.045);
+}
+
+.eligibility-panel,
+.post-payment-panel {
+  border-color: rgba(215, 161, 140, 0.18);
+  background:
+    linear-gradient(135deg, rgba(248, 242, 236, 0.05), rgba(215, 161, 140, 0.075)),
+    rgba(5, 5, 5, 0.22);
+}
+
+.eligibility-panel .compact-heading h2,
+.post-payment-panel h3 {
+  margin: 0;
+  color: var(--ivory);
+  font-size: clamp(1.15rem, 2vw, 1.65rem);
+  line-height: 1.08;
+}
+
+.post-payment-panel p {
+  margin: 0;
+}
+
+.eligibility-grid,
+.post-payment-steps {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.eligibility-item,
+.post-payment-steps > div {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+  border: 1px solid rgba(248, 242, 236, 0.1);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.035);
+  padding: 13px;
+}
+
+.eligibility-item strong,
+.post-payment-steps strong {
+  color: var(--ivory);
+  font-size: 0.86rem;
+  line-height: 1.25;
+}
+
+.eligibility-item span,
+.post-payment-steps span {
+  color: rgba(248, 242, 236, 0.62);
+  font-size: 0.78rem;
+  line-height: 1.45;
 }
 
 .payment-trust-grid {
@@ -4662,6 +4772,11 @@ body.admin-drawer-open {
     padding: 14px 16px;
   }
 
+  .eligibility-grid,
+  .post-payment-steps {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
   .guest-details-card,
   .location-picker {
     padding: 16px;
@@ -5083,7 +5198,8 @@ body.admin-drawer-open {
     grid-template-columns: 1fr;
   }
 
-  .admin-checklist-grid {
+  .admin-checklist-grid,
+  .admin-process-note-grid {
     grid-template-columns: 1fr;
   }
 
@@ -5153,8 +5269,16 @@ body.admin-drawer-open {
     grid-template-columns: 1fr;
   }
 
+  .eligibility-grid,
+  .post-payment-steps,
+  .admin-process-note-grid {
+    grid-template-columns: 1fr;
+  }
+
   .conversion-panel,
+  .eligibility-panel,
   .summary-assurance,
+  .post-payment-panel,
   .payment-trust-grid > div,
   .checkout-timeline,
   .notice-card,

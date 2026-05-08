@@ -2376,6 +2376,39 @@ const adminHandoverChecklist = [
   },
 ];
 
+const adminProcessNoteItems = [
+  {
+    key: "contacted",
+    label: "Contacted",
+    checklistKey: "customerContacted",
+    placeholder: "When and how the customer was contacted",
+  },
+  {
+    key: "licenceChecked",
+    label: "Licence checked",
+    checklistKey: "licenceChecked",
+    placeholder: "Licence status, country, expiry or manual review note",
+  },
+  {
+    key: "depositPaid",
+    label: "Deposit paid",
+    checklistKey: "depositConfirmed",
+    placeholder: "Security deposit amount, method or timing note",
+  },
+  {
+    key: "rentalPaid",
+    label: "Rental paid",
+    checklistKey: "rentalPaid",
+    placeholder: "Rental balance amount, method or settlement note",
+  },
+  {
+    key: "handoverComplete",
+    label: "Handover complete",
+    checklistKey: "handoverCompleted",
+    placeholder: "Key release, condition check or handover close-out note",
+  },
+];
+
 let adminState = { bookings: [], vehicles: [], customers: [], payments: [], notifications: [], auditLog: [], selectedBookingId: "" };
 let adminFilters = { query: "", status: "all", payment: "all", followUp: "all", date: "", view: "all" };
 
@@ -2889,6 +2922,105 @@ function printReceipt(booking = {}, payment = null, options = {}) {
   }, 80);
 }
 
+function pdfSafeText(value = "") {
+  return String(value ?? "")
+    .replace(/£/g, "GBP ")
+    .replace(/[^\x20-\x7E]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/\\/g, "\\\\")
+    .replace(/\(/g, "\\(")
+    .replace(/\)/g, "\\)");
+}
+
+function wrapPdfText(value = "", limit = 74) {
+  const words = String(value || "").replace(/£/g, "GBP ").split(/\s+/).filter(Boolean);
+  const lines = [];
+  let line = "";
+  for (const word of words) {
+    const next = line ? `${line} ${word}` : word;
+    if (next.length > limit && line) {
+      lines.push(line);
+      line = word;
+    } else {
+      line = next;
+    }
+  }
+  if (line) lines.push(line);
+  return lines.length ? lines : ["Not supplied"];
+}
+
+function pdfTextLine(text, x, y, size = 10, font = "F1") {
+  return `BT /${font} ${size} Tf ${x} ${y} Td (${pdfSafeText(text)}) Tj ET`;
+}
+
+function receiptPdfContent(booking = {}, payment = null, { title = "Reservation fee receipt", subtitle = "Velaire Cars" } = {}) {
+  const rows = bookingReceiptRows(booking, payment);
+  const commands = [
+    "0.08 0.06 0.05 rg 0 0 595 842 re f",
+    "0.96 0.94 0.9 rg",
+    "0.84 0.63 0.55 RG 46 782 m 549 782 l S",
+    pdfTextLine("Velaire Cars", 46, 802, 18, "F2"),
+    pdfTextLine("Concierge handover, depart with class", 46, 784, 9, "F1"),
+    pdfTextLine(subtitle, 46, 730, 10, "F2"),
+    pdfTextLine(title, 46, 704, 24, "F2"),
+  ];
+  let y = 660;
+  for (const [label, value] of rows) {
+    if (y < 92) break;
+    commands.push("0.84 0.63 0.55 RG 46 " + (y + 16) + " m 549 " + (y + 16) + " l S");
+    commands.push(pdfTextLine(label, 46, y, 8, "F2"));
+    const valueLines = wrapPdfText(value, 62);
+    valueLines.slice(0, 3).forEach((line, index) => {
+      commands.push(pdfTextLine(line, 190, y - index * 13, 10, "F1"));
+    });
+    y -= Math.max(30, valueLines.slice(0, 3).length * 13 + 14);
+  }
+  commands.push(pdfTextLine("The GBP 79 reservation fee secures the booking request. Security deposit, licence eligibility, insurance checks and rental balance are handled by Velaire after concierge review.", 46, 58, 8, "F1"));
+  return commands.join("\n");
+}
+
+function buildSimplePdf(content = "") {
+  const objects = [
+    "<< /Type /Catalog /Pages 2 0 R >>",
+    "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+    "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R /F2 5 0 R >> >> /Contents 6 0 R >>",
+    "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+    "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>",
+    `<< /Length ${content.length} >>\nstream\n${content}\nendstream`,
+  ];
+  let pdf = "%PDF-1.4\n";
+  const offsets = [0];
+  objects.forEach((object, index) => {
+    offsets.push(pdf.length);
+    pdf += `${index + 1} 0 obj\n${object}\nendobj\n`;
+  });
+  const xrefOffset = pdf.length;
+  pdf += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`;
+  offsets.slice(1).forEach((offset) => {
+    pdf += `${String(offset).padStart(10, "0")} 00000 n \n`;
+  });
+  pdf += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`;
+  return pdf;
+}
+
+function downloadReceiptPdf(booking = {}, payment = null, options = {}) {
+  const reference = String(booking.reference || booking.id || "velaire-receipt")
+    .toLowerCase()
+    .replace(/[^a-z0-9-]+/g, "-")
+    .replace(/^-|-$/g, "");
+  const pdf = buildSimplePdf(receiptPdfContent(booking, payment, options));
+  const blob = new Blob([pdf], { type: "application/pdf" });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = `${reference || "velaire-receipt"}.pdf`;
+  document.body.appendChild(link);
+  link.click();
+  const blobUrl = link.href;
+  link.remove();
+  window.setTimeout(() => URL.revokeObjectURL(blobUrl), 500);
+}
+
 function adminDetailRow(label, value) {
   return `
     <div class="admin-detail-row">
@@ -2934,6 +3066,29 @@ function adminChecklistMarkup(booking = {}) {
         </label>
       `,
     )
+    .join("");
+}
+
+function adminProcessNotesMarkup(booking = {}) {
+  const checklist = booking.operationsChecklist || {};
+  const notes = booking.processNotes || {};
+  return adminProcessNoteItems
+    .map((item) => {
+      const complete = Boolean(checklist[item.checklistKey]);
+      return `
+        <label class="admin-process-note">
+          <span>
+            <strong>${escapeHtml(item.label)}</strong>
+            <em>${complete ? "Complete" : "Pending"}</em>
+          </span>
+          <input
+            name="${escapeHtml(item.key)}"
+            value="${escapeHtml(notes[item.key] || "")}"
+            placeholder="${escapeHtml(item.placeholder)}"
+          />
+        </label>
+      `;
+    })
     .join("");
 }
 
@@ -3042,6 +3197,16 @@ function renderAdminBookingDetail(bookingId = adminState.selectedBookingId) {
       </form>
     </section>
 
+    <section class="admin-detail-card admin-detail-card-wide admin-process-notes-card">
+      <p class="admin-record-kicker">Staff process notes</p>
+      <form class="admin-detail-form admin-process-notes-form" data-admin-process-notes-form data-booking-id="${escapeHtml(booking.id)}">
+        <div class="admin-process-note-grid">
+          ${adminProcessNotesMarkup(booking)}
+        </div>
+        <button type="submit">Save process notes</button>
+      </form>
+    </section>
+
     <section class="admin-detail-card admin-detail-card-wide admin-checklist-card">
       <p class="admin-record-kicker">Staff handover checklist</p>
       <form class="admin-detail-form admin-checklist-form" data-admin-booking-checklist-form data-booking-id="${escapeHtml(booking.id)}">
@@ -3061,12 +3226,15 @@ function renderAdminBookingDetail(bookingId = adminState.selectedBookingId) {
 
     <div class="admin-detail-actions">
       <button type="button" data-admin-print-booking data-booking-id="${escapeHtml(booking.id)}">Print summary</button>
+      <button type="button" data-admin-download-receipt data-booking-id="${escapeHtml(booking.id)}">Download receipt PDF</button>
       <button type="button" data-admin-booking-action="approve" data-booking-id="${escapeHtml(booking.id)}">Approve booking</button>
       <button type="button" data-admin-booking-action="reject" data-booking-id="${escapeHtml(booking.id)}">Reject booking</button>
       <button type="button" data-admin-booking-action="cancel" data-booking-id="${escapeHtml(booking.id)}">Cancel booking</button>
       <button type="button" data-admin-booking-action="complete" data-booking-id="${escapeHtml(booking.id)}">Mark complete</button>
+      <button type="button" data-admin-booking-action="licence_checked" data-booking-id="${escapeHtml(booking.id)}">Licence checked</button>
       <button type="button" data-admin-booking-action="deposit_paid" data-booking-id="${escapeHtml(booking.id)}">Deposit paid</button>
       <button type="button" data-admin-booking-action="rental_paid" data-booking-id="${escapeHtml(booking.id)}">Rental paid</button>
+      <button type="button" data-admin-booking-action="handover_complete" data-booking-id="${escapeHtml(booking.id)}">Handover complete</button>
       <button type="button" data-admin-booking-action="refund_pending" data-booking-id="${escapeHtml(booking.id)}">Refund pending</button>
       <button type="button" data-admin-booking-action="refunded" data-booking-id="${escapeHtml(booking.id)}">Mark refunded</button>
       <button type="button" data-admin-booking-action="customer_contacted" data-booking-id="${escapeHtml(booking.id)}">Customer contacted</button>
@@ -3214,9 +3382,10 @@ function setupAdmin() {
     const vehicleForm = event.target.closest("[data-admin-vehicle-form]");
     const blockForm = event.target.closest("[data-admin-block-form]");
     const followupForm = event.target.closest("[data-admin-booking-followup-form]");
+    const processNotesForm = event.target.closest("[data-admin-process-notes-form]");
     const checklistForm = event.target.closest("[data-admin-booking-checklist-form]");
     const manualBookingForm = event.target.closest("[data-admin-manual-booking-form]");
-    if (!vehicleForm && !blockForm && !followupForm && !checklistForm && !manualBookingForm) return;
+    if (!vehicleForm && !blockForm && !followupForm && !processNotesForm && !checklistForm && !manualBookingForm) return;
     event.preventDefault();
     const data = new FormData(event.target);
     const slug = event.target.dataset.slug;
@@ -3264,6 +3433,24 @@ function setupAdmin() {
         followUpStatus: String(data.get("followUpStatus") || "new"),
       });
       showFlowToast("Booking follow-up saved.");
+      await refreshAdmin();
+      return;
+    }
+    if (processNotesForm) {
+      const processNotes = Object.fromEntries(
+        adminProcessNoteItems.map((item) => [item.key, data.get(item.key) || ""]),
+      );
+      await apiRequest("/api/admin/bookings", {
+        method: "PATCH",
+        body: JSON.stringify({
+          id: processNotesForm.dataset.bookingId,
+          patch: { processNotes },
+        }),
+      });
+      trackVelaireEvent("Admin Process Notes Updated", {
+        completedNotes: Object.values(processNotes).filter(Boolean).length,
+      });
+      showFlowToast("Staff process notes saved.");
       await refreshAdmin();
       return;
     }
@@ -3331,6 +3518,7 @@ function setupAdmin() {
     const bookingAction = event.target.closest("[data-admin-booking-action]");
     const emailAction = event.target.closest("[data-admin-email-kind]");
     const printBooking = event.target.closest("[data-admin-print-booking]");
+    const downloadReceipt = event.target.closest("[data-admin-download-receipt]");
     const exportBookings = event.target.closest("[data-admin-export-bookings]");
     const exportCustomers = event.target.closest("[data-admin-export-customers]");
     const exportPayments = event.target.closest("[data-admin-export-payments]");
@@ -3371,6 +3559,21 @@ function setupAdmin() {
         subtitle: "Operations receipt",
       });
       trackVelaireEvent("Admin Booking Summary Printed", {
+        hasBooking: true,
+      });
+      return;
+    }
+    if (downloadReceipt) {
+      const booking = adminState.bookings.find((item) => item.id === downloadReceipt.dataset.bookingId);
+      if (!booking) {
+        showFlowToast("Receipt could not be found.", "warning");
+        return;
+      }
+      downloadReceiptPdf(booking, bookingPaymentRecord(booking), {
+        title: `${booking.reference || "Velaire"} receipt`,
+        subtitle: "Reservation fee receipt",
+      });
+      trackVelaireEvent("Admin Receipt Pdf Downloaded", {
         hasBooking: true,
       });
       return;
@@ -3598,6 +3801,18 @@ function setupSuccess() {
       paymentStatus: booking.paymentStatus,
     });
   });
+
+  document.querySelector("[data-download-confirmation]")?.addEventListener("click", () => {
+    const booking = bookingFromReservation();
+    downloadReceiptPdf(booking, null, {
+      title: `${booking.reference || "Velaire"} receipt`,
+      subtitle: "Reservation fee receipt",
+    });
+    trackVelaireEvent("Customer Receipt Pdf Downloaded", {
+      vehicle: booking.vehicleSlug,
+      paymentStatus: booking.paymentStatus,
+    });
+  });
 }
 
 function customerStatusNextStep(booking = {}, payment = null) {
@@ -3627,9 +3842,12 @@ function customerStatusNextStep(booking = {}, payment = null) {
   return "Your reservation is with Velaire operations for final concierge review.";
 }
 
+let latestStatusLookupResult = null;
+
 function renderCustomerStatus(result = {}) {
   const target = document.querySelector("[data-status-result]");
   if (!target) return;
+  latestStatusLookupResult = result;
   const booking = result.booking || {};
   const payment = result.payment || null;
   const totals = booking.totals || {};
@@ -3681,6 +3899,9 @@ function renderCustomerStatus(result = {}) {
         <span>Next step</span>
         <p>${escapeHtml(customerStatusNextStep(booking, payment))}</p>
       </div>
+      <div class="status-result-actions">
+        <button class="secondary-button" type="button" data-status-download-receipt>Download receipt PDF</button>
+      </div>
     </article>
   `;
 }
@@ -3729,6 +3950,18 @@ function setupStatus() {
         submit.textContent = original;
       }
     }
+  });
+
+  document.addEventListener("click", (event) => {
+    const download = event.target.closest("[data-status-download-receipt]");
+    if (!download || !latestStatusLookupResult?.booking) return;
+    downloadReceiptPdf(latestStatusLookupResult.booking, latestStatusLookupResult.payment || null, {
+      title: `${latestStatusLookupResult.booking.reference || "Velaire"} receipt`,
+      subtitle: "Reservation fee receipt",
+    });
+    trackVelaireEvent("Customer Status Receipt Pdf Downloaded", {
+      hasBooking: true,
+    });
   });
 }
 

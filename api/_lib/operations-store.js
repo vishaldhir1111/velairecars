@@ -258,12 +258,23 @@ function normaliseOperationsChecklist(checklist = {}) {
   };
 }
 
+function normaliseProcessNotes(notes = {}) {
+  return {
+    contacted: String(notes.contacted || "").slice(0, 500),
+    licenceChecked: String(notes.licenceChecked || "").slice(0, 500),
+    depositPaid: String(notes.depositPaid || "").slice(0, 500),
+    rentalPaid: String(notes.rentalPaid || "").slice(0, 500),
+    handoverComplete: String(notes.handoverComplete || "").slice(0, 500),
+  };
+}
+
 function normaliseBookingRecord(booking = {}) {
   return {
     ...booking,
     totals: publicTotals(booking.totals || {}),
     timeline: Array.isArray(booking.timeline) ? booking.timeline : [],
     operationsChecklist: normaliseOperationsChecklist(booking.operationsChecklist || {}),
+    processNotes: normaliseProcessNotes(booking.processNotes || {}),
   };
 }
 
@@ -283,6 +294,7 @@ function publicBooking(booking = {}) {
     followUpStatus: safeBooking.followUpStatus || "new",
     internalNotes: safeBooking.internalNotes || "",
     operationsChecklist: safeBooking.operationsChecklist,
+    processNotes: safeBooking.processNotes,
     paymentIntentId: safeBooking.paymentIntentId || "",
     pickup: safeBooking.pickup || "",
     pickupTime: safeBooking.pickupTime || "",
@@ -643,6 +655,7 @@ export async function createBookingRecord({ userId = null, reservation = {}, sta
       followUpStatus: "new",
       internalNotes: "",
       operationsChecklist: normaliseOperationsChecklist(),
+      processNotes: normaliseProcessNotes(),
       pickup: reservation.pickup || "",
       pickupTime: reservation.pickupTime || "",
       return: reservation.return || "",
@@ -739,6 +752,12 @@ export async function updateBookingRecord(idValue, patch = {}) {
         ...bookingPatch.operationsChecklist,
       });
     }
+    if (bookingPatch.processNotes) {
+      bookingPatch.processNotes = normaliseProcessNotes({
+        ...(booking.processNotes || {}),
+        ...bookingPatch.processNotes,
+      });
+    }
     const paymentStatusChanged = Object.prototype.hasOwnProperty.call(bookingPatch, "paymentStatus");
     Object.assign(booking, bookingPatch, { updatedAt: now() });
     if (paymentStatusChanged) {
@@ -756,6 +775,8 @@ export async function updateBookingRecord(idValue, patch = {}) {
         ? `Follow-up changed to ${bookingPatch.followUpStatus}`
         : Object.prototype.hasOwnProperty.call(bookingPatch, "operationsChecklist")
           ? "Handover checklist updated"
+        : Object.prototype.hasOwnProperty.call(bookingPatch, "processNotes")
+          ? "Staff process notes updated"
         : Object.prototype.hasOwnProperty.call(bookingPatch, "internalNotes")
           ? "Internal notes updated"
           : "Booking updated";
@@ -767,6 +788,8 @@ export async function updateBookingRecord(idValue, patch = {}) {
           ? "payment_status_updated"
           : Object.prototype.hasOwnProperty.call(bookingPatch, "operationsChecklist")
             ? "handover_checklist_updated"
+          : Object.prototype.hasOwnProperty.call(bookingPatch, "processNotes")
+            ? "staff_process_notes_updated"
             : "booking_updated",
       label: auditLabel || updateLabel,
       actor: auditActor,
@@ -778,6 +801,7 @@ export async function updateBookingRecord(idValue, patch = {}) {
         before.paymentStatus !== booking.paymentStatus ? `Payment ${before.paymentStatus || "unset"} to ${booking.paymentStatus || "unset"}` : "",
         before.followUpStatus !== booking.followUpStatus ? `Follow-up ${before.followUpStatus || "unset"} to ${booking.followUpStatus || "unset"}` : "",
         Object.prototype.hasOwnProperty.call(bookingPatch, "operationsChecklist") ? "Staff handover checklist changed" : "",
+        Object.prototype.hasOwnProperty.call(bookingPatch, "processNotes") ? "Staff process notes changed" : "",
         Object.prototype.hasOwnProperty.call(bookingPatch, "internalNotes") ? "Internal notes changed" : "",
       ]
         .filter(Boolean)
